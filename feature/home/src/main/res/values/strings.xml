@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="home_screen_game_image">%1$s Game image</string>
+    <string name="home_screen_store_banner">%1$s Store banner</string>
+    <string name="home_screen_floating_search_icon">Floating search button</string>
+
+    <string name="home_screen_all_store_deals_label">View All %1$s deals</string>
+
+</resources>
