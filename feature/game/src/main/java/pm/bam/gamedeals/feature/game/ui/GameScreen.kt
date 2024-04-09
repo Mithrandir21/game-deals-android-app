@@ -27,6 +27,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -37,9 +40,12 @@ import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -78,11 +84,14 @@ internal fun GameScreen(
     val data = viewModel.uiState.collectAsStateWithLifecycle()
     val windowInfo: WindowAdaptiveInfo = currentWindowAdaptiveInfo()
 
+    val onRetry: () -> Unit = { viewModel.reloadGameDetails(gameId) }
+
     ScreenScaffold(
         windowWidth = windowInfo.windowSizeClass.widthSizeClass,
         data = data.value,
         onBack = onBack,
-        goToWeb = goToWeb
+        goToWeb = goToWeb,
+        onRetry = onRetry
     )
 }
 
@@ -288,11 +297,14 @@ private fun ScreenScaffold(
     data: GameScreenData,
     onBack: () -> Unit,
     goToWeb: (url: String, gameTitle: String) -> Unit,
+    onRetry: () -> Unit
 ) {
+    val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
 
     val title = when (data) {
-        is GameScreenData.Loading -> stringResource(R.string.game_screen_toolbar_title_loading)
+        GameScreenData.Loading, GameScreenData.Error -> stringResource(R.string.game_screen_toolbar_title_loading)
         is GameScreenData.Data -> data.gameDetails.info.title
     }
 
@@ -320,11 +332,12 @@ private fun ScreenScaffold(
                         },
                         scrollBehavior = scrollBehavior,
                     )
-                }
+                },
+                snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
             ) { innerPadding: PaddingValues ->
                 data.let { screenData ->
                     when (screenData) {
-                        is GameScreenData.Loading -> CircularProgressIndicator(
+                        GameScreenData.Loading -> CircularProgressIndicator(
                             modifier = Modifier
                                 .padding(innerPadding)
                                 .fillMaxSize()
@@ -332,12 +345,23 @@ private fun ScreenScaffold(
                                 .testTag(LoadingDataTag)
                         )
 
+                        GameScreenData.Error -> LaunchedEffect(snackbarHostState) {
+                            val results = snackbarHostState.showSnackbar(
+                                message = context.getString(R.string.game_screen_data_loading_error_msg),
+                                actionLabel = context.getString(R.string.game_screen_data_loading_error_retry)
+                            )
+                            if (results == SnackbarResult.ActionPerformed) {
+                                onRetry()
+                            }
+                        }
+
                         is GameScreenData.Data -> {
                             when (windowWidth) {
                                 WindowWidthSizeClass.Compact -> CompactGameDealsDetails(Modifier.padding(innerPadding), screenData, goToWeb)
                                 else -> WideGameDealsDetails(Modifier.padding(innerPadding), screenData, goToWeb)
                             }
                         }
+
                     }
                 }
             }
@@ -353,7 +377,20 @@ private fun PreviewLoading() {
         windowWidth = WindowWidthSizeClass.Compact,
         data = GameScreenData.Loading,
         onBack = {},
-        goToWeb = { _, _ -> }
+        goToWeb = { _, _ -> },
+        onRetry = {}
+    )
+}
+
+@PhonePortrait
+@Composable
+private fun PreviewError() {
+    ScreenScaffold(
+        windowWidth = WindowWidthSizeClass.Compact,
+        data = GameScreenData.Error,
+        onBack = {},
+        goToWeb = { _, _ -> },
+        onRetry = {}
     )
 }
 
@@ -367,7 +404,8 @@ private fun PreviewCompact() {
             dealDetails = List(19) { PreviewStore to PreviewGameDeal }
         ),
         onBack = {},
-        goToWeb = { _, _ -> }
+        goToWeb = { _, _ -> },
+        onRetry = {}
     )
 }
 
@@ -382,7 +420,8 @@ private fun PreviewMedium() {
             dealDetails = List(19) { PreviewStore to PreviewGameDeal }
         ),
         onBack = {},
-        goToWeb = { _, _ -> }
+        goToWeb = { _, _ -> },
+        onRetry = {}
     )
 }
 
@@ -398,7 +437,8 @@ private fun PreviewExpanded() {
             dealDetails = List(19) { PreviewStore to PreviewGameDeal }
         ),
         onBack = {},
-        goToWeb = { _, _ -> }
+        goToWeb = { _, _ -> },
+        onRetry = {}
     )
 }
 

@@ -8,6 +8,7 @@ import androidx.compose.ui.test.hasTextExactly
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onChildren
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.espresso.device.DeviceInteraction.Companion.setScreenOrientation
 import androidx.test.espresso.device.EspressoDevice.Companion.onDevice
@@ -79,6 +80,7 @@ class GameScreenTest {
     @Before
     fun setup() {
         every { viewModel.loadGameDetails(any()) } just runs
+        every { viewModel.reloadGameDetails(any()) } just runs
     }
 
     @Test
@@ -113,6 +115,47 @@ class GameScreenTest {
 
         verify(exactly = 1) { viewModel.loadGameDetails(gameId) }
         verify(exactly = 1) { viewModel.uiState }
+    }
+
+    @Test
+    fun errorState() {
+        val gameId = 1
+
+        every { viewModel.uiState } returns MutableStateFlow(GameViewModel.GameScreenData.Error)
+
+        var snackText = ""
+        var snackRetry = ""
+
+        composeTestRule.setContent {
+            snackText = stringResource(id = R.string.game_screen_data_loading_error_msg)
+            snackRetry = stringResource(id = R.string.game_screen_data_loading_error_retry)
+
+            GameDealsTheme {
+                GameScreen(
+                    gameId = gameId,
+                    onBack = {},
+                    goToWeb = { _, _ -> },
+                    viewModel = viewModel,
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText(snackText)
+            .assertIsDisplayed()
+
+        composeTestRule.onNodeWithText(snackRetry)
+            .assertIsDisplayed()
+
+        verify(exactly = 1) { viewModel.loadGameDetails(gameId) }
+        verify(exactly = 0) { viewModel.reloadGameDetails(gameId) }
+        verify(exactly = 1) { viewModel.uiState }
+
+        // Retry button clicked
+        composeTestRule.onNodeWithText(snackRetry)
+            .assertIsDisplayed()
+            .performClick()
+
+        verify(exactly = 1) { viewModel.reloadGameDetails(gameId) }
     }
 
 

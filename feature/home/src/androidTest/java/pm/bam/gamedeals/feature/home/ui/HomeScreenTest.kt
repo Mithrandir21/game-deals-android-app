@@ -1,9 +1,11 @@
 package pm.bam.gamedeals.feature.home.ui
 
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.test.espresso.device.DeviceInteraction.Companion.setScreenOrientation
 import androidx.test.espresso.device.EspressoDevice.Companion.onDevice
 import androidx.test.espresso.device.action.ScreenOrientation
@@ -15,6 +17,7 @@ import org.junit.Rule
 import org.junit.Test
 import pm.bam.gamedeals.domain.models.Deal
 import pm.bam.gamedeals.domain.models.Store
+import pm.bam.gamedeals.feature.home.R
 import pm.bam.gamedeals.feature.home.ui.HomeViewModel.HomeScreenData
 import pm.bam.gamedeals.feature.home.ui.HomeViewModel.HomeScreenListData
 import pm.bam.gamedeals.feature.home.ui.HomeViewModel.HomeScreenStatus
@@ -87,6 +90,46 @@ class HomeScreenTest {
             .assertIsNotDisplayed()
 
         composeTestRule.onNodeWithTag(HomeScreenLoadingTag)
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun errorState() {
+        val mockData = HomeScreenData(state = HomeScreenStatus.ERROR)
+
+        every { viewModel.uiState } returns MutableStateFlow(mockData)
+
+        var snackText = ""
+        var snackRetry = ""
+
+        composeTestRule.setContent {
+            snackText = stringResource(id = R.string.home_screen_data_loading_error_msg)
+            snackRetry = stringResource(id = R.string.home_screen_data_loading_error_retry)
+
+            HomeScreen(
+                onSearch = {},
+                onViewStoreDeals = {},
+                goToWeb = { _, _ -> },
+                viewModel = viewModel
+            )
+        }
+
+        composeTestRule.onNodeWithTag(HomeScreenStoreBannerTag.plus(storeId))
+            .assertIsNotDisplayed()
+
+        composeTestRule.onNodeWithTag(HomeScreenDealRowTag.plus(dealId))
+            .assertIsNotDisplayed()
+
+        composeTestRule.onNodeWithTag(HomeScreenViewAllButtonTag.plus(storeId))
+            .assertIsNotDisplayed()
+
+        composeTestRule.onNodeWithTag(HomeScreenLoadingTag)
+            .assertIsNotDisplayed()
+
+        composeTestRule.onNodeWithText(snackText)
+            .assertIsDisplayed()
+
+        composeTestRule.onNodeWithText(snackRetry)
             .assertIsDisplayed()
     }
 

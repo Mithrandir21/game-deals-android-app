@@ -44,26 +44,36 @@ internal class HomeViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            flow { emitAll(storesRepository.observeStores()) }
-                .map { listOfStores -> listOfStores.filter { topStores.contains(it.storeID) } }
-                .map { listOfStores -> listOfStores.map { it to dealsRepository.getStoreDeals(it.storeID, LIMIT_DEALS) } }
-                .map {
-                    val data = mutableListOf<HomeScreenListData>()
-
-                    it.forEach { (store, deals) ->
-                        data.add(HomeScreenListData.StoreData(store))
-                        data.addAll(deals.map { deal -> HomeScreenListData.DealData(deal) })
-                        data.add(HomeScreenListData.ViewAllData(store))
-                    }
-
-                    return@map data
-                }
-                .map { HomeScreenData(items = it) }
-                .onError { fatal(logger, it) }
-                .catch { emit(HomeScreenData(state = HomeScreenStatus.ERROR)) }
+            loadTopStoreDataFlow()
                 .collect { _uiState.emit(it) }
         }
     }
+
+    fun loadTopStoresDeals() =
+        viewModelScope.launch {
+            loadTopStoreDataFlow()
+                .onStart { emit(_uiState.value.copy(state = HomeScreenStatus.LOADING)) }
+                .collect { _uiState.emit(it) }
+        }
+
+    private fun loadTopStoreDataFlow() =
+        flow { emitAll(storesRepository.observeStores()) }
+            .map { listOfStores -> listOfStores.filter { topStores.contains(it.storeID) } }
+            .map { listOfStores -> listOfStores.map { it to dealsRepository.getStoreDeals(it.storeID, LIMIT_DEALS) } }
+            .map {
+                val data = mutableListOf<HomeScreenListData>()
+
+                it.forEach { (store, deals) ->
+                    data.add(HomeScreenListData.StoreData(store))
+                    data.addAll(deals.map { deal -> HomeScreenListData.DealData(deal) })
+                    data.add(HomeScreenListData.ViewAllData(store))
+                }
+
+                return@map data
+            }
+            .map { HomeScreenData(state = HomeScreenStatus.SUCCESS, items = it) }
+            .onError { fatal(logger, it) }
+            .catch { emit(HomeScreenData(state = HomeScreenStatus.ERROR)) }
 
     fun loadDealDetails(deal: Deal) =
         viewModelScope.launch {

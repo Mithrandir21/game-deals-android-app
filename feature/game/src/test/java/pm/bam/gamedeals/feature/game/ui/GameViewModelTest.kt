@@ -46,6 +46,28 @@ class GameViewModelTest {
 
 
     @Test
+    fun `error state`() = runTest {val gameId = 1
+        coEvery { gamesRepository.getGameDetails(gameId) } throws Exception()
+
+        val emissions = viewModel.uiState.observeEmissions(this.backgroundScope, mainDispatcherRule.testDispatcher)
+
+        assertEquals(1, emissions.size)
+        assertEquals(GameViewModel.GameScreenData.Loading, emissions.first())
+
+        viewModel.loadGameDetails(gameId)
+
+        assertEquals(1, emissions.size)
+        assertEquals(GameViewModel.GameScreenData.Loading, emissions.first())
+
+        delay(1200) // Delay because Flow 'delayOnStart'
+
+        assertEquals(2, emissions.size)
+        assertEquals(GameViewModel.GameScreenData.Loading, emissions.first())
+        assertEquals(GameViewModel.GameScreenData.Error, emissions.second())
+    }
+
+
+    @Test
     fun `game load`() = runTest {
         val gameId = 1
         val storeId = 2
@@ -59,17 +81,42 @@ class GameViewModelTest {
 
         val emissions = viewModel.uiState.observeEmissions(this.backgroundScope, mainDispatcherRule.testDispatcher)
 
-        assertEquals(emissions.size, 1)
+        assertEquals(1, emissions.size)
         assertEquals(GameViewModel.GameScreenData.Loading, emissions.first())
 
         viewModel.loadGameDetails(gameId)
 
-        assertEquals(emissions.size, 1)
+        assertEquals(1, emissions.size)
         assertEquals(GameViewModel.GameScreenData.Loading, emissions.first())
 
         delay(1200) // Delay because Flow 'delayOnStart'
 
-        assertEquals(emissions.size, 2)
+        assertEquals(2, emissions.size)
+        assertEquals(GameViewModel.GameScreenData.Loading, emissions.first())
+        assertEquals(GameViewModel.GameScreenData.Data(gameDetails, listOf(store to gameDeals)), emissions.second())
+    }
+
+
+    @Test
+    fun `game reload`() = runTest {
+        val gameId = 1
+        val storeId = 2
+        val store: Store = mockk()
+        val gameDeals: GameDetails.GameDeal = mockk { every { storeID } returns storeId }
+        val dealsList = listOf(gameDeals)
+        val gameDetails: GameDetails = mockk { every { deals } returns dealsList }
+
+        coEvery { gamesRepository.getGameDetails(gameId) } returns gameDetails
+        coEvery { storesRepository.getStore(storeId) } returns store
+
+        val emissions = viewModel.uiState.observeEmissions(this.backgroundScope, mainDispatcherRule.testDispatcher)
+
+        assertEquals(1, emissions.size)
+        assertEquals(GameViewModel.GameScreenData.Loading, emissions.first())
+
+        viewModel.reloadGameDetails(gameId)
+
+        assertEquals(2, emissions.size)
         assertEquals(GameViewModel.GameScreenData.Loading, emissions.first())
         assertEquals(GameViewModel.GameScreenData.Data(gameDetails, listOf(store to gameDeals)), emissions.second())
     }

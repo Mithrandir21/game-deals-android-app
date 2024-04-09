@@ -24,6 +24,7 @@ import pm.bam.gamedeals.feature.home.ui.HomeViewModel.HomeScreenListData
 import pm.bam.gamedeals.feature.home.ui.HomeViewModel.HomeScreenStatus
 import pm.bam.gamedeals.testing.MainCoroutineRule
 import pm.bam.gamedeals.testing.TestingLoggingListener
+import pm.bam.gamedeals.testing.utils.fourth
 import pm.bam.gamedeals.testing.utils.observeEmissions
 import pm.bam.gamedeals.testing.utils.second
 import pm.bam.gamedeals.testing.utils.third
@@ -50,9 +51,11 @@ class HomeViewModelTest {
         viewModel = HomeViewModel(storesRepository, dealsRepository, logger)
 
         val emissions = observeStates()
-        assertEquals(1, emissions.size)
+        assertEquals(2, emissions.size)
         assertNotNull(emissions.first())
         assertEquals(HomeScreenData(state = HomeScreenStatus.LOADING), emissions.first())
+        assertNotNull(emissions.second())
+        assertEquals(HomeScreenData(state = HomeScreenStatus.SUCCESS), emissions.second())
 
         coVerify(exactly = 1) { storesRepository.observeStores() }
         coVerify(exactly = 0) { dealsRepository.getStoreDeals(any(), any()) }
@@ -82,7 +85,7 @@ class HomeViewModelTest {
 
         assertEquals(2, emissions.size)
         assertNotNull(emissions.second())
-        assertEquals(HomeScreenData(items = data), emissions.second())
+        assertEquals(HomeScreenData(state = HomeScreenStatus.SUCCESS, items = data), emissions.second())
 
 
         coVerify(exactly = 1) { storesRepository.observeStores() }
@@ -145,22 +148,22 @@ class HomeViewModelTest {
         viewModel.loadDealDetails(deal)
 
 
-        assertEquals(2, emissions.size)
-        assertNotNull(emissions.second())
-        assertEquals(HomeScreenData(dealDetailsData = DealBottomSheetData.DealDetailsLoading(
+        assertEquals(3, emissions.size)
+        assertNotNull(emissions.third())
+        assertEquals(HomeScreenData(state = HomeScreenStatus.SUCCESS, dealDetailsData = DealBottomSheetData.DealDetailsLoading(
             store = store,
             gameName = dealTitle,
             dealId = dealId,
             gameSalesPriceDenominated = dealPriceDenominated
-        )), emissions.second())
+        )), emissions.third())
 
 
         // Advance time to trigger the next emission as the delay is 750ms
         mainCoroutineRule.testDispatcher.scheduler.advanceTimeBy(1000)
 
-        assertEquals(3, emissions.size)
-        assertNotNull(emissions.third())
-        assertEquals(HomeScreenData(dealDetailsData = DealBottomSheetData.DealDetailsData(
+        assertEquals(4, emissions.size)
+        assertNotNull(emissions.fourth())
+        assertEquals(HomeScreenData(state = HomeScreenStatus.SUCCESS, dealDetailsData = DealBottomSheetData.DealDetailsData(
             store = store,
             gameName = dealTitle,
             dealId = dealId,
@@ -168,7 +171,7 @@ class HomeViewModelTest {
             gameInfo = dealGameInfo,
             cheapestPrice = cheapestDeal,
             cheaperStores = listOf(cheapestDealStore).map { store to it }
-        )), emissions.third())
+        )), emissions.fourth())
 
 
         coVerify(exactly = 1) { storesRepository.observeStores() }
@@ -194,9 +197,9 @@ class HomeViewModelTest {
         viewModel.loadDealDetails(deal)
 
 
-        assertEquals(2, emissions.size)
-        assertNotNull(emissions.second())
-        assertEquals(HomeScreenData(state = HomeScreenStatus.ERROR), emissions.second())
+        assertEquals(3, emissions.size)
+        assertNotNull(emissions.third())
+        assertEquals(HomeScreenData(state = HomeScreenStatus.ERROR), emissions.third())
 
 
         coVerify(exactly = 1) { storesRepository.observeStores() }
@@ -216,9 +219,11 @@ class HomeViewModelTest {
         viewModel.dismissDealDetails()
 
 
-        assertEquals(1, emissions.size)
+        assertEquals(2, emissions.size)
         assertNotNull(emissions.first())
         assertEquals(HomeScreenData(), emissions.first())
+        assertNotNull(emissions.second())
+        assertEquals(HomeScreenData(state = HomeScreenStatus.SUCCESS), emissions.second())
     }
 
     private fun TestScope.observeStates() = viewModel.uiState.observeEmissions(this.backgroundScope, mainCoroutineRule.testDispatcher)

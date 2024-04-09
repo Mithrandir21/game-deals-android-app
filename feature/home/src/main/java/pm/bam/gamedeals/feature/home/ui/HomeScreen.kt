@@ -23,13 +23,19 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -72,6 +78,7 @@ internal fun HomeScreen(
 
     val onViewDealDetails: ((deal: Deal) -> Unit) = { deal -> viewModel.loadDealDetails(deal) }
     val onDismissDealDetails: () -> Unit = { viewModel.dismissDealDetails() }
+    val onRetry: () -> Unit = { viewModel.loadTopStoresDeals() }
 
     Screen(
         onSearch = onSearch,
@@ -79,7 +86,8 @@ internal fun HomeScreen(
         onViewDealDetails = onViewDealDetails,
         onViewStoreDeals = onViewStoreDeals,
         onDismissDealDetails = onDismissDealDetails,
-        goToWeb = goToWeb
+        goToWeb = goToWeb,
+        onRetry = onRetry
     )
 }
 
@@ -138,7 +146,11 @@ private fun Screen(
     onViewStoreDeals: (store: Store) -> Unit,
     onDismissDealDetails: () -> Unit,
     goToWeb: (url: String, gameTitle: String) -> Unit,
+    onRetry: () -> Unit
 ) {
+    val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+
     GameDealsTheme {
         Surface(color = MaterialTheme.colorScheme.background) {
             Box(
@@ -146,6 +158,7 @@ private fun Screen(
                 contentAlignment = Alignment.Center,
             ) {
                 Scaffold(
+                    snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
                     floatingActionButton = {
                         FloatingActionButton(onClick = {}) {
                             when (data.state) {
@@ -185,6 +198,18 @@ private fun Screen(
                         onDismiss = { onDismissDealDetails() },
                         goToWeb = goToWeb
                     )
+                }
+            }
+
+            if (data.state == ERROR) {
+                LaunchedEffect(snackbarHostState) {
+                    val results = snackbarHostState.showSnackbar(
+                        message = context.getString(R.string.home_screen_data_loading_error_msg),
+                        actionLabel = context.getString(R.string.home_screen_data_loading_error_retry)
+                    )
+                    if (results == SnackbarResult.ActionPerformed) {
+                        onRetry()
+                    }
                 }
             }
         }
@@ -242,7 +267,8 @@ private fun ScreenPreview() {
         onViewDealDetails = {},
         onViewStoreDeals = {},
         onDismissDealDetails = {},
-        goToWeb = { _, _ -> }
+        goToWeb = { _, _ -> },
+        onRetry = {}
     )
 }
 
