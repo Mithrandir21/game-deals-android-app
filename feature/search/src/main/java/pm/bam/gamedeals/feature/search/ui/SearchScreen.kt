@@ -34,15 +34,20 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.RangeSlider
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.mapSaver
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -53,6 +58,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
@@ -112,7 +118,8 @@ internal fun SearchScreen(
         onSearchedGame = onSearchedGame,
         onPriceChanged = { from, to -> existingParameters = existingParameters.copy(lowerPrice = from, upperPrice = to) },
         onSteamMinChanged = { min -> existingParameters = existingParameters.copy(steamMinRating = min) },
-        onExactMatch = { exactMatch -> existingParameters = existingParameters.copy(exact = exactMatch) }
+        onExactMatch = { exactMatch -> existingParameters = existingParameters.copy(exact = exactMatch) },
+        onRetry = { onSearch() }
     )
 }
 
@@ -128,13 +135,22 @@ private fun Screen(
     onSearchedGame: (gameId: Int) -> Unit = {},
     onPriceChanged: (from: Int?, to: Int?) -> Unit,
     onSteamMinChanged: (min: Int) -> Unit,
-    onExactMatch: (exactMatch: Boolean) -> Unit
+    onExactMatch: (exactMatch: Boolean) -> Unit,
+    onRetry: () -> Unit
 ) {
+    val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+
     GameDealsTheme {
         Surface(color = MaterialTheme.colorScheme.background) {
-            Scaffold(topBar = { SearchField(onSearchTitleChanged = { onSearchTitleChanged(it) }, onShowFilters = { onShowFiltersChanged(!showFilters) }) })
+            Scaffold(
+                topBar = { SearchField(onSearchTitleChanged = { onSearchTitleChanged(it) }, onShowFilters = { onShowFiltersChanged(!showFilters) }) },
+                snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+            )
             { innerPadding: PaddingValues ->
                 when (searchData) {
+                    SearchViewModel.SearchData.Error -> Unit
+
                     SearchViewModel.SearchData.Empty -> Text(
                         modifier = Modifier
                             .fillMaxSize()
@@ -180,6 +196,18 @@ private fun Screen(
                     onSteamMinChanged = onSteamMinChanged,
                     onExactMatch = onExactMatch
                 )
+            }
+        }
+    }
+
+    if(searchData is SearchViewModel.SearchData.Error) {
+        LaunchedEffect(snackbarHostState) {
+            val results = snackbarHostState.showSnackbar(
+                message = context.getString(R.string.search_screen_data_loading_error_msg),
+                actionLabel = context.getString(R.string.search_screen_data_loading_error_retry)
+            )
+            if (results == SnackbarResult.ActionPerformed) {
+                onRetry()
             }
         }
     }
@@ -438,7 +466,8 @@ private fun SearchScreenPreview() {
         onSearchedGame = {},
         onPriceChanged = { _, _ -> },
         onSteamMinChanged = {},
-        onExactMatch = {}
+        onExactMatch = {},
+        onRetry = {}
     )
 }
 
@@ -454,7 +483,8 @@ private fun SearchScreenNoResultsPreview() {
         onSearchedGame = {},
         onPriceChanged = { _, _ -> },
         onSteamMinChanged = {},
-        onExactMatch = {}
+        onExactMatch = {},
+        onRetry = {}
     )
 }
 

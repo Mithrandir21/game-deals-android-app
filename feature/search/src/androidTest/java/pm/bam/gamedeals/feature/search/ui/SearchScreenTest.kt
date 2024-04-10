@@ -1,5 +1,6 @@
 package pm.bam.gamedeals.feature.search.ui
 
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
@@ -9,10 +10,13 @@ import androidx.compose.ui.test.assertRangeInfoEquals
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeRight
+import io.mockk.Runs
 import io.mockk.every
+import io.mockk.just
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,6 +24,7 @@ import org.junit.Rule
 import org.junit.Test
 import pm.bam.gamedeals.common.ui.theme.GameDealsTheme
 import pm.bam.gamedeals.domain.models.Deal
+import pm.bam.gamedeals.feature.search.R
 
 class SearchScreenTest {
 
@@ -90,6 +95,49 @@ class SearchScreenTest {
 
         verify(exactly = 0) { searchViewModel.searchGames(any()) }
         verify(exactly = 1) { searchViewModel.resultState }
+    }
+
+    @Test
+    fun errorState() {
+        every { searchViewModel.resultState } returns MutableStateFlow(SearchViewModel.SearchData.Error)
+        every { searchViewModel.searchGames(any(), any(), any(), any(), any()) } just Runs
+
+        var snackText = ""
+        var snackRetry = ""
+
+        composeTestRule.setContent {
+            snackText = stringResource(id = R.string.search_screen_data_loading_error_msg)
+            snackRetry = stringResource(id = R.string.search_screen_data_loading_error_retry)
+
+            GameDealsTheme {
+                SearchScreen(
+                    onSearchedGame = { _ -> },
+                    searchViewModel = searchViewModel
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithTag(SearchLoadingTag)
+            .assertIsNotDisplayed()
+
+        composeTestRule.onNodeWithTag(SearchResultsListItemTag)
+            .assertDoesNotExist()
+
+        composeTestRule.onNodeWithText(snackText)
+            .assertIsDisplayed()
+
+        composeTestRule.onNodeWithText(snackRetry)
+            .assertIsDisplayed()
+
+        verify(exactly = 0) { searchViewModel.searchGames(any()) }
+        verify(exactly = 1) { searchViewModel.resultState }
+
+
+        composeTestRule.onNodeWithText(snackRetry)
+            .assertIsDisplayed()
+            .performClick()
+
+        verify(exactly = 1) { searchViewModel.searchGames(any()) }
     }
 
     @Test

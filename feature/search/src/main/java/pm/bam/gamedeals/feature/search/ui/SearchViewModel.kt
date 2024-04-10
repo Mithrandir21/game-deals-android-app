@@ -21,6 +21,7 @@ import pm.bam.gamedeals.domain.models.Deal
 import pm.bam.gamedeals.domain.models.SearchParameters
 import pm.bam.gamedeals.domain.repositories.games.GamesRepository
 import pm.bam.gamedeals.logging.Logger
+import pm.bam.gamedeals.logging.fatal
 import javax.inject.Inject
 
 @Suppress("NullChecksToSafeCall")
@@ -58,8 +59,8 @@ internal class SearchViewModel @Inject constructor(
                             }
                     }
                 }
-                .onError { _resultState.emit(SearchData.Empty) }
-                .catch { logger.fatalThrowable(it) }
+                .onError { fatal(logger, it) }
+                .catch { emit(SearchData.Error) }
                 .collect { _resultState.emit(it) }
         }
     }
@@ -88,6 +89,7 @@ internal class SearchViewModel @Inject constructor(
         data object Empty : SearchData()
         data object Loading : SearchData()
         data object NoResults : SearchData()
+        data object Error : SearchData()
         data class SearchResults(
             val searchResults: List<Deal>
         ) : SearchData()

@@ -13,4 +13,7 @@
     <string name="search_screen_filter_steam_range_label">Steam Rating</string>
     <string name="search_screen_filter_exact_match_label">Exact Match</string>
 
+    <string name="search_screen_data_loading_error_msg">Something went wrong. Please try again.</string>
+    <string name="search_screen_data_loading_error_retry">Retry</string>
+
 </resources>

@@ -1,10 +1,7 @@
 package pm.bam.gamedeals.feature.search.ui
 
 import io.mockk.coEvery
-import io.mockk.every
-import io.mockk.just
 import io.mockk.mockk
-import io.mockk.runs
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.TestScope
@@ -98,14 +95,7 @@ class SearchViewModelTest {
 
     @Test
     fun `search results in exception`() = runTest {
-        val exception: Exception = mockk {
-            every { message } returns null
-            every { cause } returns null
-            every { stackTrace } returns null
-            every { printStackTrace() } just runs
-        }
-
-        coEvery { gamesRepository.searchGames(searchParameters = any()) } throws exception
+        coEvery { gamesRepository.searchGames(searchParameters = any()) } throws Exception()
 
         val emissions = observeStates()
         assertEquals(1, emissions.size)
@@ -116,7 +106,7 @@ class SearchViewModelTest {
         assertEquals(3, emissions.size)
         assertEquals(SearchData.Empty, emissions.first())
         assertEquals(SearchData.Loading, emissions.second())
-        assertEquals(SearchData.Empty, emissions.third())
+        assertEquals(SearchData.Error, emissions.third())
     }
 
 
