@@ -1,7 +1,6 @@
 package pm.bam.gamedeals.feature.game.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -114,7 +113,7 @@ private fun CompactGameDealsDetails(
             verticalArrangement = Arrangement.spacedBy(GameDealsCustomTheme.spacing.medium)
         ) {
             data.dealDetails.forEach {
-                StoreGameDealRow(it.first, data.gameDetails.info, it.second, onDeal = { }, goToWeb = goToWeb)
+                StoreGameDealRow(it.first, data.gameDetails.info, it.second, goToWeb = goToWeb)
             }
         }
     }
@@ -137,7 +136,7 @@ private fun WideGameDealsDetails(
             verticalArrangement = Arrangement.spacedBy(GameDealsCustomTheme.spacing.medium)
         ) {
             data.dealDetails.forEach {
-                StoreGameDealRow(it.first, data.gameDetails.info, it.second, onDeal = { }, goToWeb = goToWeb)
+                StoreGameDealRow(it.first, data.gameDetails.info, it.second, goToWeb = goToWeb)
             }
         }
     }
@@ -248,15 +247,13 @@ private fun StoreGameDealRow(
     store: Store,
     gameInfo: GameDetails.GameInfo,
     deal: GameDetails.GameDeal,
-    onDeal: () -> Unit,
     goToWeb: (url: String, gameTitle: String) -> Unit,
 ) {
-    Card(onClick = { onDeal() }) {
+    Card(onClick = { goToWeb("https://www.cheapshark.com/redirect?dealID=${deal.dealID}", gameInfo.title) }) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(GameDealsCustomTheme.spacing.medium)
-                .clickable { goToWeb("https://www.cheapshark.com/redirect?dealID=${deal.dealID}", gameInfo.title) }
                 .testTag(GameDealItemTag),
             verticalAlignment = Alignment.CenterVertically
         ) {
