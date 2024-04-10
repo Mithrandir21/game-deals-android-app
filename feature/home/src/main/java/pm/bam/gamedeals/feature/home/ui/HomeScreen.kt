@@ -59,6 +59,8 @@ import pm.bam.gamedeals.common.ui.theme.GameDealsTheme
 import pm.bam.gamedeals.domain.models.Deal
 import pm.bam.gamedeals.domain.models.Store
 import pm.bam.gamedeals.feature.deal.ui.DealBottomSheet
+import pm.bam.gamedeals.feature.deal.ui.DealBottomSheetData
+import pm.bam.gamedeals.feature.deal.ui.DealDetailsViewModel
 import pm.bam.gamedeals.feature.home.R
 import pm.bam.gamedeals.feature.home.ui.HomeViewModel.HomeScreenListData.DealData
 import pm.bam.gamedeals.feature.home.ui.HomeViewModel.HomeScreenListData.StoreData
@@ -72,34 +74,40 @@ internal fun HomeScreen(
     onSearch: () -> Unit,
     onViewStoreDeals: ((store: Store) -> Unit) = {},
     goToWeb: (url: String, gameTitle: String) -> Unit,
-    viewModel: HomeViewModel = hiltViewModel()
+    viewModel: HomeViewModel = hiltViewModel(),
+    dealDealDetailsViewModel: DealDetailsViewModel = hiltViewModel()
 ) {
     val data = viewModel.uiState.collectAsStateWithLifecycle()
-
-    val onViewDealDetails: ((deal: Deal) -> Unit) = { deal -> viewModel.loadDealDetails(deal) }
-    val onDismissDealDetails: () -> Unit = { viewModel.dismissDealDetails() }
-    val onRetry: () -> Unit = { viewModel.loadTopStoresDeals() }
+    val dealDetails = dealDealDetailsViewModel.dealDealDetails.collectAsStateWithLifecycle()
 
     Screen(
         onSearch = onSearch,
         data = data.value,
-        onViewDealDetails = onViewDealDetails,
+        dealDetails = dealDetails.value,
+        onViewDealDetails = { dealId, dealStoreId, dealTitle, dealPriceDenominated ->
+            dealDealDetailsViewModel.loadDealDetails(
+                dealId = dealId,
+                dealStoreId = dealStoreId,
+                dealTitle = dealTitle,
+                dealPriceDenominated = dealPriceDenominated,
+            )
+        },
         onViewStoreDeals = onViewStoreDeals,
-        onDismissDealDetails = onDismissDealDetails,
+        onDismissDealDetails = { dealDealDetailsViewModel.dismissDealDetails() },
         goToWeb = goToWeb,
-        onRetry = onRetry
+        onRetry = { viewModel.loadTopStoresDeals() }
     )
 }
 
 @Composable
 private fun StoreDealRow(
     deal: Deal,
-    onViewDealDetails: ((deal: Deal) -> Unit)
+    onViewDealDetails: ((dealId: String, dealStoreId: Int, dealTitle: String, dealPriceDenominated: String) -> Unit)
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onViewDealDetails(deal) }
+            .clickable { onViewDealDetails(deal.dealID, deal.storeID, deal.title, deal.salePriceDenominated) }
             .padding(bottom = GameDealsCustomTheme.spacing.small)
             .testTag(HomeScreenDealRowTag.plus(deal.dealID)),
         verticalAlignment = Alignment.CenterVertically
@@ -142,7 +150,8 @@ private fun StoreDealRow(
 private fun Screen(
     onSearch: () -> Unit,
     data: HomeViewModel.HomeScreenData,
-    onViewDealDetails: (deal: Deal) -> Unit,
+    dealDetails: DealBottomSheetData?,
+    onViewDealDetails: (dealId: String, dealStoreId: Int, dealTitle: String, dealPriceDenominated: String) -> Unit,
     onViewStoreDeals: (store: Store) -> Unit,
     onDismissDealDetails: () -> Unit,
     goToWeb: (url: String, gameTitle: String) -> Unit,
@@ -194,9 +203,19 @@ private fun Screen(
                         }
                     )
                     DealBottomSheet(
-                        data = data.dealDetailsData,
+                        data = dealDetails,
                         onDismiss = { onDismissDealDetails() },
-                        goToWeb = goToWeb
+                        goToWeb = goToWeb,
+                        onRetryDealDetails = {
+                            dealDetails?.let {
+                                onViewDealDetails(
+                                    it.dealId,
+                                    it.store.storeID,
+                                    it.gameName,
+                                    it.gameSalesPriceDenominated
+                                )
+                            }
+                        }
                     )
                 }
             }
@@ -261,10 +280,10 @@ private fun ScreenPreview() {
                 DealData(deal = PreviewDeal),
                 DealData(deal = PreviewDeal),
                 ViewAllData(store = PreviewStore.copy(storeID = 1))
-            ),
-            dealDetailsData = null
+            )
         ),
-        onViewDealDetails = {},
+        dealDetails = null,
+        onViewDealDetails = { _, _, _, _ -> },
         onViewStoreDeals = {},
         onDismissDealDetails = {},
         goToWeb = { _, _ -> },

@@ -9,18 +9,15 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import pm.bam.gamedeals.common.mapDelayAtLeast
 import pm.bam.gamedeals.common.onError
 import pm.bam.gamedeals.domain.models.Deal
 import pm.bam.gamedeals.domain.models.Store
 import pm.bam.gamedeals.domain.repositories.deals.DealsRepository
 import pm.bam.gamedeals.domain.repositories.stores.StoresRepository
-import pm.bam.gamedeals.feature.deal.ui.DealBottomSheetData
 import pm.bam.gamedeals.logging.Logger
 import pm.bam.gamedeals.logging.fatal
 import javax.inject.Inject
@@ -75,56 +72,10 @@ internal class HomeViewModel @Inject constructor(
             .onError { fatal(logger, it) }
             .catch { emit(HomeScreenData(state = HomeScreenStatus.ERROR)) }
 
-    fun loadDealDetails(deal: Deal) =
-        viewModelScope.launch {
-            flowOf(_uiState.value)
-                .mapDelayAtLeast(750) { data ->
-                    val dealDetails = dealsRepository.getDeal(deal.dealID)
-
-                    data.copy(
-                        dealDetailsData = DealBottomSheetData.DealDetailsData(
-                            store = storesRepository.getStore(deal.storeID),
-                            gameName = deal.title,
-                            dealId = deal.dealID,
-                            gameSalesPriceDenominated = deal.salePriceDenominated,
-                            gameInfo = dealDetails.gameInfo,
-                            cheapestPrice = dealDetails.cheapestPrice,
-                            cheaperStores = dealDetails.cheaperStores.map {
-                                storesRepository.getStore(it.storeID) to it
-                            }
-                        )
-                    )
-                }
-                .onStart {
-                    _uiState.value.copy(
-                        dealDetailsData = DealBottomSheetData.DealDetailsLoading(
-                            store = storesRepository.getStore(deal.storeID),
-                            gameName = deal.title,
-                            dealId = deal.dealID,
-                            gameSalesPriceDenominated = deal.salePriceDenominated
-                        )
-                    ).let { emit(it) }
-                }
-                .onError { fatal(logger, it) }
-                .catch {
-                    dismissDealDetails()
-                    emit(HomeScreenData(state = HomeScreenStatus.ERROR))
-                }
-                .collect { _uiState.emit(it) }
-        }
-
-    fun dismissDealDetails() =
-        viewModelScope.launch {
-            _uiState.value
-                .copy(dealDetailsData = null)
-                .let { _uiState.emit(it) }
-        }
-
 
     internal data class HomeScreenData(
         val state: HomeScreenStatus = HomeScreenStatus.LOADING,
-        val items: List<HomeScreenListData> = emptyList(),
-        val dealDetailsData: DealBottomSheetData? = null
+        val items: List<HomeScreenListData> = emptyList()
     )
 
     internal enum class HomeScreenStatus {

@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material3.BottomSheetDefaults
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -54,7 +55,8 @@ import pm.bam.gamedeals.feature.deal.R
 fun DealBottomSheet(
     data: DealBottomSheetData?,
     onDismiss: () -> Unit,
-    goToWeb: (url: String, gameTitle: String) -> Unit
+    goToWeb: (url: String, gameTitle: String) -> Unit,
+    onRetryDealDetails: () -> Unit
 ) {
     val modalBottomSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     if (data != null) {
@@ -63,7 +65,7 @@ fun DealBottomSheet(
             sheetState = modalBottomSheetState,
             dragHandle = { BottomSheetDefaults.DragHandle() }
         ) {
-            DealContent(data, goToWeb)
+            DealContent(data, goToWeb, onRetryDealDetails)
         }
     }
 }
@@ -71,7 +73,8 @@ fun DealBottomSheet(
 @Composable
 private fun DealContent(
     data: DealBottomSheetData,
-    goToWeb: (url: String, gameTitle: String) -> Unit
+    goToWeb: (url: String, gameTitle: String) -> Unit,
+    retry: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -127,6 +130,10 @@ private fun DealContent(
             }
 
             is DealBottomSheetData.DealDetailsData -> GameDetails(data, goToWeb)
+            is DealBottomSheetData.DealDetailsError -> GameDetailsError(
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+                retry = retry
+            )
         }
     }
 
@@ -188,8 +195,7 @@ private fun GameDetails(
                 Text(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = GameDealsCustomTheme.spacing.small)
-                        .testTag(CheapestPriceTag),
+                        .padding(vertical = GameDealsCustomTheme.spacing.small),
                     text = buildAnnotatedString {
                         append(stringResource(id = R.string.deal_details_cheapest_ever_label))
                         when (data.cheapestPrice == null) {
@@ -249,6 +255,41 @@ private fun GameDetails(
     }
 }
 
+@Composable
+private fun GameDetailsError(
+    modifier: Modifier,
+    retry: () -> Unit
+) {
+    Box(
+        modifier = modifier
+            .height(160.dp)
+            .fillMaxWidth()
+            .padding(horizontal = GameDealsCustomTheme.spacing.small)
+    ) {
+        Column(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .wrapContentSize()
+        ) {
+            Text(
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .wrapContentSize()
+                    .testTag(DataErrorMsgTag),
+                text = stringResource(id = R.string.deal_details_data_loading_error_msg)
+            )
+            Button(
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .padding(vertical = GameDealsCustomTheme.spacing.large)
+                    .testTag(DataErrorBtnTag),
+                onClick = { retry() }) {
+                Text(text = stringResource(id = R.string.deal_details_data_loading_error_retry))
+            }
+        }
+    }
+}
+
 @Immutable
 sealed class DealBottomSheetData(
     open val store: Store,
@@ -274,6 +315,14 @@ sealed class DealBottomSheetData(
         override val dealId: String,
         override val gameSalesPriceDenominated: String
     ) : DealBottomSheetData(store, gameName, dealId, gameSalesPriceDenominated)
+
+    @Immutable
+    data class DealDetailsError(
+        override val store: Store,
+        override val gameName: String,
+        override val dealId: String,
+        override val gameSalesPriceDenominated: String
+    ) : DealBottomSheetData(store, gameName, dealId, gameSalesPriceDenominated)
 }
 
 @Preview
@@ -289,6 +338,7 @@ private fun DealBottomLoadingPreview() {
                     PreviewDealDetails.gameInfo.salePriceDenominated
                 ),
                 goToWeb = { _, _ -> },
+                retry = { }
             )
         }
     }
@@ -310,6 +360,26 @@ private fun DealBottomDataPreview() {
                     PreviewDealCheapestPrice
                 ),
                 goToWeb = { _, _ -> },
+                retry = { }
+            )
+        }
+    }
+}
+
+@Preview
+@Composable
+private fun DealBottomErrorPreview() {
+    GameDealsTheme {
+        Surface(color = MaterialTheme.colorScheme.background) {
+            DealContent(
+                data = DealBottomSheetData.DealDetailsError(
+                    PreviewStore,
+                    PreviewDealDetails.gameInfo.name,
+                    PreviewDeal.dealID,
+                    PreviewDealDetails.gameInfo.salePriceDenominated
+                ),
+                goToWeb = { _, _ -> },
+                retry = { }
             )
         }
     }
@@ -319,6 +389,8 @@ private fun DealBottomDataPreview() {
 
 internal const val CheapestPriceTag = "CheapestPrice"
 internal const val DataLoadingTag = "DataLoading"
+internal const val DataErrorMsgTag = "DataErrorMsg"
+internal const val DataErrorBtnTag = "DataErrorBtn"
 internal const val DealCheaperStoreRowTag = "DealCheaperStoreRow"
 internal const val DealCheapestTag = "DealCheapest"
 internal const val StoreDataGameDataTag = "StoreDataGameData"
