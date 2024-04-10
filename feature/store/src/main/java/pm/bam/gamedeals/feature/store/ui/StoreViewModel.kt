@@ -18,7 +18,6 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import pm.bam.gamedeals.common.flatMapLatestDelayAtLeast
 import pm.bam.gamedeals.common.mapDelayAtLeast
 import pm.bam.gamedeals.common.onError
 import pm.bam.gamedeals.domain.models.Deal
@@ -59,10 +58,6 @@ internal class StoreViewModel @Inject constructor(
             storeIdFlow
                 .filterNotNull() // Skip our initial null value
                 .distinctUntilChanged() // Skip fetching if storeId is the same, like on orientation change
-                .flatMapLatestDelayAtLeast(1000) {
-                    storesRepository.getStore(222)
-                    it
-                }
                 .map { storesRepository.getStore(it) }
                 .catch { logger.fatalThrowable(it) }
                 .collect { _storeDetails.emit(it) }
