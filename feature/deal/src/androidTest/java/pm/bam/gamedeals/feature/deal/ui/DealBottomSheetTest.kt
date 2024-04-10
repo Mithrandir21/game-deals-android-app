@@ -3,6 +3,7 @@ package pm.bam.gamedeals.feature.deal.ui
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.filterToOne
 import androidx.compose.ui.test.hasTextExactly
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -22,18 +23,19 @@ class DealBottomSheetTest {
     @get:Rule
     val composeTestRule = createComposeRule()
 
+    private val storeId = 1
+    private val storeName = "Store Name"
+    private val store: Store = mockk {
+        every { this@mockk.storeID } returns storeId
+        every { this@mockk.images.logo } returns "Logo"
+        every { this@mockk.storeName } returns storeName
+    }
+    private val dealId = "Deal ID"
+    private val gameName = "Game Name"
+    private val gamePrice = "Game Price"
 
     @Test
-    fun loadingScreen() {
-        val storeName = "Store Name"
-        val store: Store = mockk {
-            every { this@mockk.images.logo } returns "Logo"
-            every { this@mockk.storeName } returns storeName
-        }
-        val dealId = "Deal ID"
-        val gameName = "Game Name"
-        val gamePrice = "Game Price"
-
+    fun loadingState() {
         val loadingData = DealBottomSheetData.DealDetailsLoading(
             store = store,
             gameName = gameName,
@@ -50,7 +52,8 @@ class DealBottomSheetTest {
                 DealBottomSheet(
                     data = loadingData,
                     onDismiss = {},
-                    goToWeb = { _, _ -> }
+                    goToWeb = { _, _ -> },
+                    onRetryDealDetails = {}
                 )
             }
         }
@@ -70,19 +73,47 @@ class DealBottomSheetTest {
 
 
     @Test
-    fun dataScreen() {
-        val storeId = 1
-        val storeName = "Store Name"
-        val storeLogo = "Logo"
-        val store: Store = mockk {
-            every { this@mockk.storeID } returns storeId
-            every { this@mockk.images.logo } returns storeLogo
-            every { this@mockk.storeName } returns storeName
-        }
-        val dealId = "Deal ID"
-        val gameName = "Game Name"
-        val gamePrice = "Game Price"
+    fun errorState() {
+        val loadingData = DealBottomSheetData.DealDetailsError(
+            store = store,
+            gameName = gameName,
+            dealId = dealId,
+            gameSalesPriceDenominated = gamePrice
+        )
 
+        var expectedMessage = ""
+        var expectedBtnText = ""
+
+        composeTestRule.setContent {
+            expectedMessage = stringResource(id = R.string.deal_details_data_loading_error_msg)
+            expectedBtnText = stringResource(id = R.string.deal_details_data_loading_error_retry)
+
+            GameDealsTheme {
+                DealBottomSheet(
+                    data = loadingData,
+                    onDismiss = {},
+                    goToWeb = { _, _ -> },
+                    onRetryDealDetails = {}
+                )
+            }
+        }
+
+
+        composeTestRule.onNodeWithTag(DataErrorMsgTag)
+            .assert(hasTextExactly(expectedMessage))
+            .assertIsDisplayed()
+
+        composeTestRule.onNodeWithTag(DataErrorBtnTag)
+            .assert(hasTextExactly(expectedBtnText))
+            .assertIsDisplayed()
+
+        composeTestRule.onNodeWithTag(DataLoadingTag)
+            .assertIsNotDisplayed()
+    }
+
+
+    @Test
+    fun dataScreen() {
         val gameInfoThumb = "Thumb"
         val gameInfoName = "Name"
         val gameInfoScore = 1
@@ -137,7 +168,8 @@ class DealBottomSheetTest {
                 DealBottomSheet(
                     data = dealDetailsData,
                     onDismiss = {},
-                    goToWeb = { _, _ -> }
+                    goToWeb = { _, _ -> },
+                    onRetryDealDetails = {}
                 )
             }
         }

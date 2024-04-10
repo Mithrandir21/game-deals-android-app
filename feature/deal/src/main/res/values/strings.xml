@@ -23,4 +23,7 @@
     <string name="deal_details_steamworks_label_yes">Steamworks: Yes</string>
     <string name="deal_details_steamworks_label_no">Steamworks: No</string>
 
+    <string name="deal_details_data_loading_error_msg">Something went wrong. Please try again.</string>
+    <string name="deal_details_data_loading_error_retry">Retry</string>
+
 </resources>

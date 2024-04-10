@@ -60,6 +60,7 @@ import pm.bam.gamedeals.domain.models.Deal
 import pm.bam.gamedeals.domain.models.Store
 import pm.bam.gamedeals.feature.deal.ui.DealBottomSheet
 import pm.bam.gamedeals.feature.deal.ui.DealBottomSheetData
+import pm.bam.gamedeals.feature.deal.ui.DealDetailsViewModel
 import pm.bam.gamedeals.feature.store.R
 
 @Composable
@@ -67,21 +68,30 @@ internal fun StoreScreen(
     storeId: Int,
     onBack: () -> Unit,
     goToWeb: (url: String, gameTitle: String) -> Unit,
-    viewModel: StoreViewModel = hiltViewModel()
+    viewModel: StoreViewModel = hiltViewModel(),
+    dealDealDetailsViewModel: DealDetailsViewModel = hiltViewModel()
 ) {
     viewModel.setStoreId(storeId)
 
     val deals: LazyPagingItems<Deal> = viewModel.deals.collectAsLazyPagingItems()
-    val dealDetails = viewModel.dealDealDetails.collectAsStateWithLifecycle()
     val storeDetails = viewModel.storeDetails.collectAsStateWithLifecycle()
+
+    val dealDetails = dealDealDetailsViewModel.dealDealDetails.collectAsStateWithLifecycle()
 
     StoreDeals(
         deals = deals,
         dealDetails = dealDetails.value,
         storeDetails = storeDetails.value,
         onBack = onBack,
-        onLoadDealDetails = { deal -> viewModel.loadDealDetails(deal) },
-        onDismissDealDetails = { viewModel.dismissDealDetails() },
+        onLoadDealDetails = { dealId, dealStoreId, dealTitle, dealPriceDenominated ->
+            dealDealDetailsViewModel.loadDealDetails(
+                dealId = dealId,
+                dealStoreId = dealStoreId,
+                dealTitle = dealTitle,
+                dealPriceDenominated = dealPriceDenominated,
+            )
+        },
+        onDismissDealDetails = { dealDealDetailsViewModel.dismissDealDetails() },
         goToWeb = goToWeb
     )
 }
@@ -96,7 +106,12 @@ private fun DealRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { onViewDealDetails(deal) }
-                .padding(start = GameDealsCustomTheme.spacing.small, top = GameDealsCustomTheme.spacing.extraSmall, end = GameDealsCustomTheme.spacing.medium, bottom = GameDealsCustomTheme.spacing.extraSmall)
+                .padding(
+                    start = GameDealsCustomTheme.spacing.small,
+                    top = GameDealsCustomTheme.spacing.extraSmall,
+                    end = GameDealsCustomTheme.spacing.medium,
+                    bottom = GameDealsCustomTheme.spacing.extraSmall
+                )
                 .testTag(DealRowTag.plus(deal.dealID)),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -134,7 +149,7 @@ private fun StoreDeals(
     dealDetails: DealBottomSheetData? = null,
     storeDetails: Store? = null,
     onBack: () -> Unit,
-    onLoadDealDetails: (deal: Deal) -> Unit,
+    onLoadDealDetails: (dealId: String, dealStoreId: Int, dealTitle: String, dealPriceDenominated: String) -> Unit,
     onDismissDealDetails: () -> Unit,
     goToWeb: (url: String, gameTitle: String) -> Unit,
 ) {
@@ -156,14 +171,16 @@ private fun StoreDeals(
                 key = deals.itemKey { it.dealID }
             ) { index: Int ->
                 deals[index]?.let { deal ->
-                    DealRow(deal) { onLoadDealDetails(deal) }
+                    DealRow(deal) { onLoadDealDetails(deal.dealID, deal.storeID, deal.title, deal.salePriceDenominated) }
                 }
             }
             item {
                 if (deals.loadState.append is LoadState.Loading) {
-                    CircularProgressIndicator(modifier = Modifier
-                        .padding(GameDealsCustomTheme.spacing.large)
-                        .testTag(LoadingRowTag))
+                    CircularProgressIndicator(
+                        modifier = Modifier
+                            .padding(GameDealsCustomTheme.spacing.large)
+                            .testTag(LoadingRowTag)
+                    )
                 }
             }
         }
@@ -171,7 +188,8 @@ private fun StoreDeals(
         DealBottomSheet(
             data = dealDetails,
             goToWeb = goToWeb,
-            onDismiss = { onDismissDealDetails() }
+            onDismiss = { onDismissDealDetails() },
+            onRetryDealDetails = { dealDetails?.let { onLoadDealDetails(it.dealId, it.store.storeID, it.gameName, it.gameSalesPriceDenominated) } }
         )
     }
 }
@@ -246,7 +264,7 @@ private fun Preview() {
         dealDetails = null,
         storeDetails = PreviewStore,
         onBack = {},
-        onLoadDealDetails = {},
+        onLoadDealDetails = { _, _, _, _ -> },
         onDismissDealDetails = {},
         goToWeb = { _, _ -> }
     )

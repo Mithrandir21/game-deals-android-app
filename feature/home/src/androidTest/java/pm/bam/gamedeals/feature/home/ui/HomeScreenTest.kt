@@ -13,10 +13,12 @@ import androidx.test.espresso.device.rules.ScreenOrientationRule
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.MutableStateFlow
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import pm.bam.gamedeals.domain.models.Deal
 import pm.bam.gamedeals.domain.models.Store
+import pm.bam.gamedeals.feature.deal.ui.DealDetailsViewModel
 import pm.bam.gamedeals.feature.home.R
 import pm.bam.gamedeals.feature.home.ui.HomeViewModel.HomeScreenData
 import pm.bam.gamedeals.feature.home.ui.HomeViewModel.HomeScreenListData
@@ -31,6 +33,8 @@ class HomeScreenTest {
     val screenOrientationRule: ScreenOrientationRule = ScreenOrientationRule(ScreenOrientation.PORTRAIT)
 
     private val viewModel: HomeViewModel = mockk()
+
+    private val dealDealDetailsViewModel: DealDetailsViewModel = mockk()
 
     private val storeId = 1
     private val storeTitle = "StoreTitle"
@@ -65,6 +69,11 @@ class HomeScreenTest {
     private val mockDealData = HomeScreenListData.DealData(mockDeal)
     private val mockViewAllData = HomeScreenListData.ViewAllData(mockStore)
 
+    @Before
+    fun setup() {
+        every { dealDealDetailsViewModel.dealDealDetails } returns MutableStateFlow(null)
+    }
+
     @Test
     fun loadingState() {
         val mockData = HomeScreenData(state = HomeScreenStatus.LOADING)
@@ -76,7 +85,8 @@ class HomeScreenTest {
                 onSearch = {},
                 onViewStoreDeals = {},
                 goToWeb = { _, _ -> },
-                viewModel = viewModel
+                viewModel = viewModel,
+                dealDealDetailsViewModel = dealDealDetailsViewModel
             )
         }
 
@@ -110,7 +120,8 @@ class HomeScreenTest {
                 onSearch = {},
                 onViewStoreDeals = {},
                 goToWeb = { _, _ -> },
-                viewModel = viewModel
+                viewModel = viewModel,
+                dealDealDetailsViewModel = dealDealDetailsViewModel
             )
         }
 
@@ -144,7 +155,8 @@ class HomeScreenTest {
                 onSearch = {},
                 onViewStoreDeals = {},
                 goToWeb = { _, _ -> },
-                viewModel = viewModel
+                viewModel = viewModel,
+                dealDealDetailsViewModel = dealDealDetailsViewModel
             )
         }
 
