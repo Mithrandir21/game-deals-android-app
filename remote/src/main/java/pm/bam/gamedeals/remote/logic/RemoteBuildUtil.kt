@@ -3,7 +3,7 @@ package pm.bam.gamedeals.remote.logic
 import pm.bam.gamedeals.remote.BuildConfig
 import javax.inject.Inject
 
-interface RemoteBuildUtil {
+fun interface RemoteBuildUtil {
     /** Get an enum representing the [RemoteBuildType] of this class. */
     fun buildType(): RemoteBuildType
 }
