@@ -3,6 +3,9 @@ package pm.bam.gamedeals.di
 import android.content.Context
 import android.util.Log
 import coil.ImageLoader
+import com.google.firebase.analytics.FirebaseAnalytics
+import com.google.firebase.analytics.ktx.analytics
+import com.google.firebase.ktx.Firebase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -16,6 +19,10 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 class AppModule {
+
+    @Provides
+    @Singleton
+    fun provideFirebase(): FirebaseAnalytics = Firebase.analytics
 
     @Coil
     @Provides
