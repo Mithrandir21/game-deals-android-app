@@ -20,6 +20,24 @@ jobs:
         distribution: 'temurin'
         cache: gradle
 
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+
+    - run: sdkmanager tools platform-tools
+
+      # This will decode the keystore from base 64 text representation that we have stored in secrets
+      # and generates and keystore file and gets stored in /android-app path
+    - name: Decode Keystore
+      env:
+        ENCODED_STRING: ${{ secrets.KEYSTORE_BASE_64 }}
+        RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+        RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+        RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+
+      run: |
+        echo $ENCODED_STRING > keystore-b64.txt
+        base64 -d keystore-b64.txt > upload_keystore.jks
+
     - name: Cache Gradle packages
       uses: actions/cache@v4
       with:
@@ -32,5 +50,40 @@ jobs:
 
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
+
     - name: Build with Gradle
-      run: ./gradlew build
+      run: ./gradlew --no-daemon build
+
+    - name: Build Release apk
+      env:
+        RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+        RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+        RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+      run: ./gradlew assembleRelease --stacktrace
+
+    - name: Build Release bundle
+      env:
+        RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+        RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+        RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+      run: ./gradlew bundleRelease --stacktrace
+
+    - name: Get release file aab path
+      id: releaseAab
+      run: echo "aabfile=$(find app/release/*.aab)" >> $GITHUB_OUTPUT
+
+    - name: Get release file apk path
+      id: releaseApk
+      run: echo "apkfile=$(find app/build/outputs/apk/release/*.apk)" >> $GITHUB_OUTPUT
+
+    - name: Zip Files
+      uses: vimtor/action-zip@v1.2
+      with:
+        files: ${{ steps.releaseAab.outputs.aabfile }} ${{ steps.releaseApk.outputs.apkfile }}
+        dest: ${{ steps.releaseApk.outputs.apkfile }}.zip
+
+    - name: Upload Release Build to Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: release-artifacts
+        path: ${{ steps.releaseApk.outputs.apkfile }}
