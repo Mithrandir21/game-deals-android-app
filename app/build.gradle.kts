@@ -10,27 +10,52 @@ plugins {
     alias(libs.plugins.firebase.crashlytics)
 }
 
-// Loading local properties so that we can use them in the build.gradle.kts file and not expose them in the repository
-val localProperties = Properties().apply { load(FileInputStream(File(rootProject.rootDir, "local.properties"))) }
-
 android {
     namespace = "pm.bam.gamedeals"
     compileSdk = 34
 
-    signingConfigs {
-        create("release") {
-            keyAlias = localProperties.getProperty("keyAlias")
-            keyPassword = localProperties.getProperty("keyPassword")
-            storeFile = file(localProperties.getProperty("storeFile"))
-            storePassword = localProperties.getProperty("storePassword")
+
+    // START - RELEASE SIGNING CONFIGURATION
+    // Create variables to store the release key information
+    var releaseKeyPresent = false
+    var releaseSigningKey = "debug" // Default to debug key if release key is not present in environment.
+    var releaseKeyAlias = ""
+    var releaseKeyPassword = ""
+    var releaseKeyStoreFile = ""
+    var releaseKeyStorePassword = ""
+
+    // First check if the local.properties file exists, meaning non-CI environment.
+    if (File(rootProject.rootDir, "local.properties").exists()) {
+        // Loading local properties so that we can use them in the build.gradle.kts file and not expose them in the repository
+        val localProperties = Properties().apply { load(FileInputStream(File(rootProject.rootDir, "local.properties"))) }
+
+        releaseKeyPresent = true
+        releaseSigningKey = "release"
+        releaseKeyAlias = localProperties.getProperty("keyAlias")
+        releaseKeyPassword = localProperties.getProperty("keyPassword")
+        releaseKeyStoreFile = localProperties.getProperty("storeFile")
+        releaseKeyStorePassword = localProperties.getProperty("storePassword")
+    }
+
+    // If neither local.properties nor environment variables are present, the release key is not present.
+    if(releaseKeyPresent) {
+        signingConfigs {
+            create("release") {
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+                storeFile = file(releaseKeyStoreFile)
+                storePassword = releaseKeyStorePassword
+            }
         }
     }
+    // END - RELEASE SIGNING CONFIGURATION
+
 
     defaultConfig {
         applicationId = "pm.bam.gamedeals"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
+        versionCode = 3
         versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -44,7 +69,7 @@ android {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
 
-            signingConfig = signingConfigs.getByName("release")
+            signingConfig = signingConfigs.getByName(releaseSigningKey)
         }
     }
     compileOptions {
