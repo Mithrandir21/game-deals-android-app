@@ -33,7 +33,7 @@ android {
         releaseSigningKey = "release"
         releaseKeyAlias = localProperties.getProperty("keyAlias")
         releaseKeyPassword = localProperties.getProperty("keyPassword")
-        releaseKeyStoreFile = "upload_keystore.jks"
+        releaseKeyStoreFile = "../upload_keystore.jks"
         releaseKeyStorePassword = localProperties.getProperty("storePassword")
     }
     // Check if environment variables are present, meaning CI environment.
