@@ -10,6 +10,7 @@ local.properties
 
 # Android Studio generated files and folders
 captures/
+release/
 .externalNativeBuild/
 .cxx/
 *.apk
@@ -25,9 +26,6 @@ render.experimental.xml
 # Keystore files
 *.jks
 *.keystore
-
-# Google Services (e.g. APIs or Firebase)
-google-services.json
 
 # Android Profiling
 *.hprof
