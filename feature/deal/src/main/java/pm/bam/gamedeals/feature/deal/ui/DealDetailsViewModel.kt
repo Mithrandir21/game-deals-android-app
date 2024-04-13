@@ -53,7 +53,7 @@ class DealDetailsViewModel @Inject constructor(
                         gameSalesPriceDenominated = dealPriceDenominated,
                         gameInfo = dealDetails.gameInfo,
                         cheapestPrice = dealDetails.cheapestPrice,
-                        cheaperStores = dealDetails.cheaperStores.map { store to it }
+                        cheaperStores = dealDetails.cheaperStores.map { storesRepository.getStore(it.storeID) to it }
                     )
                 }
                 .onStart<DealBottomSheetData> {
