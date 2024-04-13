@@ -37,7 +37,7 @@ android {
         releaseKeyStorePassword = localProperties.getProperty("storePassword")
     }
     // Check if environment variables are present, meaning CI environment.
-    else if (System.getenv("KEY_ALIAS") != null) {
+    else if (System.getenv("RELEASE_KEY_ALIAS") != null) {
         releaseKeyPresent = true
         releaseSigningKey = "release"
         releaseKeyAlias = System.getenv("RELEASE_KEY_ALIAS")
