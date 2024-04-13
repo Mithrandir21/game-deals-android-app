@@ -1,3 +1,6 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin)
@@ -7,9 +10,21 @@ plugins {
     alias(libs.plugins.firebase.crashlytics)
 }
 
+// Loading local properties so that we can use them in the build.gradle.kts file and not expose them in the repository
+val localProperties = Properties().apply { load(FileInputStream(File(rootProject.rootDir, "local.properties"))) }
+
 android {
     namespace = "pm.bam.gamedeals"
     compileSdk = 34
+
+    signingConfigs {
+        create("release") {
+            keyAlias = localProperties.getProperty("keyAlias")
+            keyPassword = localProperties.getProperty("keyPassword")
+            storeFile = file(localProperties.getProperty("storeFile"))
+            storePassword = localProperties.getProperty("storePassword")
+        }
+    }
 
     defaultConfig {
         applicationId = "pm.bam.gamedeals"
@@ -29,8 +44,7 @@ android {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
 
-            // TODO - Resolve Pro
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
     compileOptions {
