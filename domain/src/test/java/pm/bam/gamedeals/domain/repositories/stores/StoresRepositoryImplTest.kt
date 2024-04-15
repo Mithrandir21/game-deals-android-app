@@ -1,4 +1,4 @@
-package pm.bam.gamedeals.domain.repositories
+package pm.bam.gamedeals.domain.repositories.stores
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import io.mockk.coEvery
@@ -17,7 +17,6 @@ import org.junit.Test
 import pm.bam.gamedeals.domain.db.dao.StoresDao
 import pm.bam.gamedeals.domain.models.Store
 import pm.bam.gamedeals.domain.models.toStore
-import pm.bam.gamedeals.domain.repositories.stores.StoresRepositoryImpl
 import pm.bam.gamedeals.logging.Logger
 import pm.bam.gamedeals.remote.datasources.stores.RemoteStoresDataSource
 import pm.bam.gamedeals.remote.models.RemoteStore

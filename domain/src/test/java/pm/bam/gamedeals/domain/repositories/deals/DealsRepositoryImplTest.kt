@@ -1,4 +1,4 @@
-package pm.bam.gamedeals.domain.repositories
+package pm.bam.gamedeals.domain.repositories.deals
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import androidx.room.withTransaction
@@ -24,8 +24,6 @@ import pm.bam.gamedeals.domain.models.Deal
 import pm.bam.gamedeals.domain.models.DealDetails
 import pm.bam.gamedeals.domain.models.toDeal
 import pm.bam.gamedeals.domain.models.toDealDetails
-import pm.bam.gamedeals.domain.repositories.deals.DEAL_PAGE_COUNT
-import pm.bam.gamedeals.domain.repositories.deals.DealsRepositoryImpl
 import pm.bam.gamedeals.domain.transformations.CurrencyTransformation
 import pm.bam.gamedeals.logging.Logger
 import pm.bam.gamedeals.remote.api.models.deals.RemoteDealsQuery
