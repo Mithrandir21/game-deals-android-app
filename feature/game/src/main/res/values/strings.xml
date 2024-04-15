@@ -3,7 +3,7 @@
 
     <string name="game_screen_game_image">%1$s Game image</string>
     <string name="game_screen_store_thumbnail">%1$s Store thumbnail</string>
-    <string name="game_screen_navigation_back_button">Back button</string>
+    <string name="game_screen_navigation_back_button">Back</string>
 
     <string name="game_screen_toolbar_title_loading">Loading…</string>
     <string name="game_screen_cheapest_value_label">(%1$s and up)</string>

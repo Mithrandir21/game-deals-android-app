@@ -33,8 +33,17 @@ android {
         releaseSigningKey = "release"
         releaseKeyAlias = localProperties.getProperty("keyAlias")
         releaseKeyPassword = localProperties.getProperty("keyPassword")
-        releaseKeyStoreFile = localProperties.getProperty("storeFile")
+        releaseKeyStoreFile = "../upload_keystore.jks"
         releaseKeyStorePassword = localProperties.getProperty("storePassword")
+    }
+    // Check if environment variables are present, meaning CI environment.
+    else if (System.getenv("RELEASE_KEY_ALIAS") != null) {
+        releaseKeyPresent = true
+        releaseSigningKey = "release"
+        releaseKeyAlias = System.getenv("RELEASE_KEY_ALIAS")
+        releaseKeyPassword = System.getenv("RELEASE_KEY_PASSWORD")
+        releaseKeyStoreFile = "../upload_keystore.jks"
+        releaseKeyStorePassword = System.getenv("RELEASE_STORE_PASSWORD")
     }
 
     // If neither local.properties nor environment variables are present, the release key is not present.
@@ -55,8 +64,8 @@ android {
         applicationId = "pm.bam.gamedeals"
         minSdk = 26
         targetSdk = 34
-        versionCode = 3
-        versionName = "1.0.0"
+        versionCode = 5
+        versionName = "1.0.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

@@ -12,13 +12,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checking out branch
+      uses: actions/checkout@v4
+
     - name: JDK 17 Setup
       uses: actions/setup-java@v4
       with:
         java-version: '17'
         distribution: 'temurin'
         cache: gradle
+
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+
+    - run: sdkmanager tools platform-tools
 
     - name: Cache Gradle packages
       uses: actions/cache@v4
@@ -32,5 +39,6 @@ jobs:
 
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
+
     - name: Build with Gradle
-      run: ./gradlew build
+      run: ./gradlew --no-daemon build
