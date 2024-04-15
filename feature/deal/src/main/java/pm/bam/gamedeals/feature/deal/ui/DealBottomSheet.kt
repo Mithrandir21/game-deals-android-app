@@ -1,6 +1,5 @@
 package pm.bam.gamedeals.feature.deal.ui
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -236,8 +235,15 @@ private fun GameDetails(
                         .height(120.dp)
                         .align(Alignment.CenterHorizontally)
                         .padding(GameDealsCustomTheme.spacing.small)
-                        .clickable { goToWeb("https://www.cheapshark.com/redirect?dealID=${data.dealId}", data.gameName) }
                 )
+                Button(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.CenterHorizontally)
+                        .testTag(GoToDealBtnTag),
+                    onClick = { goToWeb("https://www.cheapshark.com/redirect?dealID=${data.dealId}", data.gameName) }) {
+                    Text(text = stringResource(id = R.string.deal_details_go_to_deal_label))
+                }
                 data.gameInfo.metacriticScore?.let { Text(text = stringResource(id = R.string.deal_details_metacritic_score_label, it)) }
                 data.gameInfo.steamRatingPercent?.let { Text(text = stringResource(id = R.string.deal_details_steam_reviews_label, it)) }
                 data.gameInfo.releaseDate?.let { Text(text = stringResource(id = R.string.deal_details_release_label, it)) }
@@ -385,12 +391,11 @@ private fun DealBottomErrorPreview() {
     }
 }
 
-// "https://www.cheapshark.com/redirect?dealID=" + this.$data.getDealId()
-
 internal const val CheapestPriceTag = "CheapestPrice"
 internal const val DataLoadingTag = "DataLoading"
 internal const val DataErrorMsgTag = "DataErrorMsg"
 internal const val DataErrorBtnTag = "DataErrorBtn"
+internal const val GoToDealBtnTag = "GoToDealBtn"
 internal const val DealCheaperStoreRowTag = "DealCheaperStoreRow"
 internal const val DealCheapestTag = "DealCheapest"
 internal const val StoreDataGameDataTag = "StoreDataGameData"

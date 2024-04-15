@@ -9,8 +9,12 @@ import androidx.compose.ui.test.hasTextExactly
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onChildren
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
+import io.mockk.Runs
 import io.mockk.every
+import io.mockk.just
 import io.mockk.mockk
+import io.mockk.verify
 import org.junit.Rule
 import org.junit.Test
 import pm.bam.gamedeals.common.ui.theme.GameDealsTheme
@@ -23,12 +27,12 @@ class DealBottomSheetTest {
     @get:Rule
     val composeTestRule = createComposeRule()
 
-    private val storeId = 1
-    private val storeName = "Store Name"
+    private val mockStoreId = 1
+    private val mockStoreName = "Store Name"
     private val store: Store = mockk {
-        every { this@mockk.storeID } returns storeId
+        every { this@mockk.storeID } returns mockStoreId
         every { this@mockk.images.logo } returns "Logo"
-        every { this@mockk.storeName } returns storeName
+        every { this@mockk.storeName } returns mockStoreName
     }
     private val dealId = "Deal ID"
     private val gameName = "Game Name"
@@ -46,7 +50,7 @@ class DealBottomSheetTest {
         var expectedGameData = ""
 
         composeTestRule.setContent {
-            expectedGameData = stringResource(id = R.string.deal_details_title_label, storeName, gamePrice)
+            expectedGameData = stringResource(id = R.string.deal_details_title_label, mockStoreName, gamePrice)
 
             GameDealsTheme {
                 DealBottomSheet(
@@ -132,6 +136,13 @@ class DealBottomSheetTest {
         }
 
         val salePriceDenominated = "Cheaper"
+        val cheaperStoreId = 1
+        val cheaperStoreName = "Store Name"
+        val cheaperStore: Store = mockk {
+            every { this@mockk.storeID } returns cheaperStoreId
+            every { this@mockk.images.logo } returns "Logo"
+            every { this@mockk.storeName } returns cheaperStoreName
+        }
         val cheaperStoreDetails: DealDetails.CheaperStore = mockk {
             every { this@mockk.salePriceDenominated } returns salePriceDenominated
         }
@@ -150,16 +161,20 @@ class DealBottomSheetTest {
             dealId = dealId,
             gameSalesPriceDenominated = gamePrice,
             gameInfo = gameInfo,
-            cheaperStores = listOf(store to cheaperStoreDetails),
+            cheaperStores = listOf(cheaperStore to cheaperStoreDetails),
             cheapestPrice = cheapestPrice,
         )
+
+        val goToActions: (url: String, gameTitle: String) -> Unit = mockk {
+            every { this@mockk.invoke(any(), any()) } just Runs
+        }
 
         var expectedGameData = ""
         var expectedCheapestStore = ""
         var expectedCheapestPrice = ""
 
         composeTestRule.setContent {
-            expectedGameData = stringResource(id = R.string.deal_details_title_label, storeName, gamePrice)
+            expectedGameData = stringResource(id = R.string.deal_details_title_label, mockStoreName, gamePrice)
             expectedCheapestStore = stringResource(id = R.string.deal_details_cheapest_store_label)
                 .plus(stringResource(id = R.string.deal_details_cheapest_no))
             expectedCheapestPrice = stringResource(id = R.string.deal_details_cheapest_on_label, cheapestPriceDenominated, cheapestPriceDate)
@@ -168,7 +183,7 @@ class DealBottomSheetTest {
                 DealBottomSheet(
                     data = dealDetailsData,
                     onDismiss = {},
-                    goToWeb = { _, _ -> },
+                    goToWeb = goToActions,
                     onRetryDealDetails = {}
                 )
             }
@@ -198,5 +213,13 @@ class DealBottomSheetTest {
             .onChildren()
             .filterToOne(hasTextExactly(salePriceDenominated))
             .assertIsDisplayed()
+
+
+        verify(exactly = 0) { goToActions.invoke(any(), any()) }
+
+        composeTestRule.onNodeWithTag(GoToDealBtnTag)
+            .performClick()
+
+        verify(exactly = 1) { goToActions.invoke(any(), any()) }
     }
 }
