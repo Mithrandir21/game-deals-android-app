@@ -28,6 +28,7 @@ internal fun NavGraph(
         homeScreen(
             route = NavigationDestinations.HOME_SCREEN_ROUTE,
             goToSearch = { navActions.navigateToSearch() },
+            goToGame = { gameId -> navActions.navigateToGame(gameId) },
             goToStore = { storeId -> navActions.navigateToStore(storeId) },
             goToWeb = { url: String, gameTitle: String -> navActions.navigateToWeb(url, gameTitle) }
         )

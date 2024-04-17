@@ -11,11 +11,14 @@ import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Rule
 import org.junit.Test
 import pm.bam.gamedeals.domain.models.Deal
 import pm.bam.gamedeals.domain.models.Store
 import pm.bam.gamedeals.domain.repositories.deals.DealsRepository
+import pm.bam.gamedeals.domain.repositories.games.GamesRepository
+import pm.bam.gamedeals.domain.repositories.releases.ReleasesRepository
 import pm.bam.gamedeals.domain.repositories.stores.StoresRepository
 import pm.bam.gamedeals.feature.home.ui.HomeViewModel.HomeScreenData
 import pm.bam.gamedeals.feature.home.ui.HomeViewModel.HomeScreenListData
@@ -24,6 +27,7 @@ import pm.bam.gamedeals.testing.MainCoroutineRule
 import pm.bam.gamedeals.testing.TestingLoggingListener
 import pm.bam.gamedeals.testing.utils.observeEmissions
 import pm.bam.gamedeals.testing.utils.second
+import pm.bam.gamedeals.testing.utils.third
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class HomeViewModelTest {
@@ -35,7 +39,11 @@ class HomeViewModelTest {
 
     private val storesRepository: StoresRepository = mockk()
 
+    private val gamesRepository: GamesRepository = mockk()
+
     private val dealsRepository: DealsRepository = mockk()
+
+    private val releasesRepository: ReleasesRepository = mockk()
 
     private val logger: TestingLoggingListener = TestingLoggingListener()
 
@@ -43,8 +51,9 @@ class HomeViewModelTest {
     @Test
     fun `initially loading state`() = runTest {
         coEvery { storesRepository.observeStores() } returns flowOf(listOf())
+        coEvery { releasesRepository.observeReleases() } returns flowOf(listOf())
 
-        viewModel = HomeViewModel(storesRepository, dealsRepository, logger)
+        viewModel = HomeViewModel(storesRepository, dealsRepository, gamesRepository, releasesRepository, logger)
 
         val emissions = observeStates()
         assertEquals(2, emissions.size)
@@ -66,9 +75,10 @@ class HomeViewModelTest {
         val deal: Deal = mockk()
 
         coEvery { storesRepository.observeStores() } returns flowOf(listOf(store))
+        coEvery { releasesRepository.observeReleases() } returns flowOf(listOf())
         coEvery { dealsRepository.getStoreDeals(topStores.first(), LIMIT_DEALS) } returns listOf(deal)
 
-        viewModel = HomeViewModel(storesRepository, dealsRepository, logger)
+        viewModel = HomeViewModel(storesRepository, dealsRepository, gamesRepository, releasesRepository, logger)
         val emissions = observeStates()
 
         val data = mutableListOf<HomeScreenListData>()
@@ -92,7 +102,7 @@ class HomeViewModelTest {
     fun `load store deals from source failure`() = runTest {
         coEvery { storesRepository.observeStores() } throws Exception()
 
-        viewModel = HomeViewModel(storesRepository, dealsRepository, logger)
+        viewModel = HomeViewModel(storesRepository, dealsRepository, gamesRepository, releasesRepository, logger)
         val emissions = observeStates()
 
         assertEquals(2, emissions.size)
@@ -102,6 +112,60 @@ class HomeViewModelTest {
 
         coVerify(exactly = 1) { storesRepository.observeStores() }
         coVerify(exactly = 0) { dealsRepository.getStoreDeals(any(), any()) }
+    }
+
+    @Test
+    fun `onReleaseGame title success`() = runTest {
+        val releaseTitle = "title"
+        val gameId = 1
+
+        coEvery { storesRepository.observeStores() } returns flowOf(listOf())
+        coEvery { releasesRepository.observeReleases() } returns flowOf(listOf())
+        coEvery { gamesRepository.getReleaseGameId(releaseTitle) } returns gameId
+
+        viewModel = HomeViewModel(storesRepository, dealsRepository, gamesRepository, releasesRepository, logger)
+        val emissions = observeStates()
+        val releaseGameId = viewModel.releaseGameId.observeEmissions(this.backgroundScope, mainCoroutineRule.testDispatcher)
+
+        viewModel.onReleaseGame(releaseTitle)
+
+        assertEquals(2, emissions.size)
+        assertNotNull(emissions.second())
+        assertEquals(HomeScreenData(state = HomeScreenStatus.SUCCESS), emissions.second())
+
+        assertEquals(2, releaseGameId.size)
+        assertNull(releaseGameId.first())
+        assertNotNull(releaseGameId.second())
+        assertEquals(gameId, releaseGameId.second()?.getContentIfNotHandled())
+
+        coVerify(exactly = 1) { storesRepository.observeStores() }
+        coVerify(exactly = 1) { gamesRepository.getReleaseGameId(releaseTitle) }
+    }
+
+    @Test(expected = Exception::class)
+    fun `onReleaseGame title exception`() = runTest {
+        val releaseTitle = "title"
+        val gameId = 1
+
+        coEvery { storesRepository.observeStores() } returns flowOf(listOf())
+        coEvery { releasesRepository.observeReleases() } returns flowOf(listOf())
+        coEvery { gamesRepository.getReleaseGameId(any()) } throws Exception()
+
+        viewModel = HomeViewModel(storesRepository, dealsRepository, gamesRepository, releasesRepository, logger)
+        val emissions = observeStates()
+        val releaseGameId = viewModel.releaseGameId.observeEmissions(this.backgroundScope, mainCoroutineRule.testDispatcher)
+
+        viewModel.onReleaseGame(releaseTitle)
+
+        assertEquals(3, emissions.size)
+        assertNotNull(emissions.third())
+        assertEquals(HomeScreenData(state = HomeScreenStatus.ERROR), emissions.third())
+
+        assertEquals(1, releaseGameId.size)
+        assertNull(releaseGameId.first())
+
+        coVerify(exactly = 1) { storesRepository.observeStores() }
+        coVerify(exactly = 1) { gamesRepository.getReleaseGameId(releaseTitle) }
     }
 
     private fun TestScope.observeStates() = viewModel.uiState.observeEmissions(this.backgroundScope, mainCoroutineRule.testDispatcher)
