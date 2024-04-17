@@ -1,4 +1,4 @@
-package pm.bam.gamedeals.domain.repositories
+package pm.bam.gamedeals.domain.repositories.games
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import io.mockk.coEvery
@@ -20,7 +20,6 @@ import pm.bam.gamedeals.domain.models.Game
 import pm.bam.gamedeals.domain.models.GameDetails
 import pm.bam.gamedeals.domain.models.toGame
 import pm.bam.gamedeals.domain.models.toGameDetails
-import pm.bam.gamedeals.domain.repositories.games.GamesRepositoryImpl
 import pm.bam.gamedeals.domain.transformations.CurrencyTransformation
 import pm.bam.gamedeals.remote.datasources.deals.RemoteDealsDataSource
 import pm.bam.gamedeals.remote.datasources.games.RemoteGamesDataSource

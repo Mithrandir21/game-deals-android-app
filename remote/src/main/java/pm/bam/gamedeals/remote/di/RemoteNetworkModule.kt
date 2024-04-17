@@ -13,6 +13,7 @@ import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import pm.bam.gamedeals.remote.api.DealsApi
 import pm.bam.gamedeals.remote.api.GamesApi
+import pm.bam.gamedeals.remote.api.ReleaseApi
 import pm.bam.gamedeals.remote.api.StoresApi
 import pm.bam.gamedeals.remote.logic.RemoteBuildType
 import pm.bam.gamedeals.remote.logic.RemoteBuildUtil
@@ -81,4 +82,8 @@ class RemoteNetworkModule {
     @Provides
     @Singleton
     internal fun provideStoresApi(retrofit: Retrofit): StoresApi = retrofit.create(StoresApi::class.java)
+
+    @Provides
+    @Singleton
+    internal fun provideReleaseApi(retrofit: Retrofit): ReleaseApi = retrofit.create(ReleaseApi::class.java)
 }

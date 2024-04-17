@@ -13,11 +13,14 @@ import pm.bam.gamedeals.common.serializer.Serializer
 import pm.bam.gamedeals.domain.db.DomainDatabase
 import pm.bam.gamedeals.domain.db.dao.DealsDao
 import pm.bam.gamedeals.domain.db.dao.GamesDao
+import pm.bam.gamedeals.domain.db.dao.ReleasesDao
 import pm.bam.gamedeals.domain.db.dao.StoresDao
 import pm.bam.gamedeals.domain.repositories.deals.DealsRepository
 import pm.bam.gamedeals.domain.repositories.deals.DealsRepositoryImpl
 import pm.bam.gamedeals.domain.repositories.games.GamesRepository
 import pm.bam.gamedeals.domain.repositories.games.GamesRepositoryImpl
+import pm.bam.gamedeals.domain.repositories.releases.ReleasesRepository
+import pm.bam.gamedeals.domain.repositories.releases.ReleasesRepositoryImpl
 import pm.bam.gamedeals.domain.repositories.stores.StoresRepository
 import pm.bam.gamedeals.domain.repositories.stores.StoresRepositoryImpl
 import pm.bam.gamedeals.domain.transformations.CurrencyTransformation
@@ -26,6 +29,7 @@ import pm.bam.gamedeals.domain.utils.StoreImagesConverter
 import pm.bam.gamedeals.logging.Logger
 import pm.bam.gamedeals.remote.datasources.deals.RemoteDealsDataSource
 import pm.bam.gamedeals.remote.datasources.games.RemoteGamesDataSource
+import pm.bam.gamedeals.remote.datasources.releases.RemoteReleasesDataSource
 import pm.bam.gamedeals.remote.datasources.stores.RemoteStoresDataSource
 import javax.inject.Singleton
 
@@ -73,6 +77,11 @@ internal class InternalDomainModule {
 
     @Provides
     @Singleton
+    fun provideReleasesRepository(logger: Logger, releasesDao: ReleasesDao, remoteReleasesDataSource: RemoteReleasesDataSource): ReleasesRepository =
+        ReleasesRepositoryImpl(logger, releasesDao, remoteReleasesDataSource)
+
+    @Provides
+    @Singleton
     fun provideDatabase(
         @ApplicationContext context: Context,
         @Domain storeImagesConverter: StoreImagesConverter
@@ -93,5 +102,9 @@ internal class InternalDomainModule {
     @Provides
     @Singleton
     fun provideStoresDao(db: DomainDatabase): StoresDao = db.getStoresDao()
+
+    @Provides
+    @Singleton
+    fun provideReleasesDao(db: DomainDatabase): ReleasesDao = db.getReleasesDao()
 }
 

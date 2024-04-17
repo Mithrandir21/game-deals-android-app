@@ -3,9 +3,9 @@ package pm.bam.gamedeals.domain.repositories.games
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.ExperimentalSerializationApi
 import pm.bam.gamedeals.domain.models.Deal
-import pm.bam.gamedeals.domain.models.SearchParameters
 import pm.bam.gamedeals.domain.models.Game
 import pm.bam.gamedeals.domain.models.GameDetails
+import pm.bam.gamedeals.domain.models.SearchParameters
 
 interface GamesRepository {
 
@@ -15,6 +15,8 @@ interface GamesRepository {
 
     @OptIn(ExperimentalSerializationApi::class)
     suspend fun searchGames(searchParameters: SearchParameters): List<Deal>
+
+    suspend fun getReleaseGameId(gameTitle: String): Int?
 
     suspend fun getGameDetails(dealId: Int): GameDetails
 

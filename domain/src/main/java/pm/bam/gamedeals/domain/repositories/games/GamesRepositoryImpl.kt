@@ -6,13 +6,13 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import pm.bam.gamedeals.common.datetime.formatting.DateTimeFormatter
 import pm.bam.gamedeals.domain.db.dao.GamesDao
 import pm.bam.gamedeals.domain.models.Deal
-import pm.bam.gamedeals.domain.models.SearchParameters
 import pm.bam.gamedeals.domain.models.Game
 import pm.bam.gamedeals.domain.models.GameDetails
+import pm.bam.gamedeals.domain.models.SearchParameters
 import pm.bam.gamedeals.domain.models.toDeal
-import pm.bam.gamedeals.domain.models.toRemoteDealsQuery
 import pm.bam.gamedeals.domain.models.toGame
 import pm.bam.gamedeals.domain.models.toGameDetails
+import pm.bam.gamedeals.domain.models.toRemoteDealsQuery
 import pm.bam.gamedeals.domain.transformations.CurrencyTransformation
 import pm.bam.gamedeals.remote.datasources.deals.RemoteDealsDataSource
 import pm.bam.gamedeals.remote.datasources.games.RemoteGamesDataSource
@@ -38,6 +38,12 @@ internal class GamesRepositoryImpl @Inject constructor(
     override suspend fun searchGames(searchParameters: SearchParameters): List<Deal> =
         remoteDealsDataSource.getDeals(searchParameters.toRemoteDealsQuery())
             .map { remoteDeal -> remoteDeal.toDeal(currencyTransformation) }
+
+    @ExperimentalSerializationApi
+    override suspend fun getReleaseGameId(gameTitle: String): Int? =
+        remoteDealsDataSource.getDeals(SearchParameters(title = gameTitle, exact = true).toRemoteDealsQuery())
+            .firstOrNull()
+            ?.gameID
 
     override suspend fun getGameDetails(dealId: Int): GameDetails =
         remoteGamesDataSource.getGameDetails(dealId.toString()).toGameDetails(currencyTransformation, dateTimeFormatter)
