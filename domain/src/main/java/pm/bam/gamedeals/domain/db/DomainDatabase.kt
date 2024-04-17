@@ -15,7 +15,7 @@ import pm.bam.gamedeals.domain.models.Release
 import pm.bam.gamedeals.domain.models.Store
 import pm.bam.gamedeals.domain.utils.StoreImagesConverter
 
-@Database(version = 1, entities = [Deal::class, DealPage::class, Game::class, Store::class, Release::class], exportSchema = false)
+@Database(version = 2, entities = [Deal::class, DealPage::class, Game::class, Store::class, Release::class], exportSchema = false)
 @TypeConverters(StoreImagesConverter::class)
 internal abstract class DomainDatabase : RoomDatabase() {
 
