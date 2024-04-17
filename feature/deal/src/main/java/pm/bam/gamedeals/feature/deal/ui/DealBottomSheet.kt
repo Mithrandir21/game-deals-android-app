@@ -1,5 +1,6 @@
 package pm.bam.gamedeals.feature.deal.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -171,7 +172,11 @@ private fun GameDetails(
 
                 // List of Rows for each cheaper store
                 data.cheaperStores.forEach {
-                    Row(modifier = Modifier.testTag(DealCheaperStoreRowTag.plus(it.first.storeID))) {
+                    Row(
+                        modifier = Modifier
+                            .clickable { goToWeb("$DEAL_URL${it.second.dealID}", data.gameName) }
+                            .testTag(DealCheaperStoreRowTag.plus(it.first.storeID)),
+                    ) {
                         AsyncImage(
                             model = it.first.images.logo,
                             contentDescription = stringResource(R.string.deal_details_cheaper_store_thumbnail, data.store.storeName),
@@ -241,7 +246,7 @@ private fun GameDetails(
                         .fillMaxWidth()
                         .align(Alignment.CenterHorizontally)
                         .testTag(GoToDealBtnTag),
-                    onClick = { goToWeb("https://www.cheapshark.com/redirect?dealID=${data.dealId}", data.gameName) }) {
+                    onClick = { goToWeb("$DEAL_URL${data.dealId}", data.gameName) }) {
                     Text(text = stringResource(id = R.string.deal_details_go_to_deal_label))
                 }
                 data.gameInfo.metacriticScore?.let { Text(text = stringResource(id = R.string.deal_details_metacritic_score_label, it)) }
@@ -390,6 +395,8 @@ private fun DealBottomErrorPreview() {
         }
     }
 }
+
+internal const val DEAL_URL = "https://www.cheapshark.com/redirect?dealID="
 
 internal const val CheapestPriceTag = "CheapestPrice"
 internal const val DataLoadingTag = "DataLoading"

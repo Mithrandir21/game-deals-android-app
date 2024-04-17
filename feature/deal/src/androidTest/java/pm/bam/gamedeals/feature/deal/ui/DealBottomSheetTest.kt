@@ -4,10 +4,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
-import androidx.compose.ui.test.filterToOne
 import androidx.compose.ui.test.hasTextExactly
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onChildren
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import io.mockk.Runs
@@ -143,7 +141,10 @@ class DealBottomSheetTest {
             every { this@mockk.images.logo } returns "Logo"
             every { this@mockk.storeName } returns cheaperStoreName
         }
+
+        val cheaperStoreDetailsDealId = "DealID"
         val cheaperStoreDetails: DealDetails.CheaperStore = mockk {
+            every { this@mockk.dealID } returns cheaperStoreDetailsDealId
             every { this@mockk.salePriceDenominated } returns salePriceDenominated
         }
 
@@ -209,17 +210,20 @@ class DealBottomSheetTest {
             .assert(hasTextExactly(expectedCheapestPrice))
             .assertIsDisplayed()
 
-        composeTestRule.onNodeWithTag(DealCheaperStoreRowTag.plus(store.storeID))
-            .onChildren()
-            .filterToOne(hasTextExactly(salePriceDenominated))
+        composeTestRule.onNodeWithTag(DealCheaperStoreRowTag.plus(cheaperStoreId))
             .assertIsDisplayed()
 
-
         verify(exactly = 0) { goToActions.invoke(any(), any()) }
+
+
+        composeTestRule.onNodeWithTag(DealCheaperStoreRowTag.plus(cheaperStoreId))
+            .performClick()
+
+        verify(exactly = 1) { goToActions.invoke("$DEAL_URL${cheaperStoreDetailsDealId}", gameName) }
 
         composeTestRule.onNodeWithTag(GoToDealBtnTag)
             .performClick()
 
-        verify(exactly = 1) { goToActions.invoke(any(), any()) }
+        verify(exactly = 1) { goToActions.invoke("$DEAL_URL${dealId}", gameName) }
     }
 }
