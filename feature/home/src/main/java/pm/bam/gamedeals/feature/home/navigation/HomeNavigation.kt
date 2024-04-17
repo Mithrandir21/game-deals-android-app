@@ -8,12 +8,14 @@ import pm.bam.gamedeals.feature.home.ui.HomeScreen
 fun NavGraphBuilder.homeScreen(
     route: String,
     goToSearch: () -> Unit,
+    goToGame: (gameId: Int) -> Unit,
     goToStore: (storeId: Int) -> Unit,
     goToWeb: (url: String, gameTitle: String) -> Unit
 ) {
     composable(route) {
         HomeScreen(
-            onSearch = { goToSearch() },
+            onSearch = goToSearch,
+            goToGame = goToGame,
             onViewStoreDeals = { store: Store -> goToStore(store.storeID) },
             goToWeb = { url: String, gameTitle: String -> goToWeb(url, gameTitle) }
         )

@@ -4,12 +4,14 @@ import pm.bam.gamedeals.domain.models.Deal
 import pm.bam.gamedeals.domain.models.DealDetails
 import pm.bam.gamedeals.domain.models.Game
 import pm.bam.gamedeals.domain.models.GameDetails
+import pm.bam.gamedeals.domain.models.Release
 import pm.bam.gamedeals.domain.models.Store
 
 val PreviewStoreImages = Store.StoreImages("", "", "")
 val PreviewStore = Store(1, "Store Name", true, PreviewStoreImages)
 val PreviewDeal = Deal("dealId", "GameDeal Internal", "GameDeal", "", 1, 2, 1.2, "$1.2",2.4, "$2.4", false, 50.0, 97, "Positive", 92, "13", 1, 1, 1, 9.5, "Thumb")
 
+val PreviewRelease = Release("Game Name", 123,  "Thumb")
 
 val PreviewDealGameInfo = DealDetails.GameInfo(1, 123, "Game Name", 8870, 7.49, "$7.49", 39.99, "$39.99","Very Positive", 93, "1238", 97, "Link", "August 13, 2011", "Publisher", true, "Thumb")
 val PreviewDealCheaperStore = DealDetails.CheaperStore("xyz", 1, 6.49, "$6.49", 29.99, "$29.99")

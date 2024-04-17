@@ -51,13 +51,16 @@ import pm.bam.gamedeals.common.ui.FoldablePortrait
 import pm.bam.gamedeals.common.ui.PhoneLandscape
 import pm.bam.gamedeals.common.ui.PhonePortrait
 import pm.bam.gamedeals.common.ui.PreviewDeal
+import pm.bam.gamedeals.common.ui.PreviewRelease
 import pm.bam.gamedeals.common.ui.PreviewStore
 import pm.bam.gamedeals.common.ui.TabletLandscape
 import pm.bam.gamedeals.common.ui.TabletPortrait
 import pm.bam.gamedeals.common.ui.theme.GameDealsCustomTheme
 import pm.bam.gamedeals.common.ui.theme.GameDealsTheme
 import pm.bam.gamedeals.domain.models.Deal
+import pm.bam.gamedeals.domain.models.Release
 import pm.bam.gamedeals.domain.models.Store
+import pm.bam.gamedeals.domain.utils.collectSingleEvent
 import pm.bam.gamedeals.feature.deal.ui.DealBottomSheet
 import pm.bam.gamedeals.feature.deal.ui.DealBottomSheetData
 import pm.bam.gamedeals.feature.deal.ui.DealDetailsViewModel
@@ -72,16 +75,23 @@ import pm.bam.gamedeals.feature.home.ui.HomeViewModel.HomeScreenStatus.SUCCESS
 @Composable
 internal fun HomeScreen(
     onSearch: () -> Unit,
+    goToGame: (gameId: Int) -> Unit,
     onViewStoreDeals: ((store: Store) -> Unit) = {},
     goToWeb: (url: String, gameTitle: String) -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
     dealDealDetailsViewModel: DealDetailsViewModel = hiltViewModel()
 ) {
+    // Collect the release game id and navigate to the game screen
+    viewModel.releaseGameId.collectSingleEvent { goToGame(it) }
+
     val data = viewModel.uiState.collectAsStateWithLifecycle()
     val dealDetails = dealDealDetailsViewModel.dealDealDetails.collectAsStateWithLifecycle()
 
+    val onReleaseTitle: (title: String) -> Unit = { title -> viewModel.onReleaseGame(title) }
+
     Screen(
         onSearch = onSearch,
+        onReleaseTitle = onReleaseTitle,
         data = data.value,
         dealDetails = dealDetails.value,
         onViewDealDetails = { dealId, dealStoreId, dealTitle, dealPriceDenominated ->
@@ -149,6 +159,7 @@ private fun StoreDealRow(
 @Composable
 private fun Screen(
     onSearch: () -> Unit,
+    onReleaseTitle: (title: String) -> Unit,
     data: HomeViewModel.HomeScreenData,
     dealDetails: DealBottomSheetData?,
     onViewDealDetails: (dealId: String, dealStoreId: Int, dealTitle: String, dealPriceDenominated: String) -> Unit,
@@ -185,6 +196,13 @@ private fun Screen(
                     LazyColumn(
                         modifier = Modifier.padding(innerPadding),
                         content = {
+                            if (data.releases.isNotEmpty()) {
+                                item { ReleaseHeader() }
+                            }
+
+                            items(data.releases.size) { index ->
+                                ReleaseRow(data.releases[index], onReleaseTitle)
+                            }
                             items(data.items.size) { index ->
                                 when (val itemData = data.items[index]) {
                                     is StoreData -> StoreHeader(itemData.store)
@@ -254,6 +272,62 @@ private fun StoreHeader(store: Store) {
     HorizontalDivider()
 }
 
+@Composable
+private fun ReleaseHeader() {
+    Box(
+        modifier = Modifier
+            .height(80.dp)
+            .fillMaxWidth()
+            .background(color = MaterialTheme.colorScheme.primary)
+            .padding(GameDealsCustomTheme.spacing.medium)
+            .testTag(HomeScreenReleaseHeaderTag),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = "New Releases",
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onPrimary,
+            style = MaterialTheme.typography.headlineSmall
+        )
+    }
+}
+
+
+@Composable
+private fun ReleaseRow(
+    release: Release,
+    onReleaseTitle: (title: String) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onReleaseTitle(release.title) }
+            .padding(bottom = GameDealsCustomTheme.spacing.small)
+            .testTag(HomeScreenReleaseRowTag.plus(release.title)),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        AsyncImage(
+            model = release.image,
+            contentDescription = stringResource(R.string.home_screen_game_image, release.title),
+            contentScale = ContentScale.Fit,
+            error = painterResource(id = pm.bam.gamedeals.common.ui.R.drawable.videogame_thumb),
+            modifier = Modifier
+                .padding(horizontal = GameDealsCustomTheme.spacing.medium)
+                .height(60.dp)
+                .width(100.dp)
+                .clip(RoundedCornerShape(GameDealsCustomTheme.spacing.extraSmall))
+        )
+        Text(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .padding(horizontal = GameDealsCustomTheme.spacing.small),
+            textAlign = TextAlign.Start,
+            text = release.title
+        )
+    }
+}
+
 
 @PhonePortrait
 @PhoneLandscape
@@ -265,8 +339,16 @@ private fun StoreHeader(store: Store) {
 private fun ScreenPreview() {
     Screen(
         onSearch = {},
+        onReleaseTitle = {},
         data = HomeViewModel.HomeScreenData(
             state = SUCCESS,
+            releases = listOf(
+                PreviewRelease.copy(title = "Game 1"),
+                PreviewRelease.copy(title = "Game 2"),
+                PreviewRelease.copy(title = "Game 3"),
+                PreviewRelease.copy(title = "Game 4"),
+                PreviewRelease.copy(title = "Game 1"),
+            ),
             items = listOf(
                 StoreData(store = PreviewStore.copy(storeID = 1)),
                 DealData(deal = PreviewDeal),
@@ -292,6 +374,8 @@ private fun ScreenPreview() {
 }
 
 
+internal const val HomeScreenReleaseHeaderTag = "HomeScreenReleaseHeaderTag"
+internal const val HomeScreenReleaseRowTag = "HomeScreenReleaseRowTag"
 internal const val HomeScreenStoreBannerTag = "HomeScreenStoreBannerTag"
 internal const val HomeScreenDealRowTag = "HomeScreenDealRowTag"
 internal const val HomeScreenViewAllButtonTag = "HomeScreenViewAllButtonTag"
