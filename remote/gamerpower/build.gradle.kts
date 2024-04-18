@@ -34,6 +34,7 @@ android {
 
 dependencies {
 
+    implementation(project(":remote"))
     implementation(project(":logging"))
     implementation(project(":common"))
 

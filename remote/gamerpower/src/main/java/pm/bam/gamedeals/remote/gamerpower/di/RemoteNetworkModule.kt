@@ -1,4 +1,4 @@
-package pm.bam.gamedeals.remote.cheapshark.di
+package pm.bam.gamedeals.remote.gamerpower.di
 
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import com.skydoves.sandwich.retrofit.adapters.ApiResponseCallAdapterFactory
@@ -11,10 +11,7 @@ import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
-import pm.bam.gamedeals.remote.cheapshark.api.DealsApi
-import pm.bam.gamedeals.remote.cheapshark.api.GamesApi
-import pm.bam.gamedeals.remote.cheapshark.api.ReleaseApi
-import pm.bam.gamedeals.remote.cheapshark.api.StoresApi
+import pm.bam.gamedeals.remote.gamerpower.api.GamesApi
 import pm.bam.gamedeals.remote.logic.RemoteBuildType
 import pm.bam.gamedeals.remote.logic.RemoteBuildUtil
 import retrofit2.Retrofit
@@ -29,7 +26,7 @@ class RemoteNetworkModule {
 
     @Provides
     @Singleton
-    @CheapShark
+    @GamerPower
     fun provideOkHttpClient(remoteBuildUtil: RemoteBuildUtil): OkHttpClient {
         val builder = OkHttpClient.Builder()
 
@@ -45,11 +42,11 @@ class RemoteNetworkModule {
 
     @Provides
     @Singleton
-    @CheapShark
+    @GamerPower
     @ExperimentalSerializationApi
-    fun provideRetrofit(@CheapShark okHttpClient: OkHttpClient, json: Json): Retrofit {
+    fun provideRetrofit(@GamerPower okHttpClient: OkHttpClient, json: Json): Retrofit {
         return Retrofit.Builder()
-            .baseUrl("https://www.cheapshark.com")
+            .baseUrl("https://www.gamerpower.com")
             .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
             .addCallAdapterFactory(ApiResponseCallAdapterFactory.create())
             .client(okHttpClient)
@@ -58,22 +55,10 @@ class RemoteNetworkModule {
 
     @Provides
     @Singleton
-    internal fun provideDealsApi(@CheapShark retrofit: Retrofit): DealsApi = retrofit.create(DealsApi::class.java)
-
-    @Provides
-    @Singleton
-    internal fun provideGamesApi(@CheapShark retrofit: Retrofit): GamesApi = retrofit.create(GamesApi::class.java)
-
-    @Provides
-    @Singleton
-    internal fun provideStoresApi(@CheapShark retrofit: Retrofit): StoresApi = retrofit.create(StoresApi::class.java)
-
-    @Provides
-    @Singleton
-    internal fun provideReleaseApi(@CheapShark retrofit: Retrofit): ReleaseApi = retrofit.create(ReleaseApi::class.java)
+    internal fun provideDealsApi(@GamerPower retrofit: Retrofit): GamesApi = retrofit.create(GamesApi::class.java)
 }
 
 /** A [Qualifier] used specifically for dependencies associated specifically with this GamerPower module as opposed to any other Module. */
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
-internal annotation class CheapShark
+internal annotation class GamerPower

@@ -40,6 +40,7 @@ dependencies {
     implementation(project(":logging"))
     implementation(project(":common"))
     implementation(project(":remote:cheapshark"))
+    implementation(project(":remote:gamerpower"))
 
     implementation(libs.androidx.ktx)
     implementation(libs.androidx.appcompat)
