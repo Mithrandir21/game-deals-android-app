@@ -22,7 +22,7 @@ import kotlin.contracts.contract
  * @return A [T] type of the [ApiResponse].
  */
 @OptIn(ExperimentalContracts::class)
-internal fun <T> ApiResponse<T>.mapAnyFailure(transformer: Throwable.() -> Throwable): ApiResponse<T> {
+fun <T> ApiResponse<T>.mapAnyFailure(transformer: Throwable.() -> Throwable): ApiResponse<T> {
     contract { callsInPlace(transformer, InvocationKind.AT_MOST_ONCE) }
 
     return when (this) {
@@ -34,7 +34,7 @@ internal fun <T> ApiResponse<T>.mapAnyFailure(transformer: Throwable.() -> Throw
 
 
 /** Logs, using the provided [logger], for [onError], [onException] and [onSuccess]. */
-internal fun <T> ApiResponse<T>.log(logger: Logger, logLevel: LogLevel = LogLevel.DEBUG, tag: String? = null): ApiResponse<T> {
+fun <T> ApiResponse<T>.log(logger: Logger, logLevel: LogLevel = LogLevel.DEBUG, tag: String? = null): ApiResponse<T> {
     this.onError { logger.log(logLevel, tag) { "Error: $this" } }
     this.onException { logger.log(logLevel, tag, this.throwable) { "Exception message: ${this.message}" } }
     this.onSuccess { logger.log(logLevel, tag) { "Success: ${this.data}" } }

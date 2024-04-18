@@ -27,10 +27,10 @@ import pm.bam.gamedeals.domain.transformations.CurrencyTransformation
 import pm.bam.gamedeals.domain.transformations.CurrencyTransformationImpl
 import pm.bam.gamedeals.domain.utils.StoreImagesConverter
 import pm.bam.gamedeals.logging.Logger
-import pm.bam.gamedeals.remote.datasources.deals.RemoteDealsDataSource
-import pm.bam.gamedeals.remote.datasources.games.RemoteGamesDataSource
-import pm.bam.gamedeals.remote.datasources.releases.RemoteReleasesDataSource
-import pm.bam.gamedeals.remote.datasources.stores.RemoteStoresDataSource
+import pm.bam.gamedeals.remote.cheapshark.datasources.deals.RemoteDealsDataSource
+import pm.bam.gamedeals.remote.cheapshark.datasources.games.RemoteGamesDataSource
+import pm.bam.gamedeals.remote.cheapshark.datasources.releases.RemoteReleasesDataSource
+import pm.bam.gamedeals.remote.cheapshark.datasources.stores.RemoteStoresDataSource
 import javax.inject.Singleton
 
 @Module(includes = [InternalDomainModule::class])

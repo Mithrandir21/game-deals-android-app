@@ -26,6 +26,8 @@ include(":common:ui")
 include(":logging")
 include(":testing")
 include(":remote")
+include(":remote:gamerpower")
+include(":remote:cheapshark")
 include(":domain")
 
 include(":feature:store")

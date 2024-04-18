@@ -18,8 +18,8 @@ import pm.bam.gamedeals.domain.db.dao.StoresDao
 import pm.bam.gamedeals.domain.models.Store
 import pm.bam.gamedeals.domain.models.toStore
 import pm.bam.gamedeals.logging.Logger
-import pm.bam.gamedeals.remote.datasources.stores.RemoteStoresDataSource
-import pm.bam.gamedeals.remote.models.RemoteStore
+import pm.bam.gamedeals.remote.cheapshark.datasources.stores.RemoteStoresDataSource
+import pm.bam.gamedeals.remote.cheapshark.models.RemoteStore
 import pm.bam.gamedeals.testing.TestingLoggingListener
 
 class StoresRepositoryImplTest {

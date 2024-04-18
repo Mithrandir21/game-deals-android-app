@@ -4,8 +4,8 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.properties.Properties
-import pm.bam.gamedeals.remote.api.models.deals.RemoteDealsQuery
-import pm.bam.gamedeals.remote.api.models.deals.RemoteDealsSortBy
+import pm.bam.gamedeals.remote.cheapshark.api.models.deals.RemoteDealsQuery
+import pm.bam.gamedeals.remote.cheapshark.api.models.deals.RemoteDealsSortBy
 
 @ExperimentalSerializationApi
 @Serializable

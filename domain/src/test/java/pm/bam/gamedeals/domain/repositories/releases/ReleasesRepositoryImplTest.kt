@@ -18,8 +18,8 @@ import pm.bam.gamedeals.domain.db.dao.ReleasesDao
 import pm.bam.gamedeals.domain.models.Release
 import pm.bam.gamedeals.domain.models.toRelease
 import pm.bam.gamedeals.logging.Logger
-import pm.bam.gamedeals.remote.datasources.releases.RemoteReleasesDataSource
-import pm.bam.gamedeals.remote.models.RemoteRelease
+import pm.bam.gamedeals.remote.cheapshark.datasources.releases.RemoteReleasesDataSource
+import pm.bam.gamedeals.remote.cheapshark.models.RemoteRelease
 import pm.bam.gamedeals.testing.TestingLoggingListener
 
 class ReleasesRepositoryImplTest {

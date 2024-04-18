@@ -18,8 +18,8 @@ import pm.bam.gamedeals.domain.transformations.CurrencyTransformation
 import pm.bam.gamedeals.logging.Logger
 import pm.bam.gamedeals.logging.debug
 import pm.bam.gamedeals.logging.verbose
-import pm.bam.gamedeals.remote.api.models.deals.RemoteDealsQuery
-import pm.bam.gamedeals.remote.datasources.deals.RemoteDealsDataSource
+import pm.bam.gamedeals.remote.cheapshark.api.models.deals.RemoteDealsQuery
+import pm.bam.gamedeals.remote.cheapshark.datasources.deals.RemoteDealsDataSource
 import javax.inject.Inject
 
 internal const val DEAL_PAGE_COUNT = 60

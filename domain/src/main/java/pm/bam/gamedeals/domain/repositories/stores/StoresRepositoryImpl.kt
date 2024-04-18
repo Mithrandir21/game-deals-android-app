@@ -8,7 +8,7 @@ import pm.bam.gamedeals.domain.models.toStore
 import pm.bam.gamedeals.logging.Logger
 import pm.bam.gamedeals.logging.debug
 import pm.bam.gamedeals.logging.verbose
-import pm.bam.gamedeals.remote.datasources.stores.RemoteStoresDataSource
+import pm.bam.gamedeals.remote.cheapshark.datasources.stores.RemoteStoresDataSource
 import javax.inject.Inject
 
 internal class StoresRepositoryImpl @Inject constructor(
