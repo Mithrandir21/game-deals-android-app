@@ -83,6 +83,7 @@ class HomeScreenTest {
         composeTestRule.setContent {
             HomeScreen(
                 onSearch = {},
+                goToGame = { _ -> },
                 onViewStoreDeals = {},
                 goToWeb = { _, _ -> },
                 viewModel = viewModel,
@@ -118,6 +119,7 @@ class HomeScreenTest {
 
             HomeScreen(
                 onSearch = {},
+                goToGame = { _ -> },
                 onViewStoreDeals = {},
                 goToWeb = { _, _ -> },
                 viewModel = viewModel,
@@ -153,6 +155,7 @@ class HomeScreenTest {
         composeTestRule.setContent {
             HomeScreen(
                 onSearch = {},
+                goToGame = { _ -> },
                 onViewStoreDeals = {},
                 goToWeb = { _, _ -> },
                 viewModel = viewModel,
