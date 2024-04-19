@@ -74,6 +74,14 @@ android {
     }
 
     buildTypes {
+        debug {
+            isMinifyEnabled = false
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
+
+            // Disable Crashlytics for debug builds
+            extra["enableCrashlytics"] = false
+            extra["alwaysUpdateBuildId"] = false
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
