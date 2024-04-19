@@ -39,7 +39,7 @@ data class Giveaway(
     @SerialName("platforms")
     val platforms: List<GiveawayPlatform>,
     @SerialName("end_date")
-    val endDate: String,
+    val endDate: String?,
     @SerialName("users")
     val users: Int,
     @SerialName("status")

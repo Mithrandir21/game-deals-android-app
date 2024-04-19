@@ -42,6 +42,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -51,6 +52,7 @@ import pm.bam.gamedeals.common.ui.FoldablePortrait
 import pm.bam.gamedeals.common.ui.PhoneLandscape
 import pm.bam.gamedeals.common.ui.PhonePortrait
 import pm.bam.gamedeals.common.ui.PreviewDeal
+import pm.bam.gamedeals.common.ui.PreviewGiveaway
 import pm.bam.gamedeals.common.ui.PreviewRelease
 import pm.bam.gamedeals.common.ui.PreviewStore
 import pm.bam.gamedeals.common.ui.TabletLandscape
@@ -58,6 +60,7 @@ import pm.bam.gamedeals.common.ui.TabletPortrait
 import pm.bam.gamedeals.common.ui.theme.GameDealsCustomTheme
 import pm.bam.gamedeals.common.ui.theme.GameDealsTheme
 import pm.bam.gamedeals.domain.models.Deal
+import pm.bam.gamedeals.domain.models.Giveaway
 import pm.bam.gamedeals.domain.models.Release
 import pm.bam.gamedeals.domain.models.Store
 import pm.bam.gamedeals.domain.utils.collectSingleEvent
@@ -77,6 +80,7 @@ internal fun HomeScreen(
     onSearch: () -> Unit,
     goToGame: (gameId: Int) -> Unit,
     onViewStoreDeals: ((store: Store) -> Unit) = {},
+    onViewGiveaways: () -> Unit,
     goToWeb: (url: String, gameTitle: String) -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
     dealDealDetailsViewModel: DealDetailsViewModel = hiltViewModel()
@@ -103,6 +107,7 @@ internal fun HomeScreen(
             )
         },
         onViewStoreDeals = onViewStoreDeals,
+        onViewGiveaways = onViewGiveaways,
         onDismissDealDetails = { dealDealDetailsViewModel.dismissDealDetails() },
         goToWeb = goToWeb,
         onRetry = { viewModel.loadTopStoresDeals() }
@@ -164,6 +169,7 @@ private fun Screen(
     dealDetails: DealBottomSheetData?,
     onViewDealDetails: (dealId: String, dealStoreId: Int, dealTitle: String, dealPriceDenominated: String) -> Unit,
     onViewStoreDeals: (store: Store) -> Unit,
+    onViewGiveaways: () -> Unit,
     onDismissDealDetails: () -> Unit,
     goToWeb: (url: String, gameTitle: String) -> Unit,
     onRetry: () -> Unit
@@ -197,12 +203,33 @@ private fun Screen(
                         modifier = Modifier.padding(innerPadding),
                         content = {
                             if (data.releases.isNotEmpty()) {
-                                item { ReleaseHeader() }
+                                item { SectionHeader(stringResource(R.string.home_screen_new_releases_label)) }
+
+                                items(data.releases.size) { index ->
+                                    ReleaseRow(data.releases[index], onReleaseTitle)
+                                }
                             }
 
-                            items(data.releases.size) { index ->
-                                ReleaseRow(data.releases[index], onReleaseTitle)
+                            if (data.giveaways.isNotEmpty()) {
+                                item { SectionHeader(stringResource(R.string.home_screen_giveaways_label)) }
+
+                                items(data.giveaways.size) { index ->
+                                    GiveawayRow(data.giveaways[index]) { url -> goToWeb(url, data.giveaways[index].title) }
+                                }
+
+                                item {
+                                    Button(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .wrapContentWidth()
+                                            .padding(top = GameDealsCustomTheme.spacing.medium, bottom = GameDealsCustomTheme.spacing.large)
+                                            .testTag(HomeScreenViewAllGiveawaysButtonTag),
+                                        onClick = { onViewGiveaways() }) {
+                                        Text(text = stringResource(R.string.home_screen_all_giveaways_label))
+                                    }
+                                }
                             }
+
                             items(data.items.size) { index ->
                                 when (val itemData = data.items[index]) {
                                     is StoreData -> StoreHeader(itemData.store)
@@ -273,18 +300,17 @@ private fun StoreHeader(store: Store) {
 }
 
 @Composable
-private fun ReleaseHeader() {
+private fun SectionHeader(text: String) {
     Box(
         modifier = Modifier
             .height(80.dp)
             .fillMaxWidth()
             .background(color = MaterialTheme.colorScheme.primary)
-            .padding(GameDealsCustomTheme.spacing.medium)
-            .testTag(HomeScreenReleaseHeaderTag),
+            .padding(GameDealsCustomTheme.spacing.medium),
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = "New Releases",
+            text = text,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onPrimary,
             style = MaterialTheme.typography.headlineSmall
@@ -323,7 +349,47 @@ private fun ReleaseRow(
                 .fillMaxWidth()
                 .padding(horizontal = GameDealsCustomTheme.spacing.small),
             textAlign = TextAlign.Start,
-            text = release.title
+            text = release.title,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+
+@Composable
+private fun GiveawayRow(
+    giveaway: Giveaway,
+    onGiveawayTitle: (url: String) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onGiveawayTitle(giveaway.gamerpowerUrl) }
+            .padding(bottom = GameDealsCustomTheme.spacing.small)
+            .testTag(HomeScreenGiveawayRowTag.plus(giveaway.id)),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        AsyncImage(
+            model = giveaway.thumbnail,
+            contentDescription = stringResource(R.string.home_screen_game_image, giveaway.title),
+            contentScale = ContentScale.Fit,
+            error = painterResource(id = pm.bam.gamedeals.common.ui.R.drawable.videogame_thumb),
+            modifier = Modifier
+                .padding(horizontal = GameDealsCustomTheme.spacing.medium)
+                .height(60.dp)
+                .width(100.dp)
+                .clip(RoundedCornerShape(GameDealsCustomTheme.spacing.extraSmall))
+        )
+        Text(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .padding(horizontal = GameDealsCustomTheme.spacing.small),
+            textAlign = TextAlign.Start,
+            text = giveaway.title,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }
@@ -349,6 +415,13 @@ private fun ScreenPreview() {
                 PreviewRelease.copy(title = "Game 4"),
                 PreviewRelease.copy(title = "Game 1"),
             ),
+            giveaways = listOf(
+                PreviewGiveaway.copy(title = "Giveaway 1"),
+                PreviewGiveaway.copy(title = "Giveaway 2"),
+                PreviewGiveaway.copy(title = "Giveaway 3 - Very long title with even more title to make it longer, possibly over many, many lines"),
+                PreviewGiveaway.copy(title = "Giveaway 4"),
+                PreviewGiveaway.copy(title = "Giveaway 5"),
+            ),
             items = listOf(
                 StoreData(store = PreviewStore.copy(storeID = 1)),
                 DealData(deal = PreviewDeal),
@@ -367,6 +440,7 @@ private fun ScreenPreview() {
         dealDetails = null,
         onViewDealDetails = { _, _, _, _ -> },
         onViewStoreDeals = {},
+        onViewGiveaways = {},
         onDismissDealDetails = {},
         goToWeb = { _, _ -> },
         onRetry = {}
@@ -374,8 +448,11 @@ private fun ScreenPreview() {
 }
 
 
-internal const val HomeScreenReleaseHeaderTag = "HomeScreenReleaseHeaderTag"
 internal const val HomeScreenReleaseRowTag = "HomeScreenReleaseRowTag"
+
+internal const val HomeScreenGiveawayRowTag = "HomeScreenGiveawayRowTag"
+internal const val HomeScreenViewAllGiveawaysButtonTag = "HomeScreenViewAllGiveawaysButtonTag"
+
 internal const val HomeScreenStoreBannerTag = "HomeScreenStoreBannerTag"
 internal const val HomeScreenDealRowTag = "HomeScreenDealRowTag"
 internal const val HomeScreenViewAllButtonTag = "HomeScreenViewAllButtonTag"

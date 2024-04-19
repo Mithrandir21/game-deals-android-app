@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -18,10 +19,12 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import pm.bam.gamedeals.common.onError
 import pm.bam.gamedeals.domain.models.Deal
+import pm.bam.gamedeals.domain.models.Giveaway
 import pm.bam.gamedeals.domain.models.Release
 import pm.bam.gamedeals.domain.models.Store
 import pm.bam.gamedeals.domain.repositories.deals.DealsRepository
 import pm.bam.gamedeals.domain.repositories.games.GamesRepository
+import pm.bam.gamedeals.domain.repositories.giveaway.GiveawaysRepository
 import pm.bam.gamedeals.domain.repositories.releases.ReleasesRepository
 import pm.bam.gamedeals.domain.repositories.stores.StoresRepository
 import pm.bam.gamedeals.domain.utils.SingleLiveEvent
@@ -30,6 +33,7 @@ import pm.bam.gamedeals.logging.fatal
 import javax.inject.Inject
 
 internal const val LIMIT_DEALS = 10
+internal const val LIMIT_GIVEAWAYS = 5
 internal val topStores = listOf(1, 11, 3, 23, 15, 27, 7, 21, 2)
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -39,6 +43,7 @@ internal class HomeViewModel @Inject constructor(
     private val dealsRepository: DealsRepository,
     private val gamesRepository: GamesRepository,
     private val releasesRepository: ReleasesRepository,
+    private val giveawaysRepository: GiveawaysRepository,
     private val logger: Logger
 ) : ViewModel() {
 
@@ -101,18 +106,25 @@ internal class HomeViewModel @Inject constructor(
                 return@map data
             }
             .flatMapLatest { loadNewReleases().map { releases -> releases to it } }
-            .map { HomeScreenData(state = HomeScreenStatus.SUCCESS, releases = it.first, items = it.second) }
+            .flatMapLatest { loadGiveaways().map { giveaways -> Triple(it.first, giveaways.takeLast(LIMIT_GIVEAWAYS), it.second) } }
+            .map { HomeScreenData(state = HomeScreenStatus.SUCCESS, releases = it.first, giveaways = it.second, items = it.third) }
             .onError { fatal(logger, it) }
             .catch { emit(HomeScreenData(state = HomeScreenStatus.ERROR)) }
 
-    private fun loadNewReleases() =
+    private fun loadNewReleases(): Flow<List<Release>> =
         flow { emitAll(releasesRepository.observeReleases()) }
+            .onError { fatal(logger, it) }
+            .catch { emit(emptyList()) }
+
+    private fun loadGiveaways(): Flow<List<Giveaway>> =
+        flow { emitAll(giveawaysRepository.observeGiveaways()) }
             .onError { fatal(logger, it) }
             .catch { emit(emptyList()) }
 
     internal data class HomeScreenData(
         val state: HomeScreenStatus = HomeScreenStatus.LOADING,
         val releases: List<Release> = emptyList(),
+        val giveaways: List<Giveaway> = emptyList(),
         val items: List<HomeScreenListData> = emptyList()
     )
 

@@ -12,12 +12,12 @@ import pm.bam.gamedeals.logging.fatal
 import pm.bam.gamedeals.remote.gamerpower.datasources.giveaway.RemoteGiveawayDataSource
 import javax.inject.Inject
 
-internal class GiveawayRepositoryImpl @Inject constructor(
+internal class GiveawaysRepositoryImpl @Inject constructor(
     private val logger: Logger,
     private val giveawaysDao: GiveawaysDao,
     private val remoteGiveawayDataSource: RemoteGiveawayDataSource,
     private val datetimeParsing: DatetimeParsing
-) : GiveawayRepository {
+) : GiveawaysRepository {
 
     override fun observeGiveaways(): Flow<List<Giveaway>> =
         giveawaysDao.observeAllGiveaways()

@@ -21,8 +21,8 @@ import pm.bam.gamedeals.domain.repositories.deals.DealsRepository
 import pm.bam.gamedeals.domain.repositories.deals.DealsRepositoryImpl
 import pm.bam.gamedeals.domain.repositories.games.GamesRepository
 import pm.bam.gamedeals.domain.repositories.games.GamesRepositoryImpl
-import pm.bam.gamedeals.domain.repositories.giveaway.GiveawayRepository
-import pm.bam.gamedeals.domain.repositories.giveaway.GiveawayRepositoryImpl
+import pm.bam.gamedeals.domain.repositories.giveaway.GiveawaysRepository
+import pm.bam.gamedeals.domain.repositories.giveaway.GiveawaysRepositoryImpl
 import pm.bam.gamedeals.domain.repositories.releases.ReleasesRepository
 import pm.bam.gamedeals.domain.repositories.releases.ReleasesRepositoryImpl
 import pm.bam.gamedeals.domain.repositories.stores.StoresRepository
@@ -100,8 +100,8 @@ internal class InternalDomainModule {
 
     @Provides
     @Singleton
-    fun provideGiveawayRepository(logger: Logger, giveawaysDao: GiveawaysDao, remoteGiveawayDataSource: RemoteGiveawayDataSource, datetimeParsing: DatetimeParsing): GiveawayRepository =
-        GiveawayRepositoryImpl(logger, giveawaysDao, remoteGiveawayDataSource, datetimeParsing)
+    fun provideGiveawayRepository(logger: Logger, giveawaysDao: GiveawaysDao, remoteGiveawayDataSource: RemoteGiveawayDataSource, datetimeParsing: DatetimeParsing): GiveawaysRepository =
+        GiveawaysRepositoryImpl(logger, giveawaysDao, remoteGiveawayDataSource, datetimeParsing)
 
     @Provides
     @Singleton

@@ -30,6 +30,7 @@ internal fun NavGraph(
             goToSearch = { navActions.navigateToSearch() },
             goToGame = { gameId -> navActions.navigateToGame(gameId) },
             goToStore = { storeId -> navActions.navigateToStore(storeId) },
+            goToGiveaway = { /**navActions.navigateToGiveaway()*/ },
             goToWeb = { url: String, gameTitle: String -> navActions.navigateToWeb(url, gameTitle) }
         )
 
