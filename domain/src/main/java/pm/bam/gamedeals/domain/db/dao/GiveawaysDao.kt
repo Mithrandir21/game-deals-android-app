@@ -11,7 +11,7 @@ import pm.bam.gamedeals.domain.models.Giveaway
 internal interface GiveawaysDao {
 
     /** Returns all the [Giveaway]s in the database. */
-    @Query("SELECT * FROM Giveaway")
+    @Query("SELECT * FROM Giveaway ORDER BY publishedDate DESC")
     fun observeAllGiveaways(): Flow<List<Giveaway>>
 
     /** Adds the [Giveaway] to the database. */

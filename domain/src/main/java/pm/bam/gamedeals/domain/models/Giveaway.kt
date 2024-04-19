@@ -11,6 +11,8 @@ import pm.bam.gamedeals.remote.gamerpower.models.RemoteGiveaway
 import pm.bam.gamedeals.remote.gamerpower.models.RemoteGiveawayType
 import java.time.LocalDateTime
 
+private val WORTH_NOT_AVAILABLE = "N/A"
+
 @Entity(tableName = "Giveaway")
 @Serializable
 data class Giveaway(
@@ -20,7 +22,7 @@ data class Giveaway(
     @SerialName("title")
     val title: String,
     @SerialName("worth")
-    val worth: String,
+    val worth: String?,
     @SerialName("thumbnail")
     val thumbnail: String,
     @SerialName("image")
@@ -118,7 +120,7 @@ internal fun RemoteGiveaway.toGiveaway(
     Giveaway(
         id = id,
         title = title,
-        worth = worth,
+        worth = worth.takeUnless { it.equals(WORTH_NOT_AVAILABLE) },
         thumbnail = thumbnail,
         image = image,
         description = description,

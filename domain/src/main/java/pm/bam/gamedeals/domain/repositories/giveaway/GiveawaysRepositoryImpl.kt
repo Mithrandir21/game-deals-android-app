@@ -1,7 +1,6 @@
 package pm.bam.gamedeals.domain.repositories.giveaway
 
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.onStart
 import pm.bam.gamedeals.common.datetime.parsing.DatetimeParsing
 import pm.bam.gamedeals.common.onError
 import pm.bam.gamedeals.domain.db.dao.GiveawaysDao
@@ -21,7 +20,6 @@ internal class GiveawaysRepositoryImpl @Inject constructor(
 
     override fun observeGiveaways(): Flow<List<Giveaway>> =
         giveawaysDao.observeAllGiveaways()
-            .onStart { refreshGiveaways() }
             .onError { fatal(logger, it) }
 
     override suspend fun refreshGiveaways() =

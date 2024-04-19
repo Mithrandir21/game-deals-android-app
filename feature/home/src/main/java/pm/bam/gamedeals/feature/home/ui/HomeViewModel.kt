@@ -118,6 +118,7 @@ internal class HomeViewModel @Inject constructor(
 
     private fun loadGiveaways(): Flow<List<Giveaway>> =
         flow { emitAll(giveawaysRepository.observeGiveaways()) }
+            .onStart { giveawaysRepository.refreshGiveaways() }
             .onError { fatal(logger, it) }
             .catch { emit(emptyList()) }
 

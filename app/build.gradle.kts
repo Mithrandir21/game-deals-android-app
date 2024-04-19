@@ -124,6 +124,7 @@ dependencies {
     implementation(project(":feature:store"))
     implementation(project(":feature:search"))
     implementation(project(":feature:webview"))
+    implementation(project(":feature:giveaways"))
 
     val composeBom = platform(libs.androidx.compose.bom)
 
