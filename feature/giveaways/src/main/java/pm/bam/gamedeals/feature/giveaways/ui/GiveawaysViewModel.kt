@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import pm.bam.gamedeals.common.onError
 import pm.bam.gamedeals.domain.models.Giveaway
+import pm.bam.gamedeals.domain.models.GiveawaySearchParameters
 import pm.bam.gamedeals.domain.repositories.giveaway.GiveawaysRepository
 import pm.bam.gamedeals.logging.Logger
 import pm.bam.gamedeals.logging.fatal
@@ -45,7 +46,7 @@ internal class GiveawaysViewModel @Inject constructor(
         }
     }
 
-    fun reloadGiveaways() {
+    fun reloadGiveaways() =
         viewModelScope.launch {
             flow { emit(_uiState.value.copy(status = GiveawaysScreenStatus.LOADING)) }
                 .onStart { giveawaysRepository.refreshGiveaways() }
@@ -53,7 +54,15 @@ internal class GiveawaysViewModel @Inject constructor(
                 .catch { emit(_uiState.value.copy(status = GiveawaysScreenStatus.ERROR)) }
                 .collect { _uiState.emit(it) }
         }
-    }
+
+    fun loadGiveaway(parameters: GiveawaySearchParameters) =
+        viewModelScope.launch {
+            flow { emitAll(giveawaysRepository.observeGiveaways(parameters)) }
+                .map { GiveawaysScreenData(status = GiveawaysScreenStatus.SUCCESS, giveaways = it) }
+                .onError { fatal(logger, it) }
+                .catch { emit(_uiState.value.copy(status = GiveawaysScreenStatus.ERROR)) }
+                .collect { _uiState.emit(it) }
+        }
 
 
     data class GiveawaysScreenData(

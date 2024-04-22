@@ -33,11 +33,13 @@ import pm.bam.gamedeals.domain.utils.GiveawayPlatformsConverter
 import pm.bam.gamedeals.domain.utils.LocalDatetimeConverter
 import pm.bam.gamedeals.domain.utils.StoreImagesConverter
 import pm.bam.gamedeals.logging.Logger
+import pm.bam.gamedeals.logging.verbose
 import pm.bam.gamedeals.remote.cheapshark.datasources.deals.RemoteDealsDataSource
 import pm.bam.gamedeals.remote.cheapshark.datasources.games.RemoteGamesDataSource
 import pm.bam.gamedeals.remote.cheapshark.datasources.releases.RemoteReleasesDataSource
 import pm.bam.gamedeals.remote.cheapshark.datasources.stores.RemoteStoresDataSource
 import pm.bam.gamedeals.remote.gamerpower.datasources.giveaway.RemoteGiveawayDataSource
+import java.util.concurrent.Executors
 import javax.inject.Singleton
 
 @Module(includes = [InternalDomainModule::class])
@@ -107,6 +109,7 @@ internal class InternalDomainModule {
     @Singleton
     fun provideDatabase(
         @ApplicationContext context: Context,
+        logger: Logger,
         @Domain storeImagesConverter: StoreImagesConverter,
         @Domain giveawayPlatformsConverter: GiveawayPlatformsConverter,
         @Domain localDatetimeConverter: LocalDatetimeConverter
@@ -116,6 +119,9 @@ internal class InternalDomainModule {
             .addTypeConverter(storeImagesConverter)
             .addTypeConverter(giveawayPlatformsConverter)
             .addTypeConverter(localDatetimeConverter)
+            .setQueryCallback({ sqlQuery, bindArgs ->
+                verbose(logger) { "SQL Query: $sqlQuery SQL Args: $bindArgs" }
+            }, Executors.newSingleThreadExecutor())
             .build()
 
     @Provides

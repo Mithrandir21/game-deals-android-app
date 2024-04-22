@@ -1,10 +1,15 @@
 package pm.bam.gamedeals.feature.giveaways.ui
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
@@ -12,13 +17,18 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -27,12 +37,19 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.mapSaver
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -44,6 +61,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -53,6 +71,10 @@ import pm.bam.gamedeals.common.ui.PreviewGiveaway
 import pm.bam.gamedeals.common.ui.theme.GameDealsCustomTheme
 import pm.bam.gamedeals.common.ui.theme.GameDealsTheme
 import pm.bam.gamedeals.domain.models.Giveaway
+import pm.bam.gamedeals.domain.models.GiveawayPlatform
+import pm.bam.gamedeals.domain.models.GiveawaySearchParameters
+import pm.bam.gamedeals.domain.models.GiveawaySortBy
+import pm.bam.gamedeals.domain.models.GiveawayType
 import pm.bam.gamedeals.feature.giveaways.R
 
 @Composable
@@ -63,11 +85,34 @@ internal fun GiveawaysScreen(
 ) {
     val uiState = viewModel.uiState.collectAsStateWithLifecycle()
 
+    var showFilters by rememberSaveable { mutableStateOf(false) }
+    var existingParameters by rememberSaveable(stateSaver = parametersSaver) { mutableStateOf(GiveawaySearchParameters()) }
+
+
     ScreenScaffold(
         data = uiState.value,
         onBack = onBack,
         onReload = { viewModel.reloadGiveaways() },
-        goToWeb = goToWeb
+        goToWeb = goToWeb,
+        existingParameters = existingParameters,
+        showFilters = showFilters,
+        onShowFiltersChanged = { newShowFilters ->
+            showFilters = newShowFilters
+            if (!newShowFilters) {
+                viewModel.loadGiveaway(existingParameters)
+            }
+        },
+        onPlatformSelection = { platform, selection ->
+            existingParameters = existingParameters.copy(
+                platforms = existingParameters.platforms.toMutableList().map { if (it.first == platform) platform to selection else it })
+        },
+        onTypeSelection = { type, selection ->
+            existingParameters = existingParameters.copy(
+                types = existingParameters.types.toMutableList().map { if (it.first == type) type to selection else it })
+        },
+        onSortBySelection = { sortBy, ascending ->
+            existingParameters = existingParameters.copy(sortBy = sortBy to ascending)
+        }
     )
 }
 
@@ -78,7 +123,13 @@ private fun ScreenScaffold(
     data: GiveawaysViewModel.GiveawaysScreenData,
     onBack: () -> Unit,
     onReload: () -> Unit,
-    goToWeb: (url: String, gameTitle: String) -> Unit
+    goToWeb: (url: String, gameTitle: String) -> Unit,
+    existingParameters: GiveawaySearchParameters,
+    showFilters: Boolean,
+    onShowFiltersChanged: (showFilters: Boolean) -> Unit,
+    onPlatformSelection: (platform: GiveawayPlatform, selection: Boolean) -> Unit,
+    onTypeSelection: (type: GiveawayType, selection: Boolean) -> Unit,
+    onSortBySelection: (sortBy: GiveawaySortBy, ascending: Boolean) -> Unit
 ) {
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
@@ -102,6 +153,15 @@ private fun ScreenScaffold(
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                     contentDescription = stringResource(R.string.giveaway_screen_navigation_back_button)
+                                )
+                            }
+                        },
+                        actions = {
+                            IconButton(onClick = { onShowFiltersChanged(!showFilters) }) {
+                                Icon(
+                                    imageVector = Icons.Default.Settings,
+                                    stringResource(R.string.giveaway_screen_filters_icon),
+                                    modifier = Modifier.testTag(GiveawayFiltersIconTag)
                                 )
                             }
                         }
@@ -140,6 +200,15 @@ private fun ScreenScaffold(
                         }
                     }
                 }
+
+                GiveawayFilters(
+                    existingParameters = existingParameters,
+                    showFilters = showFilters,
+                    onDismiss = { onShowFiltersChanged(false) },
+                    onPlatformSelection = onPlatformSelection,
+                    onTypeSelection = onTypeSelection,
+                    onSortBySelection = onSortBySelection
+                )
             }
         }
     }
@@ -186,6 +255,182 @@ private fun GiveawayListItem(
     HorizontalDivider(color = Color.Black)
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun GiveawayFilters(
+    existingParameters: GiveawaySearchParameters,
+    showFilters: Boolean,
+    onDismiss: () -> Unit,
+    onPlatformSelection: (platform: GiveawayPlatform, selection: Boolean) -> Unit,
+    onTypeSelection: (type: GiveawayType, selection: Boolean) -> Unit,
+    onSortBySelection: (sortBy: GiveawaySortBy, ascending: Boolean) -> Unit
+) {
+    val modalBottomSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    if (showFilters) {
+        ModalBottomSheet(
+            onDismissRequest = { onDismiss() },
+            sheetState = modalBottomSheetState,
+            dragHandle = { BottomSheetDefaults.DragHandle() }
+        ) {
+            Filters(existingParameters, onPlatformSelection, onTypeSelection, onSortBySelection)
+        }
+    }
+}
+
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun Filters(
+    existingParameters: GiveawaySearchParameters,
+    onPlatformSelection: (platform: GiveawayPlatform, selection: Boolean) -> Unit,
+    onTypeSelection: (type: GiveawayType, selection: Boolean) -> Unit,
+    onSortBySelection: (sortBy: GiveawaySortBy, ascending: Boolean) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(GameDealsCustomTheme.spacing.large)
+            .navigationBarsPadding()
+            .testTag(GiveawayFiltersTag)
+    ) {
+        Text(
+            modifier = Modifier.padding(horizontal = GameDealsCustomTheme.spacing.medium),
+            text = stringResource(R.string.giveaway_screen_filters_platform_label)
+        )
+        FlowRow(
+            modifier = Modifier.padding(GameDealsCustomTheme.spacing.small),
+            horizontalArrangement = Arrangement.spacedBy(GameDealsCustomTheme.spacing.medium),
+            verticalArrangement = Arrangement.spacedBy(GameDealsCustomTheme.spacing.extraSmall)
+        ) {
+            existingParameters.platforms.forEach { (platform, selected) ->
+                FilterChip(selected = selected, onClick = { onPlatformSelection(platform, !selected) }, label = {
+                    Text(
+                        text = platform.platformValue,
+                        modifier = Modifier.padding(GameDealsCustomTheme.spacing.extraSmall),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                })
+            }
+        }
+
+        HorizontalDivider()
+
+        Text(
+            modifier = Modifier.padding(GameDealsCustomTheme.spacing.medium),
+            text = stringResource(R.string.giveaway_screen_filters_type_label)
+        )
+        FlowRow(
+            modifier = Modifier.padding(horizontal = GameDealsCustomTheme.spacing.small),
+            horizontalArrangement = Arrangement.spacedBy(GameDealsCustomTheme.spacing.medium),
+            verticalArrangement = Arrangement.spacedBy(GameDealsCustomTheme.spacing.extraSmall)
+        ) {
+            existingParameters.types.forEach { (type, selected) ->
+                FilterChip(selected = selected, onClick = { onTypeSelection(type, !selected) }, label = {
+                    Text(
+                        text = type.name,
+                        modifier = Modifier.padding(GameDealsCustomTheme.spacing.extraSmall),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                })
+            }
+        }
+
+        HorizontalDivider()
+
+        Text(
+            modifier = Modifier.padding(GameDealsCustomTheme.spacing.medium),
+            text = stringResource(R.string.giveaway_screen_filters_sort_by_label)
+        )
+        GiveawaySortByOptions(existingParameters, onSortBySelection)
+    }
+}
+
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun GiveawaySortByOptions(
+    existingParameters: GiveawaySearchParameters,
+    onSortBySelection: (sortBy: GiveawaySortBy, ascending: Boolean) -> Unit
+) {
+    FlowRow(
+        modifier = Modifier.padding(horizontal = GameDealsCustomTheme.spacing.small),
+        horizontalArrangement = Arrangement.spacedBy(GameDealsCustomTheme.spacing.medium),
+        verticalArrangement = Arrangement.spacedBy(GameDealsCustomTheme.spacing.extraSmall)
+    ) {
+        GiveawaySortBy.entries
+            .map {
+                when (it) {
+                    existingParameters.sortBy.first -> Triple(it, existingParameters.sortBy.second, true)
+                    else -> Triple(it, false, false)
+                }
+            }
+            .forEach { (sortBy, ascending, selected) ->
+                FilterChip(
+                    label = {
+                        Text(
+                            text = sortBy.name,
+                            modifier = Modifier.padding(GameDealsCustomTheme.spacing.extraSmall),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    },
+                    selected = selected, onClick = { onSortBySelection(sortBy, if (selected) !ascending else false) },
+                    trailingIcon = {
+                        if (selected && ascending) {
+                            Icon(
+                                modifier = Modifier.rotate(180f),
+                                imageVector = Icons.Default.ArrowDropDown,
+                                contentDescription = stringResource(R.string.giveaway_screen_filters_sort_by_ascending_label)
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.ArrowDropDown,
+                                contentDescription = stringResource(R.string.giveaway_screen_filters_sort_by_descending_label)
+                            )
+                        }
+                    })
+            }
+    }
+}
+
+
+/** Saving mechanism for [GiveawaySearchParameters] into [rememberSaveable]. */
+private val parametersSaver = run {
+    mapSaver(
+        save = { it.asMap() },
+        restore = { GiveawaySearchParameters.from(it) }
+    )
+}
+
+
+@Preview
+@Composable
+private fun SortOptionsPreview() {
+    GameDealsTheme {
+        Surface(color = MaterialTheme.colorScheme.background) {
+            GiveawaySortByOptions(
+                existingParameters = GiveawaySearchParameters(),
+                onSortBySelection = { _, _ -> }
+            )
+        }
+    }
+}
+
+
+@Preview
+@Composable
+private fun FiltersPreview() {
+    GameDealsTheme {
+        Surface(color = MaterialTheme.colorScheme.background) {
+            Filters(
+                existingParameters = GiveawaySearchParameters(),
+                onPlatformSelection = { _, _ -> },
+                onTypeSelection = { _, _ -> },
+                onSortBySelection = { _, _ -> }
+            )
+        }
+    }
+}
 
 @PhonePortrait
 @Composable
@@ -194,7 +439,13 @@ private fun PreviewLoading() {
         data = GiveawaysViewModel.GiveawaysScreenData(status = GiveawaysViewModel.GiveawaysScreenStatus.LOADING),
         onBack = {},
         goToWeb = { _, _ -> },
-        onReload = {}
+        onReload = {},
+        existingParameters = GiveawaySearchParameters(),
+        showFilters = false,
+        onShowFiltersChanged = {},
+        onPlatformSelection = { _, _ -> },
+        onTypeSelection = { _, _ -> },
+        onSortBySelection = { _, _ -> }
     )
 }
 
@@ -206,15 +457,21 @@ private fun PreviewData() {
             status = GiveawaysViewModel.GiveawaysScreenStatus.SUCCESS,
             giveaways = listOf(
                 PreviewGiveaway.copy(id = 1),
-                PreviewGiveaway.copy(id = 2),
+                PreviewGiveaway.copy(id = 2).copy(worth = null),
                 PreviewGiveaway.copy(id = 3),
-                PreviewGiveaway.copy(id = 4),
-                PreviewGiveaway.copy(id = 5)
+                PreviewGiveaway.copy(id = 4).copy(worth = null),
+                PreviewGiveaway.copy(id = 5).copy(worth = null),
             )
         ),
         onBack = {},
         goToWeb = { _, _ -> },
-        onReload = {}
+        onReload = {},
+        existingParameters = GiveawaySearchParameters(),
+        showFilters = false,
+        onShowFiltersChanged = {},
+        onPlatformSelection = { _, _ -> },
+        onTypeSelection = { _, _ -> },
+        onSortBySelection = { _, _ -> }
     )
 }
 
@@ -224,3 +481,6 @@ internal const val TopAppNavBarTag = "TopAppNavBarTag"
 internal const val LoadingDataTag = "LoadingDataTag"
 
 internal const val GiveawayListItemTag = "GiveawayListItemTag"
+
+internal const val GiveawayFiltersTag = "GiveawayFiltersTag"
+internal const val GiveawayFiltersIconTag = "GiveawayFiltersIconTag"

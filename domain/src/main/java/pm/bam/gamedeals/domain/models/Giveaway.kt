@@ -3,15 +3,20 @@ package pm.bam.gamedeals.domain.models
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.properties.Properties
 import pm.bam.gamedeals.common.datetime.parsing.DatetimeParsing
 import pm.bam.gamedeals.domain.utils.LocalDateSerializer
 import pm.bam.gamedeals.remote.gamerpower.models.RemoteGiveaway
 import pm.bam.gamedeals.remote.gamerpower.models.RemoteGiveawayType
 import java.time.LocalDateTime
 
-private val WORTH_NOT_AVAILABLE = "N/A"
+private const val WORTH_NOT_AVAILABLE = "N/A"
+internal const val WORTH_FIELD_NAME = "worth"
+internal const val PUBLISHED_FIELD_NAME = "publishedDate"
+internal const val USER_FIELD_NAME = "users"
 
 @Entity(tableName = "Giveaway")
 @Serializable
@@ -21,7 +26,7 @@ data class Giveaway(
     val id: Int,
     @SerialName("title")
     val title: String,
-    @SerialName("worth")
+    @SerialName(WORTH_FIELD_NAME)
     val worth: String?,
     @SerialName("thumbnail")
     val thumbnail: String,
@@ -34,7 +39,7 @@ data class Giveaway(
     @SerialName("open_giveaway_url")
     val openGiveawayUrl: String,
     @Serializable(with = LocalDateSerializer::class)
-    @SerialName("published_date")
+    @SerialName(PUBLISHED_FIELD_NAME)
     val publishedDate: LocalDateTime,
     @SerialName("type")
     val type: GiveawayType,
@@ -42,7 +47,7 @@ data class Giveaway(
     val platforms: List<GiveawayPlatform>,
     @SerialName("end_date")
     val endDate: String?,
-    @SerialName("users")
+    @SerialName(USER_FIELD_NAME)
     val users: Int,
     @SerialName("status")
     val status: String,
@@ -110,7 +115,51 @@ enum class GiveawayPlatform(val platformValue: String) {
     DRM_FREE("DRM-Free"),
 
     @SerialName("OTHER")
-    OTHER(""),
+    OTHER("Other"),
+}
+
+enum class GiveawaySortBy {
+    @SerialName("date")
+    DATE,
+
+    @SerialName("value")
+    VALUE,
+
+    @SerialName("popularity")
+    POPULARITY
+}
+
+
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable
+data class GiveawaySearchParameters(
+    val platforms: List<Pair<GiveawayPlatform, Boolean>> = GiveawayPlatform.entries.map { it to false },
+    val types: List<Pair<GiveawayType, Boolean>> = GiveawayType.entries.map { it to false },
+
+    /** What field to sort by and in what order. (true = ascending, false = descending) */
+    val sortBy: Pair<GiveawaySortBy, Boolean> = GiveawaySortBy.DATE to false,
+) {
+    fun isAscending() = sortBy.second
+
+    /**
+     * Encodes properties from the this [GiveawaySearchParameters] to a map.
+     * `null` values are omitted from the output.
+     *
+     * @see GiveawaySearchParameters.from
+     */
+    fun asMap() = Properties.encodeToMap(serializer(), this)
+
+    companion object {
+        /**
+         * Decodes properties from the given [map] to a value of type [GiveawaySearchParameters].
+         * [GiveawaySearchParameters] may contain properties of nullable types; they will be filled by non-null values from the [map], if present.
+         */
+        fun from(map: Map<String, Any?>): GiveawaySearchParameters = Properties.decodeFromMap(
+            serializer(),
+            // Removes any map Key/Value pairs where the Value is NULL.
+            map.mapNotNull { (key, value) -> value?.let { key to it } }
+                .toMap())
+    }
 }
 
 
@@ -120,7 +169,7 @@ internal fun RemoteGiveaway.toGiveaway(
     Giveaway(
         id = id,
         title = title,
-        worth = worth.takeUnless { it.equals(WORTH_NOT_AVAILABLE) },
+        worth = worth.takeUnless { it == WORTH_NOT_AVAILABLE },
         thumbnail = thumbnail,
         image = image,
         description = description,
