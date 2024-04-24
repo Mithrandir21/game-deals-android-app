@@ -230,20 +230,24 @@ private fun Screen(
                                 }
                             }
 
-                            items(data.items.size) { index ->
-                                when (val itemData = data.items[index]) {
-                                    is StoreData -> StoreHeader(itemData.store)
-                                    is DealData -> StoreDealRow(itemData.deal, onViewDealDetails)
-                                    is ViewAllData -> Button(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .wrapContentWidth()
-                                            .padding(top = GameDealsCustomTheme.spacing.medium, bottom = GameDealsCustomTheme.spacing.large)
-                                            .testTag(HomeScreenViewAllButtonTag.plus(itemData.store.storeID)),
-                                        onClick = { onViewStoreDeals(itemData.store) }) {
-                                        Text(text = stringResource(R.string.home_screen_all_store_deals_label, itemData.store.storeName))
+                            if (data.items.isNotEmpty()) {
+                                items(data.items.size) { index ->
+                                    when (val itemData = data.items[index]) {
+                                        is StoreData -> StoreHeader(itemData.store)
+                                        is DealData -> StoreDealRow(itemData.deal, onViewDealDetails)
+                                        is ViewAllData -> Button(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .wrapContentWidth()
+                                                .padding(top = GameDealsCustomTheme.spacing.medium, bottom = GameDealsCustomTheme.spacing.large)
+                                                .testTag(HomeScreenViewAllButtonTag.plus(itemData.store.storeID)),
+                                            onClick = { onViewStoreDeals(itemData.store) }) {
+                                            Text(text = stringResource(R.string.home_screen_all_store_deals_label, itemData.store.storeName))
+                                        }
                                     }
                                 }
+                            } else {
+                                item { SectionHeader(stringResource(R.string.home_screen_loading_label)) }
                             }
                         }
                     )
@@ -394,6 +398,28 @@ private fun GiveawayRow(
     }
 }
 
+
+@PhonePortrait
+@Composable
+private fun ScreenEmptyPreview() {
+    Screen(
+        onSearch = {},
+        onReleaseTitle = {},
+        data = HomeViewModel.HomeScreenData(
+            state = LOADING,
+            releases = listOf(),
+            giveaways = listOf(),
+            items = listOf()
+        ),
+        dealDetails = null,
+        onViewDealDetails = { _, _, _, _ -> },
+        onViewStoreDeals = {},
+        onViewGiveaways = {},
+        onDismissDealDetails = {},
+        goToWeb = { _, _ -> },
+        onRetry = {}
+    )
+}
 
 @PhonePortrait
 @PhoneLandscape
