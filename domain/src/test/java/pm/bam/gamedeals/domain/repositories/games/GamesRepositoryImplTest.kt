@@ -21,10 +21,10 @@ import pm.bam.gamedeals.domain.models.GameDetails
 import pm.bam.gamedeals.domain.models.toGame
 import pm.bam.gamedeals.domain.models.toGameDetails
 import pm.bam.gamedeals.domain.transformations.CurrencyTransformation
-import pm.bam.gamedeals.remote.datasources.deals.RemoteDealsDataSource
-import pm.bam.gamedeals.remote.datasources.games.RemoteGamesDataSource
-import pm.bam.gamedeals.remote.models.RemoteGame
-import pm.bam.gamedeals.remote.models.RemoteGameDetails
+import pm.bam.gamedeals.remote.cheapshark.datasources.deals.RemoteDealsDataSource
+import pm.bam.gamedeals.remote.cheapshark.datasources.games.RemoteGamesDataSource
+import pm.bam.gamedeals.remote.cheapshark.models.RemoteGame
+import pm.bam.gamedeals.remote.cheapshark.models.RemoteGameDetails
 
 class GamesRepositoryImplTest {
 

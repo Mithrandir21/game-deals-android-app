@@ -332,34 +332,32 @@ private fun ScreenScaffold(
                 },
                 snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
             ) { innerPadding: PaddingValues ->
-                data.let { screenData ->
-                    when (screenData) {
-                        GameScreenData.Loading -> CircularProgressIndicator(
-                            modifier = Modifier
-                                .padding(innerPadding)
-                                .fillMaxSize()
-                                .wrapContentSize(Alignment.Center)
-                                .testTag(LoadingDataTag)
+                when (data) {
+                    GameScreenData.Loading -> CircularProgressIndicator(
+                        modifier = Modifier
+                            .padding(innerPadding)
+                            .fillMaxSize()
+                            .wrapContentSize(Alignment.Center)
+                            .testTag(LoadingDataTag)
+                    )
+
+                    GameScreenData.Error -> LaunchedEffect(snackbarHostState) {
+                        val results = snackbarHostState.showSnackbar(
+                            message = context.getString(R.string.game_screen_data_loading_error_msg),
+                            actionLabel = context.getString(R.string.game_screen_data_loading_error_retry)
                         )
-
-                        GameScreenData.Error -> LaunchedEffect(snackbarHostState) {
-                            val results = snackbarHostState.showSnackbar(
-                                message = context.getString(R.string.game_screen_data_loading_error_msg),
-                                actionLabel = context.getString(R.string.game_screen_data_loading_error_retry)
-                            )
-                            if (results == SnackbarResult.ActionPerformed) {
-                                onRetry()
-                            }
+                        if (results == SnackbarResult.ActionPerformed) {
+                            onRetry()
                         }
-
-                        is GameScreenData.Data -> {
-                            when (windowWidth) {
-                                WindowWidthSizeClass.Compact -> CompactGameDealsDetails(Modifier.padding(innerPadding), screenData, goToWeb)
-                                else -> WideGameDealsDetails(Modifier.padding(innerPadding), screenData, goToWeb)
-                            }
-                        }
-
                     }
+
+                    is GameScreenData.Data -> {
+                        when (windowWidth) {
+                            WindowWidthSizeClass.Compact -> CompactGameDealsDetails(Modifier.padding(innerPadding), data, goToWeb)
+                            else -> WideGameDealsDetails(Modifier.padding(innerPadding), data, goToWeb)
+                        }
+                    }
+
                 }
             }
         }

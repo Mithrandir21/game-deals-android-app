@@ -14,8 +14,8 @@ import pm.bam.gamedeals.domain.models.toGame
 import pm.bam.gamedeals.domain.models.toGameDetails
 import pm.bam.gamedeals.domain.models.toRemoteDealsQuery
 import pm.bam.gamedeals.domain.transformations.CurrencyTransformation
-import pm.bam.gamedeals.remote.datasources.deals.RemoteDealsDataSource
-import pm.bam.gamedeals.remote.datasources.games.RemoteGamesDataSource
+import pm.bam.gamedeals.remote.cheapshark.datasources.deals.RemoteDealsDataSource
+import pm.bam.gamedeals.remote.cheapshark.datasources.games.RemoteGamesDataSource
 import javax.inject.Inject
 
 internal class GamesRepositoryImpl @Inject constructor(

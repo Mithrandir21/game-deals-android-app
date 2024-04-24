@@ -8,7 +8,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import pm.bam.gamedeals.domain.utils.IMAGE_BASE
 import pm.bam.gamedeals.domain.utils.millisInHour
-import pm.bam.gamedeals.remote.models.RemoteStore
+import pm.bam.gamedeals.remote.cheapshark.models.RemoteStore
 
 @Immutable
 @Entity(tableName = "Store")

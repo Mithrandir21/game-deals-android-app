@@ -7,8 +7,8 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import pm.bam.gamedeals.common.datetime.formatting.DateTimeFormatter
 import pm.bam.gamedeals.domain.transformations.CurrencyTransformation
-import pm.bam.gamedeals.remote.models.RemoteGame
-import pm.bam.gamedeals.remote.models.RemoteGameDetails
+import pm.bam.gamedeals.remote.cheapshark.models.RemoteGame
+import pm.bam.gamedeals.remote.cheapshark.models.RemoteGameDetails
 import kotlin.math.roundToInt
 
 @Entity(tableName = "Game")

@@ -78,6 +78,7 @@ class HomeScreenTest {
     fun loadingState() {
         val mockData = HomeScreenData(state = HomeScreenStatus.LOADING)
 
+        every { viewModel.releaseGameId } returns MutableStateFlow(null)
         every { viewModel.uiState } returns MutableStateFlow(mockData)
 
         composeTestRule.setContent {
@@ -85,6 +86,7 @@ class HomeScreenTest {
                 onSearch = {},
                 goToGame = { _ -> },
                 onViewStoreDeals = {},
+                onViewGiveaways = {},
                 goToWeb = { _, _ -> },
                 viewModel = viewModel,
                 dealDealDetailsViewModel = dealDealDetailsViewModel
@@ -108,6 +110,7 @@ class HomeScreenTest {
     fun errorState() {
         val mockData = HomeScreenData(state = HomeScreenStatus.ERROR)
 
+        every { viewModel.releaseGameId } returns MutableStateFlow(null)
         every { viewModel.uiState } returns MutableStateFlow(mockData)
 
         var snackText = ""
@@ -121,6 +124,7 @@ class HomeScreenTest {
                 onSearch = {},
                 goToGame = { _ -> },
                 onViewStoreDeals = {},
+                onViewGiveaways = {},
                 goToWeb = { _, _ -> },
                 viewModel = viewModel,
                 dealDealDetailsViewModel = dealDealDetailsViewModel
@@ -150,6 +154,7 @@ class HomeScreenTest {
     fun storeDataLoaded() {
         val mockData = HomeScreenData(state = HomeScreenStatus.SUCCESS, items = listOf(mockStoreData, mockDealData, mockViewAllData))
 
+        every { viewModel.releaseGameId } returns MutableStateFlow(null)
         every { viewModel.uiState } returns MutableStateFlow(mockData)
 
         composeTestRule.setContent {
@@ -157,6 +162,7 @@ class HomeScreenTest {
                 onSearch = {},
                 goToGame = { _ -> },
                 onViewStoreDeals = {},
+                onViewGiveaways = {},
                 goToWeb = { _, _ -> },
                 viewModel = viewModel,
                 dealDealDetailsViewModel = dealDealDetailsViewModel

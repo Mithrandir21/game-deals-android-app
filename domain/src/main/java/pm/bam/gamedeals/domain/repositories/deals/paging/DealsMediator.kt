@@ -16,9 +16,9 @@ import pm.bam.gamedeals.domain.transformations.CurrencyTransformation
 import pm.bam.gamedeals.logging.Logger
 import pm.bam.gamedeals.logging.debug
 import pm.bam.gamedeals.logging.fatal
-import pm.bam.gamedeals.remote.api.models.deals.RemoteDealsQuery
-import pm.bam.gamedeals.remote.api.models.deals.RemoteDealsSortBy
-import pm.bam.gamedeals.remote.datasources.deals.RemoteDealsDataSource
+import pm.bam.gamedeals.remote.cheapshark.api.models.deals.RemoteDealsQuery
+import pm.bam.gamedeals.remote.cheapshark.api.models.deals.RemoteDealsSortBy
+import pm.bam.gamedeals.remote.cheapshark.datasources.deals.RemoteDealsDataSource
 
 // Note: Not injected as created anew each time a store is required, as per guidelines and best practice.
 @OptIn(ExperimentalPagingApi::class)

@@ -7,6 +7,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import pm.bam.gamedeals.feature.game.navigation.gameScreen
+import pm.bam.gamedeals.feature.giveaways.navigation.giveawaysScreen
 import pm.bam.gamedeals.feature.home.navigation.homeScreen
 import pm.bam.gamedeals.feature.search.navigation.searchScreen
 import pm.bam.gamedeals.feature.store.navigation.storeScreen
@@ -30,6 +31,7 @@ internal fun NavGraph(
             goToSearch = { navActions.navigateToSearch() },
             goToGame = { gameId -> navActions.navigateToGame(gameId) },
             goToStore = { storeId -> navActions.navigateToStore(storeId) },
+            goToGiveaway = { navActions.navigateToGiveaways() },
             goToWeb = { url: String, gameTitle: String -> navActions.navigateToWeb(url, gameTitle) }
         )
 
@@ -57,6 +59,12 @@ internal fun NavGraph(
             urlArg = NavigationDestinationsArgs.WEB_URL_ARG,
             gameTitleArg = NavigationDestinationsArgs.WEB_GAME_TITLE_ARG,
             onBack = { navController.popBackStack() }
+        )
+
+        giveawaysScreen(
+            navController = navController,
+            route = NavigationDestinations.GIVEAWAYS_ROUTE,
+            goToWeb = { url: String, gameTitle: String -> navActions.navigateToWeb(url, gameTitle) }
         )
     }
 }

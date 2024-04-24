@@ -26,10 +26,10 @@ import pm.bam.gamedeals.domain.models.toDeal
 import pm.bam.gamedeals.domain.models.toDealDetails
 import pm.bam.gamedeals.domain.transformations.CurrencyTransformation
 import pm.bam.gamedeals.logging.Logger
-import pm.bam.gamedeals.remote.api.models.deals.RemoteDealsQuery
-import pm.bam.gamedeals.remote.datasources.deals.RemoteDealsDataSource
-import pm.bam.gamedeals.remote.models.RemoteDeal
-import pm.bam.gamedeals.remote.models.RemoteDealDetails
+import pm.bam.gamedeals.remote.cheapshark.api.models.deals.RemoteDealsQuery
+import pm.bam.gamedeals.remote.cheapshark.datasources.deals.RemoteDealsDataSource
+import pm.bam.gamedeals.remote.cheapshark.models.RemoteDeal
+import pm.bam.gamedeals.remote.cheapshark.models.RemoteDealDetails
 import pm.bam.gamedeals.testing.TestingLoggingListener
 
 
