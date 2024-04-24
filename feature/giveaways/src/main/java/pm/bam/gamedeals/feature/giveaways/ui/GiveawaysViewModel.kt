@@ -46,7 +46,7 @@ internal class GiveawaysViewModel @Inject constructor(
         }
     }
 
-    fun reloadGiveaways() =
+    fun reloadGiveaways() {
         viewModelScope.launch {
             flow { emit(_uiState.value.copy(status = GiveawaysScreenStatus.LOADING)) }
                 .onStart { giveawaysRepository.refreshGiveaways() }
@@ -54,8 +54,9 @@ internal class GiveawaysViewModel @Inject constructor(
                 .catch { emit(_uiState.value.copy(status = GiveawaysScreenStatus.ERROR)) }
                 .collect { _uiState.emit(it) }
         }
+    }
 
-    fun loadGiveaway(parameters: GiveawaySearchParameters) =
+    fun loadGiveaway(parameters: GiveawaySearchParameters) {
         viewModelScope.launch {
             flow { emitAll(giveawaysRepository.observeGiveaways(parameters)) }
                 .map { GiveawaysScreenData(status = GiveawaysScreenStatus.SUCCESS, giveaways = it) }
@@ -63,6 +64,7 @@ internal class GiveawaysViewModel @Inject constructor(
                 .catch { emit(_uiState.value.copy(status = GiveawaysScreenStatus.ERROR)) }
                 .collect { _uiState.emit(it) }
         }
+    }
 
 
     data class GiveawaysScreenData(

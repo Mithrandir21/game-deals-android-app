@@ -267,6 +267,7 @@ private fun GiveawayFilters(
 
     if (showFilters) {
         ModalBottomSheet(
+            modifier = Modifier.testTag(GiveawayFiltersTag),
             onDismissRequest = { onDismiss() },
             sheetState = modalBottomSheetState,
             dragHandle = { BottomSheetDefaults.DragHandle() }
@@ -290,7 +291,6 @@ private fun Filters(
             .fillMaxWidth()
             .padding(GameDealsCustomTheme.spacing.large)
             .navigationBarsPadding()
-            .testTag(GiveawayFiltersTag)
     ) {
         Text(
             modifier = Modifier.padding(horizontal = GameDealsCustomTheme.spacing.medium),
@@ -367,8 +367,10 @@ private fun GiveawaySortByOptions(
                 FilterChip(
                     label = {
                         Text(
+                            modifier = Modifier
+                                .padding(GameDealsCustomTheme.spacing.extraSmall)
+                                .testTag(GiveawayFiltersSortTag.plus(sortBy.name)),
                             text = sortBy.name,
-                            modifier = Modifier.padding(GameDealsCustomTheme.spacing.extraSmall),
                             style = MaterialTheme.typography.bodyMedium
                         )
                     },
@@ -469,3 +471,4 @@ internal const val GiveawayListItemTag = "GiveawayListItemTag"
 
 internal const val GiveawayFiltersTag = "GiveawayFiltersTag"
 internal const val GiveawayFiltersIconTag = "GiveawayFiltersIconTag"
+internal const val GiveawayFiltersSortTag = "GiveawayFiltersSortTag"
