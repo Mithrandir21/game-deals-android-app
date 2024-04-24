@@ -14,10 +14,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -49,7 +49,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -110,8 +109,8 @@ internal fun GiveawaysScreen(
             existingParameters = existingParameters.copy(
                 types = existingParameters.types.toMutableList().map { if (it.first == type) type to selection else it })
         },
-        onSortBySelection = { sortBy, ascending ->
-            existingParameters = existingParameters.copy(sortBy = sortBy to ascending)
+        onSortBySelection = { sortBy ->
+            existingParameters = existingParameters.copy(sortBy = sortBy)
         }
     )
 }
@@ -129,9 +128,10 @@ private fun ScreenScaffold(
     onShowFiltersChanged: (showFilters: Boolean) -> Unit,
     onPlatformSelection: (platform: GiveawayPlatform, selection: Boolean) -> Unit,
     onTypeSelection: (type: GiveawayType, selection: Boolean) -> Unit,
-    onSortBySelection: (sortBy: GiveawaySortBy, ascending: Boolean) -> Unit
+    onSortBySelection: (sortBy: GiveawaySortBy) -> Unit
 ) {
     val context = LocalContext.current
+    val scrollState = rememberLazyListState()
     val snackbarHostState = remember { SnackbarHostState() }
 
     GameDealsTheme {
@@ -179,12 +179,10 @@ private fun ScreenScaffold(
                     )
 
                     GiveawaysViewModel.GiveawaysScreenStatus.SUCCESS -> LazyColumn(
+                        state = scrollState,
                         modifier = Modifier.padding(innerPadding),
                         content = {
-                            items(
-                                key = { index -> data.giveaways[index].id },
-                                count = data.giveaways.size
-                            ) {
+                            items(count = data.giveaways.size) {
                                 GiveawayListItem(data.giveaways[it]) { goToWeb(data.giveaways[it].gamerpowerUrl, data.giveaways[it].title) }
                             }
                         }
@@ -227,7 +225,7 @@ private fun GiveawayListItem(
             .testTag(GiveawayListItemTag.plus(giveaway.id)),
         headlineContent = { Text(giveaway.title) },
         supportingContent = {
-            giveaway.worth?.let {
+            giveaway.worthDenominated?.let {
                 Text(text = buildAnnotatedString {
                     withStyle(style = MaterialTheme.typography.bodyLarge.toSpanStyle()) {
                         append(stringResource(id = R.string.giveaway_screen_list_item_free_label))
@@ -263,7 +261,7 @@ private fun GiveawayFilters(
     onDismiss: () -> Unit,
     onPlatformSelection: (platform: GiveawayPlatform, selection: Boolean) -> Unit,
     onTypeSelection: (type: GiveawayType, selection: Boolean) -> Unit,
-    onSortBySelection: (sortBy: GiveawaySortBy, ascending: Boolean) -> Unit
+    onSortBySelection: (sortBy: GiveawaySortBy) -> Unit
 ) {
     val modalBottomSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
@@ -285,7 +283,7 @@ private fun Filters(
     existingParameters: GiveawaySearchParameters,
     onPlatformSelection: (platform: GiveawayPlatform, selection: Boolean) -> Unit,
     onTypeSelection: (type: GiveawayType, selection: Boolean) -> Unit,
-    onSortBySelection: (sortBy: GiveawaySortBy, ascending: Boolean) -> Unit
+    onSortBySelection: (sortBy: GiveawaySortBy) -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -351,7 +349,7 @@ private fun Filters(
 @Composable
 private fun GiveawaySortByOptions(
     existingParameters: GiveawaySearchParameters,
-    onSortBySelection: (sortBy: GiveawaySortBy, ascending: Boolean) -> Unit
+    onSortBySelection: (sortBy: GiveawaySortBy) -> Unit
 ) {
     FlowRow(
         modifier = Modifier.padding(horizontal = GameDealsCustomTheme.spacing.small),
@@ -361,11 +359,11 @@ private fun GiveawaySortByOptions(
         GiveawaySortBy.entries
             .map {
                 when (it) {
-                    existingParameters.sortBy.first -> Triple(it, existingParameters.sortBy.second, true)
-                    else -> Triple(it, false, false)
+                    existingParameters.sortBy -> it to true
+                    else -> it to false
                 }
             }
-            .forEach { (sortBy, ascending, selected) ->
+            .forEach { (sortBy, selected) ->
                 FilterChip(
                     label = {
                         Text(
@@ -374,21 +372,8 @@ private fun GiveawaySortByOptions(
                             style = MaterialTheme.typography.bodyMedium
                         )
                     },
-                    selected = selected, onClick = { onSortBySelection(sortBy, if (selected) !ascending else false) },
-                    trailingIcon = {
-                        if (selected && ascending) {
-                            Icon(
-                                modifier = Modifier.rotate(180f),
-                                imageVector = Icons.Default.ArrowDropDown,
-                                contentDescription = stringResource(R.string.giveaway_screen_filters_sort_by_ascending_label)
-                            )
-                        } else {
-                            Icon(
-                                imageVector = Icons.Default.ArrowDropDown,
-                                contentDescription = stringResource(R.string.giveaway_screen_filters_sort_by_descending_label)
-                            )
-                        }
-                    })
+                    selected = selected,
+                    onClick = { onSortBySelection(sortBy) })
             }
     }
 }
@@ -410,7 +395,7 @@ private fun SortOptionsPreview() {
         Surface(color = MaterialTheme.colorScheme.background) {
             GiveawaySortByOptions(
                 existingParameters = GiveawaySearchParameters(),
-                onSortBySelection = { _, _ -> }
+                onSortBySelection = { }
             )
         }
     }
@@ -426,7 +411,7 @@ private fun FiltersPreview() {
                 existingParameters = GiveawaySearchParameters(),
                 onPlatformSelection = { _, _ -> },
                 onTypeSelection = { _, _ -> },
-                onSortBySelection = { _, _ -> }
+                onSortBySelection = { }
             )
         }
     }
@@ -445,7 +430,7 @@ private fun PreviewLoading() {
         onShowFiltersChanged = {},
         onPlatformSelection = { _, _ -> },
         onTypeSelection = { _, _ -> },
-        onSortBySelection = { _, _ -> }
+        onSortBySelection = {}
     )
 }
 
@@ -457,10 +442,10 @@ private fun PreviewData() {
             status = GiveawaysViewModel.GiveawaysScreenStatus.SUCCESS,
             giveaways = listOf(
                 PreviewGiveaway.copy(id = 1),
-                PreviewGiveaway.copy(id = 2).copy(worth = null),
+                PreviewGiveaway.copy(id = 2).copy(worthDenominated = null),
                 PreviewGiveaway.copy(id = 3),
-                PreviewGiveaway.copy(id = 4).copy(worth = null),
-                PreviewGiveaway.copy(id = 5).copy(worth = null),
+                PreviewGiveaway.copy(id = 4).copy(worthDenominated = null),
+                PreviewGiveaway.copy(id = 5).copy(worthDenominated = null),
             )
         ),
         onBack = {},
@@ -471,7 +456,7 @@ private fun PreviewData() {
         onShowFiltersChanged = {},
         onPlatformSelection = { _, _ -> },
         onTypeSelection = { _, _ -> },
-        onSortBySelection = { _, _ -> }
+        onSortBySelection = {}
     )
 }
 

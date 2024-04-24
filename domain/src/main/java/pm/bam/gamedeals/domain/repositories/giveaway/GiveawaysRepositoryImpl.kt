@@ -1,15 +1,13 @@
 package pm.bam.gamedeals.domain.repositories.giveaway
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import pm.bam.gamedeals.common.datetime.parsing.DatetimeParsing
 import pm.bam.gamedeals.common.onError
 import pm.bam.gamedeals.domain.db.dao.GiveawaysDao
 import pm.bam.gamedeals.domain.models.Giveaway
 import pm.bam.gamedeals.domain.models.GiveawaySearchParameters
 import pm.bam.gamedeals.domain.models.GiveawaySortBy
-import pm.bam.gamedeals.domain.models.PUBLISHED_FIELD_NAME
-import pm.bam.gamedeals.domain.models.USER_FIELD_NAME
-import pm.bam.gamedeals.domain.models.WORTH_FIELD_NAME
 import pm.bam.gamedeals.domain.models.toGiveaway
 import pm.bam.gamedeals.logging.Logger
 import pm.bam.gamedeals.logging.fatal
@@ -25,26 +23,34 @@ internal class GiveawaysRepositoryImpl @Inject constructor(
 
     override fun observeGiveaways(): Flow<List<Giveaway>> =
         giveawaysDao.observeAllGiveaways()
+            .map { items -> items.sortedByDescending { it.publishedDate } }
             .onError { fatal(logger, it) }
 
     override fun observeGiveaways(giveawaySearchParameters: GiveawaySearchParameters): Flow<List<Giveaway>> {
-        val sortBy = giveawaySearchParameters.sortBy.first.toSortBy()
         val typeValues = giveawaySearchParameters.types
             .filter { it.second }
-            .takeIf { it.isNotEmpty() }
-            ?.map { it.first.name }
+            .map { it.first }
 
-        return when (giveawaySearchParameters.isAscending()) {
-            true -> giveawaysDao.observeAllGiveawaysAscending(
-                sortBy = sortBy,
-                typeValues = typeValues
-            )
+        val requestedPlatforms = giveawaySearchParameters.platforms
+            .filter { it.second }
+            .map { it.first }
 
-            false -> giveawaysDao.observeAllGiveawaysDescending(
-                sortBy = sortBy,
-                typeValues = typeValues
-            )
-        }
+        return giveawaysDao.observeAllGiveaways()
+            .map { items ->
+                if (requestedPlatforms.isEmpty()) return@map items
+                else items.filter { giveaway -> giveaway.platforms.any { requestedPlatforms.contains(it) } }
+            }
+            .map { items ->
+                if (typeValues.isEmpty()) return@map items
+                else items.filter { giveaway -> typeValues.contains(giveaway.type) }
+            }
+            .map { items ->
+                when (giveawaySearchParameters.sortBy) {
+                    GiveawaySortBy.DATE -> items.sortedByDescending { it.publishedDate }
+                    GiveawaySortBy.POPULARITY -> items.sortedByDescending { it.users }
+                    GiveawaySortBy.VALUE -> items.sortedByDescending { it.worth }
+                }
+            }
             .onError { fatal(logger, it) }
     }
 
@@ -52,11 +58,4 @@ internal class GiveawaysRepositoryImpl @Inject constructor(
         remoteGiveawayDataSource.getGiveaways()
             .map { remoteRelease -> remoteRelease.toGiveaway(datetimeParsing) }
             .let { giveawaysDao.addGiveaways(*it.toTypedArray()) }
-
-
-    private fun GiveawaySortBy.toSortBy(): String = when (this) {
-        GiveawaySortBy.DATE -> PUBLISHED_FIELD_NAME
-        GiveawaySortBy.VALUE -> WORTH_FIELD_NAME
-        GiveawaySortBy.POPULARITY -> USER_FIELD_NAME
-    }
 }

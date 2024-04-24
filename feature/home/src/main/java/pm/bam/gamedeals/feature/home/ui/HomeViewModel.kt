@@ -106,7 +106,7 @@ internal class HomeViewModel @Inject constructor(
                 return@map data
             }
             .flatMapLatest { loadNewReleases().map { releases -> releases to it } }
-            .flatMapLatest { loadGiveaways().map { giveaways -> Triple(it.first, giveaways.takeLast(LIMIT_GIVEAWAYS), it.second) } }
+            .flatMapLatest { loadGiveaways().map { giveaways -> Triple(it.first, giveaways.take(LIMIT_GIVEAWAYS), it.second) } }
             .map { HomeScreenData(state = HomeScreenStatus.SUCCESS, releases = it.first, giveaways = it.second, items = it.third) }
             .onError { fatal(logger, it) }
             .catch { emit(HomeScreenData(state = HomeScreenStatus.ERROR)) }

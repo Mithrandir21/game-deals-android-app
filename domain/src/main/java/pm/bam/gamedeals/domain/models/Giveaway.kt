@@ -14,9 +14,6 @@ import pm.bam.gamedeals.remote.gamerpower.models.RemoteGiveawayType
 import java.time.LocalDateTime
 
 private const val WORTH_NOT_AVAILABLE = "N/A"
-internal const val WORTH_FIELD_NAME = "worth"
-internal const val PUBLISHED_FIELD_NAME = "publishedDate"
-internal const val USER_FIELD_NAME = "users"
 
 @Entity(tableName = "Giveaway")
 @Serializable
@@ -26,8 +23,10 @@ data class Giveaway(
     val id: Int,
     @SerialName("title")
     val title: String,
-    @SerialName(WORTH_FIELD_NAME)
-    val worth: String?,
+    @SerialName("worthDenominated")
+    val worthDenominated: String?,
+    @SerialName("worth")
+    val worth: Double?,
     @SerialName("thumbnail")
     val thumbnail: String,
     @SerialName("image")
@@ -39,7 +38,7 @@ data class Giveaway(
     @SerialName("open_giveaway_url")
     val openGiveawayUrl: String,
     @Serializable(with = LocalDateSerializer::class)
-    @SerialName(PUBLISHED_FIELD_NAME)
+    @SerialName("publishedDate")
     val publishedDate: LocalDateTime,
     @SerialName("type")
     val type: GiveawayType,
@@ -47,7 +46,7 @@ data class Giveaway(
     val platforms: List<GiveawayPlatform>,
     @SerialName("end_date")
     val endDate: String?,
-    @SerialName(USER_FIELD_NAME)
+    @SerialName("users")
     val users: Int,
     @SerialName("status")
     val status: String,
@@ -135,12 +134,8 @@ enum class GiveawaySortBy {
 data class GiveawaySearchParameters(
     val platforms: List<Pair<GiveawayPlatform, Boolean>> = GiveawayPlatform.entries.map { it to false },
     val types: List<Pair<GiveawayType, Boolean>> = GiveawayType.entries.map { it to false },
-
-    /** What field to sort by and in what order. (true = ascending, false = descending) */
-    val sortBy: Pair<GiveawaySortBy, Boolean> = GiveawaySortBy.DATE to false,
+    val sortBy: GiveawaySortBy = GiveawaySortBy.DATE,
 ) {
-    fun isAscending() = sortBy.second
-
     /**
      * Encodes properties from the this [GiveawaySearchParameters] to a map.
      * `null` values are omitted from the output.
@@ -169,7 +164,8 @@ internal fun RemoteGiveaway.toGiveaway(
     Giveaway(
         id = id,
         title = title,
-        worth = worth.takeUnless { it == WORTH_NOT_AVAILABLE },
+        worthDenominated = worth.takeUnless { it == WORTH_NOT_AVAILABLE },
+        worth = worth.takeUnless { it == WORTH_NOT_AVAILABLE }?.replace("$", "")?.toDoubleOrNull(),
         thumbnail = thumbnail,
         image = image,
         description = description,
