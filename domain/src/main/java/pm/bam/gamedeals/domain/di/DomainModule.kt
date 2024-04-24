@@ -30,6 +30,7 @@ import pm.bam.gamedeals.domain.repositories.stores.StoresRepositoryImpl
 import pm.bam.gamedeals.domain.transformations.CurrencyTransformation
 import pm.bam.gamedeals.domain.transformations.CurrencyTransformationImpl
 import pm.bam.gamedeals.domain.utils.GiveawayPlatformsConverter
+import pm.bam.gamedeals.domain.utils.LocalDateSerializer
 import pm.bam.gamedeals.domain.utils.LocalDatetimeConverter
 import pm.bam.gamedeals.domain.utils.StoreImagesConverter
 import pm.bam.gamedeals.logging.Logger
@@ -77,8 +78,8 @@ internal class InternalDomainModule {
     @Domain
     fun provideLocalDatetimeConverter() = LocalDatetimeConverter()
 
-//    @Provides
-//    fun provideLocalDateSerializer(datetimeParsing: DatetimeParsing) = LocalDateSerializer(datetimeParsing)
+    @Provides
+    fun provideLocalDateSerializer() = LocalDateSerializer()
 
     @Provides
     @Singleton
