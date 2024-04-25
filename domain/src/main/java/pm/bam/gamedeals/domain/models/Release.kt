@@ -5,7 +5,7 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import pm.bam.gamedeals.remote.models.RemoteRelease
+import pm.bam.gamedeals.remote.cheapshark.models.RemoteRelease
 
 @Immutable
 @Entity(tableName = "Release")

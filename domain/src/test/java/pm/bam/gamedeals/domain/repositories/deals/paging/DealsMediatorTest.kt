@@ -30,8 +30,8 @@ import pm.bam.gamedeals.domain.models.DealPage
 import pm.bam.gamedeals.domain.models.toDeal
 import pm.bam.gamedeals.domain.transformations.CurrencyTransformation
 import pm.bam.gamedeals.logging.Logger
-import pm.bam.gamedeals.remote.datasources.deals.RemoteDealsDataSource
-import pm.bam.gamedeals.remote.models.RemoteDeal
+import pm.bam.gamedeals.remote.cheapshark.datasources.deals.RemoteDealsDataSource
+import pm.bam.gamedeals.remote.cheapshark.models.RemoteDeal
 
 @OptIn(ExperimentalPagingApi::class)
 internal class DealsMediatorTest {

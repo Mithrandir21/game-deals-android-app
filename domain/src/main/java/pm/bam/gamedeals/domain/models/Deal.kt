@@ -12,8 +12,8 @@ import kotlinx.serialization.Serializable
 import pm.bam.gamedeals.common.datetime.formatting.DateTimeFormatter
 import pm.bam.gamedeals.domain.transformations.CurrencyTransformation
 import pm.bam.gamedeals.domain.utils.millisInHour
-import pm.bam.gamedeals.remote.models.RemoteDeal
-import pm.bam.gamedeals.remote.models.RemoteDealDetails
+import pm.bam.gamedeals.remote.cheapshark.models.RemoteDeal
+import pm.bam.gamedeals.remote.cheapshark.models.RemoteDealDetails
 
 @OptIn(ExperimentalSerializationApi::class)
 @Immutable

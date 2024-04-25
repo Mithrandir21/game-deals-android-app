@@ -64,8 +64,8 @@ android {
         applicationId = "pm.bam.gamedeals"
         minSdk = 26
         targetSdk = 34
-        versionCode = 8
-        versionName = "1.0.5"
+        versionCode = 9
+        versionName = "1.0.6"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -116,6 +116,7 @@ dependencies {
     implementation(project(":feature:store"))
     implementation(project(":feature:search"))
     implementation(project(":feature:webview"))
+    implementation(project(":feature:giveaways"))
 
     val composeBom = platform(libs.androidx.compose.bom)
 

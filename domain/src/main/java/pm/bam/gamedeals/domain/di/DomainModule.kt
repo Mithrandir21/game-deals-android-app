@@ -9,28 +9,38 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import pm.bam.gamedeals.common.datetime.formatting.DateTimeFormatter
+import pm.bam.gamedeals.common.datetime.parsing.DatetimeParsing
 import pm.bam.gamedeals.common.serializer.Serializer
 import pm.bam.gamedeals.domain.db.DomainDatabase
 import pm.bam.gamedeals.domain.db.dao.DealsDao
 import pm.bam.gamedeals.domain.db.dao.GamesDao
+import pm.bam.gamedeals.domain.db.dao.GiveawaysDao
 import pm.bam.gamedeals.domain.db.dao.ReleasesDao
 import pm.bam.gamedeals.domain.db.dao.StoresDao
 import pm.bam.gamedeals.domain.repositories.deals.DealsRepository
 import pm.bam.gamedeals.domain.repositories.deals.DealsRepositoryImpl
 import pm.bam.gamedeals.domain.repositories.games.GamesRepository
 import pm.bam.gamedeals.domain.repositories.games.GamesRepositoryImpl
+import pm.bam.gamedeals.domain.repositories.giveaway.GiveawaysRepository
+import pm.bam.gamedeals.domain.repositories.giveaway.GiveawaysRepositoryImpl
 import pm.bam.gamedeals.domain.repositories.releases.ReleasesRepository
 import pm.bam.gamedeals.domain.repositories.releases.ReleasesRepositoryImpl
 import pm.bam.gamedeals.domain.repositories.stores.StoresRepository
 import pm.bam.gamedeals.domain.repositories.stores.StoresRepositoryImpl
 import pm.bam.gamedeals.domain.transformations.CurrencyTransformation
 import pm.bam.gamedeals.domain.transformations.CurrencyTransformationImpl
+import pm.bam.gamedeals.domain.utils.GiveawayPlatformsConverter
+import pm.bam.gamedeals.domain.utils.LocalDateSerializer
+import pm.bam.gamedeals.domain.utils.LocalDatetimeConverter
 import pm.bam.gamedeals.domain.utils.StoreImagesConverter
 import pm.bam.gamedeals.logging.Logger
-import pm.bam.gamedeals.remote.datasources.deals.RemoteDealsDataSource
-import pm.bam.gamedeals.remote.datasources.games.RemoteGamesDataSource
-import pm.bam.gamedeals.remote.datasources.releases.RemoteReleasesDataSource
-import pm.bam.gamedeals.remote.datasources.stores.RemoteStoresDataSource
+import pm.bam.gamedeals.logging.verbose
+import pm.bam.gamedeals.remote.cheapshark.datasources.deals.RemoteDealsDataSource
+import pm.bam.gamedeals.remote.cheapshark.datasources.games.RemoteGamesDataSource
+import pm.bam.gamedeals.remote.cheapshark.datasources.releases.RemoteReleasesDataSource
+import pm.bam.gamedeals.remote.cheapshark.datasources.stores.RemoteStoresDataSource
+import pm.bam.gamedeals.remote.gamerpower.datasources.giveaway.RemoteGiveawayDataSource
+import java.util.concurrent.Executors
 import javax.inject.Singleton
 
 @Module(includes = [InternalDomainModule::class])
@@ -61,6 +71,17 @@ internal class InternalDomainModule {
     fun provideStoreImagesConverter(serializer: Serializer) = StoreImagesConverter(serializer)
 
     @Provides
+    @Domain
+    fun provideGiveawayPlatformsConverter() = GiveawayPlatformsConverter()
+
+    @Provides
+    @Domain
+    fun provideLocalDatetimeConverter() = LocalDatetimeConverter()
+
+    @Provides
+    fun provideLocalDateSerializer() = LocalDateSerializer()
+
+    @Provides
     @Singleton
     fun provideDealsRepository(logger: Logger, dealsDao: DealsDao, db: DomainDatabase, remoteDealsDataSource: RemoteDealsDataSource, currencyTransformation: CurrencyTransformation, dateTimeFormatter: DateTimeFormatter): DealsRepository =
         DealsRepositoryImpl(logger, dealsDao, db, remoteDealsDataSource, currencyTransformation, dateTimeFormatter)
@@ -82,13 +103,26 @@ internal class InternalDomainModule {
 
     @Provides
     @Singleton
+    fun provideGiveawayRepository(logger: Logger, giveawaysDao: GiveawaysDao, remoteGiveawayDataSource: RemoteGiveawayDataSource, datetimeParsing: DatetimeParsing): GiveawaysRepository =
+        GiveawaysRepositoryImpl(logger, giveawaysDao, remoteGiveawayDataSource, datetimeParsing)
+
+    @Provides
+    @Singleton
     fun provideDatabase(
         @ApplicationContext context: Context,
-        @Domain storeImagesConverter: StoreImagesConverter
+        logger: Logger,
+        @Domain storeImagesConverter: StoreImagesConverter,
+        @Domain giveawayPlatformsConverter: GiveawayPlatformsConverter,
+        @Domain localDatetimeConverter: LocalDatetimeConverter
     ): DomainDatabase =
         Room.databaseBuilder(context, DomainDatabase::class.java, "${DomainDatabase::class.java.simpleName}.db")
             .fallbackToDestructiveMigration()
             .addTypeConverter(storeImagesConverter)
+            .addTypeConverter(giveawayPlatformsConverter)
+            .addTypeConverter(localDatetimeConverter)
+            .setQueryCallback({ sqlQuery, bindArgs ->
+                verbose(logger) { "SQL Query: $sqlQuery SQL Args: $bindArgs" }
+            }, Executors.newSingleThreadExecutor())
             .build()
 
     @Provides
@@ -106,5 +140,9 @@ internal class InternalDomainModule {
     @Provides
     @Singleton
     fun provideReleasesDao(db: DomainDatabase): ReleasesDao = db.getReleasesDao()
+
+    @Provides
+    @Singleton
+    fun provideGiveawaysDao(db: DomainDatabase): GiveawaysDao = db.getGiveawaysDao()
 }
 

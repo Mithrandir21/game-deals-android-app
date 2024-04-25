@@ -8,7 +8,7 @@ import pm.bam.gamedeals.domain.models.Release
 import pm.bam.gamedeals.domain.models.toRelease
 import pm.bam.gamedeals.logging.Logger
 import pm.bam.gamedeals.logging.fatal
-import pm.bam.gamedeals.remote.datasources.releases.RemoteReleasesDataSource
+import pm.bam.gamedeals.remote.cheapshark.datasources.releases.RemoteReleasesDataSource
 import javax.inject.Inject
 
 internal class ReleasesRepositoryImpl @Inject constructor(
