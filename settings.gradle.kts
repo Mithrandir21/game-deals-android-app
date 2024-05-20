@@ -28,6 +28,7 @@ include(":testing")
 include(":remote")
 include(":remote:gamerpower")
 include(":remote:cheapshark")
+include(":remote:freetogame")
 include(":domain")
 
 include(":feature:store")
