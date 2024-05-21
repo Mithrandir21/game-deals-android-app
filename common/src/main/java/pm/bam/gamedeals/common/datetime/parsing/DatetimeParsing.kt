@@ -9,6 +9,8 @@ interface DatetimeParsing {
 
     fun parseDatetime(value: String): LocalDateTime
 
+    fun parseDate(value: String): LocalDateTime
+
     fun datetimeToString(localDateTime: LocalDateTime): String
 
 }

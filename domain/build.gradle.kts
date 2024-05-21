@@ -41,6 +41,7 @@ dependencies {
     implementation(project(":common"))
     implementation(project(":remote:cheapshark"))
     implementation(project(":remote:gamerpower"))
+    implementation(project(":remote:freetogame"))
 
     implementation(libs.androidx.ktx)
     implementation(libs.androidx.appcompat)

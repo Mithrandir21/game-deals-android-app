@@ -13,6 +13,7 @@ import pm.bam.gamedeals.common.datetime.parsing.DatetimeParsing
 import pm.bam.gamedeals.common.serializer.Serializer
 import pm.bam.gamedeals.domain.db.DomainDatabase
 import pm.bam.gamedeals.domain.db.dao.DealsDao
+import pm.bam.gamedeals.domain.db.dao.FreeGamesDao
 import pm.bam.gamedeals.domain.db.dao.GamesDao
 import pm.bam.gamedeals.domain.db.dao.GiveawaysDao
 import pm.bam.gamedeals.domain.db.dao.ReleasesDao
@@ -144,5 +145,9 @@ internal class InternalDomainModule {
     @Provides
     @Singleton
     fun provideGiveawaysDao(db: DomainDatabase): GiveawaysDao = db.getGiveawaysDao()
+
+    @Provides
+    @Singleton
+    fun provideFreeGameDao(db: DomainDatabase): FreeGamesDao = db.getFreeGameDao()
 }
 
