@@ -13,6 +13,9 @@
     <string name="home_screen_giveaways_label">Giveaways</string>
     <string name="home_screen_all_giveaways_label">View All Giveaways</string>
 
+    <string name="home_screen_free_games_label">Free Games</string>
+    <string name="home_screen_all_free_games__label">View All Free Games</string>
+
     <string name="home_screen_data_loading_error_msg">Something went wrong. Please try again.</string>
     <string name="home_screen_data_loading_error_retry">Retry</string>
 

@@ -20,6 +20,8 @@ import pm.bam.gamedeals.domain.db.dao.ReleasesDao
 import pm.bam.gamedeals.domain.db.dao.StoresDao
 import pm.bam.gamedeals.domain.repositories.deals.DealsRepository
 import pm.bam.gamedeals.domain.repositories.deals.DealsRepositoryImpl
+import pm.bam.gamedeals.domain.repositories.free.FreeGamesRepository
+import pm.bam.gamedeals.domain.repositories.free.FreeGamesRepositoryImpl
 import pm.bam.gamedeals.domain.repositories.games.GamesRepository
 import pm.bam.gamedeals.domain.repositories.games.GamesRepositoryImpl
 import pm.bam.gamedeals.domain.repositories.giveaway.GiveawaysRepository
@@ -31,7 +33,9 @@ import pm.bam.gamedeals.domain.repositories.stores.StoresRepositoryImpl
 import pm.bam.gamedeals.domain.transformations.CurrencyTransformation
 import pm.bam.gamedeals.domain.transformations.CurrencyTransformationImpl
 import pm.bam.gamedeals.domain.utils.GiveawayPlatformsConverter
+import pm.bam.gamedeals.domain.utils.LocalDateConverter
 import pm.bam.gamedeals.domain.utils.LocalDateSerializer
+import pm.bam.gamedeals.domain.utils.LocalDateTimeSerializer
 import pm.bam.gamedeals.domain.utils.LocalDatetimeConverter
 import pm.bam.gamedeals.domain.utils.StoreImagesConverter
 import pm.bam.gamedeals.logging.Logger
@@ -40,6 +44,7 @@ import pm.bam.gamedeals.remote.cheapshark.datasources.deals.RemoteDealsDataSourc
 import pm.bam.gamedeals.remote.cheapshark.datasources.games.RemoteGamesDataSource
 import pm.bam.gamedeals.remote.cheapshark.datasources.releases.RemoteReleasesDataSource
 import pm.bam.gamedeals.remote.cheapshark.datasources.stores.RemoteStoresDataSource
+import pm.bam.gamedeals.remote.freetogame.datasources.RemoteFreeGamesDataSource
 import pm.bam.gamedeals.remote.gamerpower.datasources.giveaway.RemoteGiveawayDataSource
 import java.util.concurrent.Executors
 import javax.inject.Singleton
@@ -80,6 +85,13 @@ internal class InternalDomainModule {
     fun provideLocalDatetimeConverter() = LocalDatetimeConverter()
 
     @Provides
+    @Domain
+    fun provideLocalDateConverter() = LocalDateConverter()
+
+    @Provides
+    fun provideLocalDateTimeSerializer() = LocalDateTimeSerializer()
+
+    @Provides
     fun provideLocalDateSerializer() = LocalDateSerializer()
 
     @Provides
@@ -109,18 +121,25 @@ internal class InternalDomainModule {
 
     @Provides
     @Singleton
+    fun provideFreeGamesRepository(logger: Logger, freeGamesDao: FreeGamesDao, remoteFreeGamesDataSource: RemoteFreeGamesDataSource, datetimeParsing: DatetimeParsing): FreeGamesRepository =
+        FreeGamesRepositoryImpl(logger, freeGamesDao, remoteFreeGamesDataSource, datetimeParsing)
+
+    @Provides
+    @Singleton
     fun provideDatabase(
         @ApplicationContext context: Context,
         logger: Logger,
         @Domain storeImagesConverter: StoreImagesConverter,
         @Domain giveawayPlatformsConverter: GiveawayPlatformsConverter,
-        @Domain localDatetimeConverter: LocalDatetimeConverter
+        @Domain localDatetimeConverter: LocalDatetimeConverter,
+        @Domain localDateConverter: LocalDateConverter
     ): DomainDatabase =
         Room.databaseBuilder(context, DomainDatabase::class.java, "${DomainDatabase::class.java.simpleName}.db")
             .fallbackToDestructiveMigration()
             .addTypeConverter(storeImagesConverter)
             .addTypeConverter(giveawayPlatformsConverter)
             .addTypeConverter(localDatetimeConverter)
+            .addTypeConverter(localDateConverter)
             .setQueryCallback({ sqlQuery, bindArgs ->
                 verbose(logger) { "SQL Query: $sqlQuery SQL Args: $bindArgs" }
             }, Executors.newSingleThreadExecutor())

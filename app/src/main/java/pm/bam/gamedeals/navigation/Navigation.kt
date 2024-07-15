@@ -2,6 +2,7 @@ package pm.bam.gamedeals.navigation
 
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
+import pm.bam.gamedeals.navigation.NavigationDestinations.FREE_GAMES_ROUTE
 import pm.bam.gamedeals.navigation.NavigationDestinations.GIVEAWAYS_ROUTE
 import pm.bam.gamedeals.navigation.NavigationDestinations.HOME_SCREEN_ROUTE
 import pm.bam.gamedeals.navigation.NavigationDestinations.SEARCH_ROUTE
@@ -9,6 +10,7 @@ import pm.bam.gamedeals.navigation.NavigationDestinationsArgs.GAME_ID_ARG
 import pm.bam.gamedeals.navigation.NavigationDestinationsArgs.STORE_ID_ARG
 import pm.bam.gamedeals.navigation.NavigationDestinationsArgs.WEB_GAME_TITLE_ARG
 import pm.bam.gamedeals.navigation.NavigationDestinationsArgs.WEB_URL_ARG
+import pm.bam.gamedeals.navigation.NavigationScreens.FREE_GAMES_SCREEN
 import pm.bam.gamedeals.navigation.NavigationScreens.GAME_SCREEN
 import pm.bam.gamedeals.navigation.NavigationScreens.GIVEAWAYS_SCREEN
 import pm.bam.gamedeals.navigation.NavigationScreens.HOME_SCREEN
@@ -25,6 +27,7 @@ private object NavigationScreens {
     const val SEARCH_SCREEN = "search"
     const val WEBVIEW_SCREEN = "webview"
     const val GIVEAWAYS_SCREEN = "giveaways"
+    const val FREE_GAMES_SCREEN = "freegames"
 }
 
 /** Arguments used in [NavigationDestinations] routes. */
@@ -45,6 +48,7 @@ internal object NavigationDestinations {
     const val SEARCH_ROUTE = SEARCH_SCREEN
     const val WEBVIEW_ROUTE = "$WEBVIEW_SCREEN?$WEB_URL_ARG={$WEB_URL_ARG}&$WEB_GAME_TITLE_ARG={$WEB_GAME_TITLE_ARG}"
     const val GIVEAWAYS_ROUTE = GIVEAWAYS_SCREEN
+    const val FREE_GAMES_ROUTE = FREE_GAMES_SCREEN
 }
 
 
@@ -92,6 +96,12 @@ internal class NavigationActions(private val navController: NavHostController) {
 
     fun navigateToGiveaways() {
         navController.navigate(GIVEAWAYS_ROUTE) {
+            restoreState = true
+        }
+    }
+
+    fun navigateToFreeGames() {
+        navController.navigate(FREE_GAMES_ROUTE) {
             restoreState = true
         }
     }

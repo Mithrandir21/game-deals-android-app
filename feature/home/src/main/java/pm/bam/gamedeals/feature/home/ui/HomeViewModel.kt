@@ -19,10 +19,12 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import pm.bam.gamedeals.common.onError
 import pm.bam.gamedeals.domain.models.Deal
+import pm.bam.gamedeals.domain.models.FreeGame
 import pm.bam.gamedeals.domain.models.Giveaway
 import pm.bam.gamedeals.domain.models.Release
 import pm.bam.gamedeals.domain.models.Store
 import pm.bam.gamedeals.domain.repositories.deals.DealsRepository
+import pm.bam.gamedeals.domain.repositories.free.FreeGamesRepository
 import pm.bam.gamedeals.domain.repositories.games.GamesRepository
 import pm.bam.gamedeals.domain.repositories.giveaway.GiveawaysRepository
 import pm.bam.gamedeals.domain.repositories.releases.ReleasesRepository
@@ -44,6 +46,7 @@ internal class HomeViewModel @Inject constructor(
     private val gamesRepository: GamesRepository,
     private val releasesRepository: ReleasesRepository,
     private val giveawaysRepository: GiveawaysRepository,
+    private val freeGamesRepository: FreeGamesRepository,
     private val logger: Logger
 ) : ViewModel() {
 
@@ -107,7 +110,17 @@ internal class HomeViewModel @Inject constructor(
             }
             .flatMapLatest { loadNewReleases().map { releases -> releases to it } }
             .flatMapLatest { loadGiveaways().map { giveaways -> Triple(it.first, giveaways.take(LIMIT_GIVEAWAYS), it.second) } }
-            .map { HomeScreenData(state = HomeScreenStatus.SUCCESS, releases = it.first, giveaways = it.second, items = it.third) }
+            .flatMapLatest {
+                loadFreeGames().map { freeGames ->
+                    HomeScreenData(
+                        state = HomeScreenStatus.SUCCESS,
+                        releases = it.first,
+                        giveaways = it.second,
+                        freeGames = freeGames.take(LIMIT_GIVEAWAYS),
+                        items = it.third
+                    )
+                }
+            }
             .onError { fatal(logger, it) }
             .catch { emit(HomeScreenData(state = HomeScreenStatus.ERROR)) }
 
@@ -122,10 +135,17 @@ internal class HomeViewModel @Inject constructor(
             .onError { fatal(logger, it) }
             .catch { emit(emptyList()) }
 
+    private fun loadFreeGames(): Flow<List<FreeGame>> =
+        flow { emitAll(freeGamesRepository.observeFreeGames()) }
+            .onStart { freeGamesRepository.refreshFreeGames() }
+            .onError { fatal(logger, it) }
+            .catch { emit(emptyList()) }
+
     internal data class HomeScreenData(
         val state: HomeScreenStatus = HomeScreenStatus.LOADING,
         val releases: List<Release> = emptyList(),
         val giveaways: List<Giveaway> = emptyList(),
+        val freeGames: List<FreeGame> = emptyList(),
         val items: List<HomeScreenListData> = emptyList()
     )
 

@@ -25,7 +25,7 @@ import pm.bam.gamedeals.logging.Logger
 import pm.bam.gamedeals.remote.freetogame.datasources.RemoteFreeGamesDataSource
 import pm.bam.gamedeals.remote.freetogame.models.RemoteFreeGame
 import pm.bam.gamedeals.testing.TestingLoggingListener
-import java.time.LocalDateTime
+import java.time.LocalDate
 
 class FreeGamesRepositoryImplTest {
 
@@ -45,10 +45,10 @@ class FreeGamesRepositoryImplTest {
     @Test
     fun `observe free game with descending releaseDate order`() = runTest {
         val resultOne = mockk<FreeGame> {
-            every { releaseDate } returns LocalDateTime.MIN
+            every { releaseDate } returns LocalDate.MIN
         }
         val resultTwo = mockk<FreeGame> {
-            every { releaseDate } returns LocalDateTime.MAX
+            every { releaseDate } returns LocalDate.MAX
         }
 
         every { freeGamesDao.observeAllFreeGames() } returns flowOf(listOf(resultOne, resultTwo))
@@ -92,19 +92,19 @@ class FreeGamesRepositoryImplTest {
             every { title } returns "C"
             every { genre } returns mmorpg
             every { platform } returns pc
-            every { releaseDate } returns LocalDateTime.MIN
+            every { releaseDate } returns LocalDate.MIN
         }
         val resultTwo = mockk<FreeGame> {
             every { title } returns "B"
             every { genre } returns fantasy
             every { platform } returns web
-            every { releaseDate } returns LocalDateTime.MAX
+            every { releaseDate } returns LocalDate.MAX
         }
         val resultThree = mockk<FreeGame> {
             every { title } returns "A"
             every { genre } returns "Other"
             every { platform } returns "Other"
-            every { releaseDate } returns LocalDateTime.MAX
+            every { releaseDate } returns LocalDate.MAX
         }
 
         every { freeGamesDao.observeAllFreeGames() } returns flowOf(listOf(resultOne, resultTwo, resultThree))

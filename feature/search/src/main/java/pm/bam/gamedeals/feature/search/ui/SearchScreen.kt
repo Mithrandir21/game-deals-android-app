@@ -410,13 +410,11 @@ private fun Filters(
 
 
 @OpenForTesting
-@Suppress("SameParameterValue")
 internal fun rangeString(startValue: Float, endInclusiveValue: Float, highestValue: Float): String =
     "${startValue.roundToInt()} - ${endInclusiveValue.roundToInt()}"
         .plus(if (endInclusiveValue == highestValue) "+" else "")
 
 @OpenForTesting
-@Suppress("SameParameterValue")
 internal fun valueString(value: Float, highestValue: Float): String =
     "${value.toInt()}".plus(if (value == highestValue) "+" else "")
 

@@ -8,7 +8,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.properties.Properties
 import pm.bam.gamedeals.common.datetime.parsing.DatetimeParsing
-import pm.bam.gamedeals.domain.utils.LocalDateSerializer
+import pm.bam.gamedeals.domain.utils.LocalDateTimeSerializer
 import pm.bam.gamedeals.remote.gamerpower.models.RemoteGiveaway
 import pm.bam.gamedeals.remote.gamerpower.models.RemoteGiveawayType
 import java.time.LocalDateTime
@@ -37,7 +37,7 @@ data class Giveaway(
     val instructions: String,
     @SerialName("open_giveaway_url")
     val openGiveawayUrl: String,
-    @Serializable(with = LocalDateSerializer::class)
+    @Serializable(with = LocalDateTimeSerializer::class)
     @SerialName("publishedDate")
     val publishedDate: LocalDateTime,
     @SerialName("type")

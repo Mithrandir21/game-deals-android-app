@@ -60,6 +60,7 @@ import pm.bam.gamedeals.common.ui.TabletPortrait
 import pm.bam.gamedeals.common.ui.theme.GameDealsCustomTheme
 import pm.bam.gamedeals.common.ui.theme.GameDealsTheme
 import pm.bam.gamedeals.domain.models.Deal
+import pm.bam.gamedeals.domain.models.FreeGame
 import pm.bam.gamedeals.domain.models.Giveaway
 import pm.bam.gamedeals.domain.models.Release
 import pm.bam.gamedeals.domain.models.Store
@@ -81,6 +82,7 @@ internal fun HomeScreen(
     goToGame: (gameId: Int) -> Unit,
     onViewStoreDeals: ((store: Store) -> Unit) = {},
     onViewGiveaways: () -> Unit,
+    onViewFreeGame: () -> Unit,
     goToWeb: (url: String, gameTitle: String) -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
     dealDealDetailsViewModel: DealDetailsViewModel = hiltViewModel()
@@ -108,6 +110,7 @@ internal fun HomeScreen(
         },
         onViewStoreDeals = onViewStoreDeals,
         onViewGiveaways = onViewGiveaways,
+        onViewFreeGame = onViewFreeGame,
         onDismissDealDetails = { dealDealDetailsViewModel.dismissDealDetails() },
         goToWeb = goToWeb,
         onRetry = { viewModel.loadTopStoresDeals() }
@@ -170,6 +173,7 @@ private fun Screen(
     onViewDealDetails: (dealId: String, dealStoreId: Int, dealTitle: String, dealPriceDenominated: String) -> Unit,
     onViewStoreDeals: (store: Store) -> Unit,
     onViewGiveaways: () -> Unit,
+    onViewFreeGame: () -> Unit,
     onDismissDealDetails: () -> Unit,
     goToWeb: (url: String, gameTitle: String) -> Unit,
     onRetry: () -> Unit
@@ -226,6 +230,26 @@ private fun Screen(
                                             .testTag(HomeScreenViewAllGiveawaysButtonTag),
                                         onClick = { onViewGiveaways() }) {
                                         Text(text = stringResource(R.string.home_screen_all_giveaways_label))
+                                    }
+                                }
+                            }
+
+                            if (data.freeGames.isNotEmpty()) {
+                                item { SectionHeader(stringResource(R.string.home_screen_free_games_label)) }
+
+                                items(data.freeGames.size) { index ->
+                                    FreeGameRow(data.freeGames[index]) { url -> goToWeb(url, data.freeGames[index].title) }
+                                }
+
+                                item {
+                                    Button(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .wrapContentWidth()
+                                            .padding(top = GameDealsCustomTheme.spacing.medium, bottom = GameDealsCustomTheme.spacing.large)
+                                            .testTag(HomeScreenViewAllFreeGamesButtonTag),
+                                        onClick = { onViewFreeGame() }) {
+                                        Text(text = stringResource(R.string.home_screen_all_free_games__label))
                                     }
                                 }
                             }
@@ -399,6 +423,44 @@ private fun GiveawayRow(
 }
 
 
+@Composable
+private fun FreeGameRow(
+    freeGame: FreeGame,
+    onGiveawayTitle: (url: String) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onGiveawayTitle(freeGame.gameUrl) }
+            .padding(bottom = GameDealsCustomTheme.spacing.small)
+            .testTag(HomeScreenGiveawayRowTag.plus(freeGame.id)),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        AsyncImage(
+            model = freeGame.thumbnail,
+            contentDescription = stringResource(R.string.home_screen_game_image, freeGame.title),
+            contentScale = ContentScale.Fit,
+            error = painterResource(id = pm.bam.gamedeals.common.ui.R.drawable.videogame_thumb),
+            modifier = Modifier
+                .padding(horizontal = GameDealsCustomTheme.spacing.medium)
+                .height(60.dp)
+                .width(100.dp)
+                .clip(RoundedCornerShape(GameDealsCustomTheme.spacing.extraSmall))
+        )
+        Text(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .padding(horizontal = GameDealsCustomTheme.spacing.small),
+            textAlign = TextAlign.Start,
+            text = freeGame.title,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+
 @PhonePortrait
 @Composable
 private fun ScreenEmptyPreview() {
@@ -415,6 +477,7 @@ private fun ScreenEmptyPreview() {
         onViewDealDetails = { _, _, _, _ -> },
         onViewStoreDeals = {},
         onViewGiveaways = {},
+        onViewFreeGame = {},
         onDismissDealDetails = {},
         goToWeb = { _, _ -> },
         onRetry = {}
@@ -467,6 +530,7 @@ private fun ScreenPreview() {
         onViewDealDetails = { _, _, _, _ -> },
         onViewStoreDeals = {},
         onViewGiveaways = {},
+        onViewFreeGame = {},
         onDismissDealDetails = {},
         goToWeb = { _, _ -> },
         onRetry = {}
@@ -478,6 +542,7 @@ internal const val HomeScreenReleaseRowTag = "HomeScreenReleaseRowTag"
 
 internal const val HomeScreenGiveawayRowTag = "HomeScreenGiveawayRowTag"
 internal const val HomeScreenViewAllGiveawaysButtonTag = "HomeScreenViewAllGiveawaysButtonTag"
+internal const val HomeScreenViewAllFreeGamesButtonTag = "HomeScreenViewAllFreeGamesButtonTag"
 
 internal const val HomeScreenStoreBannerTag = "HomeScreenStoreBannerTag"
 internal const val HomeScreenDealRowTag = "HomeScreenDealRowTag"

@@ -7,6 +7,7 @@ import pm.bam.gamedeals.common.serializer.deserialize
 import pm.bam.gamedeals.common.serializer.serialize
 import pm.bam.gamedeals.domain.models.GiveawayPlatform
 import pm.bam.gamedeals.domain.models.Store
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import javax.inject.Inject
@@ -29,6 +30,15 @@ internal class LocalDatetimeConverter @Inject constructor() {
 
     @TypeConverter
     fun convertToObject(json: Long): LocalDateTime = LocalDateTime.ofEpochSecond(json, 0, ZoneOffset.UTC)
+}
+
+@ProvidedTypeConverter
+internal class LocalDateConverter @Inject constructor() {
+    @TypeConverter
+    fun convertToJsonString(localDateTime: LocalDate): Long = localDateTime.toEpochDay()
+
+    @TypeConverter
+    fun convertToObject(json: Long): LocalDate = LocalDate.ofEpochDay(json)
 }
 
 @ProvidedTypeConverter

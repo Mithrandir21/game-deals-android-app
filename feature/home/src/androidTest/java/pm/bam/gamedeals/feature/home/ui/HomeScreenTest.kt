@@ -87,6 +87,7 @@ class HomeScreenTest {
                 goToGame = { _ -> },
                 onViewStoreDeals = {},
                 onViewGiveaways = {},
+                onViewFreeGame = {},
                 goToWeb = { _, _ -> },
                 viewModel = viewModel,
                 dealDealDetailsViewModel = dealDealDetailsViewModel
@@ -125,6 +126,7 @@ class HomeScreenTest {
                 goToGame = { _ -> },
                 onViewStoreDeals = {},
                 onViewGiveaways = {},
+                onViewFreeGame = {},
                 goToWeb = { _, _ -> },
                 viewModel = viewModel,
                 dealDealDetailsViewModel = dealDealDetailsViewModel
@@ -163,6 +165,7 @@ class HomeScreenTest {
                 goToGame = { _ -> },
                 onViewStoreDeals = {},
                 onViewGiveaways = {},
+                onViewFreeGame = {},
                 goToWeb = { _, _ -> },
                 viewModel = viewModel,
                 dealDealDetailsViewModel = dealDealDetailsViewModel

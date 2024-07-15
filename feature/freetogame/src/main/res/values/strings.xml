@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="free_to_game_screen_list_item_worth_label">%1$s</string>
+    <string name="free_to_game_screen_game_image">%1$s FreeToGame image</string>
+    <string name="free_to_game_screen_navigation_back_button">Back</string>
+
+    <string name="free_to_game_screen_filters_platform_label">Platforms</string>
+    <string name="free_to_game_screen_filters_genre_label">Genre</string>
+    <string name="free_to_game_screen_filters_sort_by_label">Sort By</string>
+    <string name="free_to_game_screen_filters_sort_by_descending_label">Sort By Descending</string>
+    <string name="free_to_game_screen_filters_sort_by_ascending_label">Sort By Ascending</string>
+    <string name="free_to_game_screen_filters_icon">Filters icon</string>
+
+    <string name="free_to_game_screen_data_loading_error_msg">Something went wrong. Please try again.</string>
+    <string name="free_to_game_screen_data_loading_error_retry">Retry</string>
+
+</resources>

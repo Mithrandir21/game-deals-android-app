@@ -11,6 +11,7 @@ fun NavGraphBuilder.homeScreen(
     goToGame: (gameId: Int) -> Unit,
     goToStore: (storeId: Int) -> Unit,
     goToGiveaway: () -> Unit,
+    goToFreeGames: () -> Unit,
     goToWeb: (url: String, gameTitle: String) -> Unit
 ) {
     composable(route) {
@@ -19,6 +20,7 @@ fun NavGraphBuilder.homeScreen(
             goToGame = goToGame,
             onViewStoreDeals = { store: Store -> goToStore(store.storeID) },
             onViewGiveaways = goToGiveaway,
+            onViewFreeGame = goToFreeGames,
             goToWeb = { url: String, gameTitle: String -> goToWeb(url, gameTitle) }
         )
     }

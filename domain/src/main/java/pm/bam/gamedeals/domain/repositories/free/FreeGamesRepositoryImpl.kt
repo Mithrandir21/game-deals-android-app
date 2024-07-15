@@ -55,6 +55,13 @@ internal class FreeGamesRepositoryImpl @Inject constructor(
 
     override suspend fun refreshFreeGames() =
         remoteFreeGamesDataSource.getAllFreeGames()
-            .map { remoteFreeGame -> remoteFreeGame.toFreeGame(datetimeParsing) }
+            .mapNotNull { remoteFreeGame ->
+                try {
+                    remoteFreeGame.toFreeGame(datetimeParsing)
+                } catch (e: Exception) {
+                    logger.fatalThrowable(e)
+                    null
+                }
+            }
             .let { freeGamesDao.addFreeGames(*it.toTypedArray()) }
 }

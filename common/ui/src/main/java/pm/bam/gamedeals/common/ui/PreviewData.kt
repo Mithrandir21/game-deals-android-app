@@ -2,6 +2,7 @@ package pm.bam.gamedeals.common.ui
 
 import pm.bam.gamedeals.domain.models.Deal
 import pm.bam.gamedeals.domain.models.DealDetails
+import pm.bam.gamedeals.domain.models.FreeGame
 import pm.bam.gamedeals.domain.models.Game
 import pm.bam.gamedeals.domain.models.GameDetails
 import pm.bam.gamedeals.domain.models.Giveaway
@@ -9,6 +10,7 @@ import pm.bam.gamedeals.domain.models.GiveawayPlatform
 import pm.bam.gamedeals.domain.models.GiveawayType
 import pm.bam.gamedeals.domain.models.Release
 import pm.bam.gamedeals.domain.models.Store
+import java.time.LocalDate
 import java.time.LocalDateTime
 
 val PreviewStoreImages = Store.StoreImages("", "", "")
@@ -17,6 +19,7 @@ val PreviewDeal = Deal("dealId", "GameDeal Internal", "GameDeal", "", 1, 2, 1.2,
 
 val PreviewRelease = Release("Game Name", 123,  "Thumb")
 val PreviewGiveaway = Giveaway(id = 123, title = "Giveaway Title", worthDenominated = "$100", worth = 100.00, thumbnail = "Thumb", image = "Image", description = "Description", instructions = "Instructions", openGiveawayUrl = "Open Giveaway URL", publishedDate = LocalDateTime.now(), type = GiveawayType.GAME, platforms = listOf(GiveawayPlatform.PC), endDate = "N/A", users = 3463, status = "Active", gamerpowerUrl = "Gamerpower URL", openGiveaway = "Open Giveaway")
+val PreviewFreeGame = FreeGame(1, "Game Title", "Thumb", "Description", "Game URL", "Genre", "Platform", "Publisher", "Developer", LocalDate.now(), "FreeToGame Profile URL")
 
 val PreviewDealGameInfo = DealDetails.GameInfo(1, 123, "Game Name", 8870, 7.49, "$7.49", 39.99, "$39.99","Very Positive", 93, "1238", 97, "Link", "August 13, 2011", "Publisher", true, "Thumb")
 val PreviewDealCheaperStore = DealDetails.CheaperStore("xyz", 1, 6.49, "$6.49", 29.99, "$29.99")

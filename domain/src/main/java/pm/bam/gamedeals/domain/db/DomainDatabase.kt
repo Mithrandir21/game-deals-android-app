@@ -18,11 +18,12 @@ import pm.bam.gamedeals.domain.models.Giveaway
 import pm.bam.gamedeals.domain.models.Release
 import pm.bam.gamedeals.domain.models.Store
 import pm.bam.gamedeals.domain.utils.GiveawayPlatformsConverter
+import pm.bam.gamedeals.domain.utils.LocalDateConverter
 import pm.bam.gamedeals.domain.utils.LocalDatetimeConverter
 import pm.bam.gamedeals.domain.utils.StoreImagesConverter
 
 @Database(version = 3, entities = [Deal::class, DealPage::class, Game::class, Store::class, Release::class, Giveaway::class, FreeGame::class], exportSchema = false)
-@TypeConverters(StoreImagesConverter::class, GiveawayPlatformsConverter::class, LocalDatetimeConverter::class)
+@TypeConverters(StoreImagesConverter::class, GiveawayPlatformsConverter::class, LocalDatetimeConverter::class, LocalDateConverter::class)
 internal abstract class DomainDatabase : RoomDatabase() {
 
     abstract fun getDealsDao(): DealsDao

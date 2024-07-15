@@ -9,7 +9,7 @@ import kotlinx.serialization.properties.Properties
 import pm.bam.gamedeals.common.datetime.parsing.DatetimeParsing
 import pm.bam.gamedeals.domain.utils.LocalDateSerializer
 import pm.bam.gamedeals.remote.freetogame.models.RemoteFreeGame
-import java.time.LocalDateTime
+import java.time.LocalDate
 
 
 @Entity(tableName = "FreeGame")
@@ -36,7 +36,7 @@ data class FreeGame(
     val developer: String,
     @Serializable(with = LocalDateSerializer::class)
     @SerialName("release_date")
-    val releaseDate: LocalDateTime,
+    val releaseDate: LocalDate,
     @SerialName("freetogame_profile_url")
     val freeToGameProfileUrl: String
 )
