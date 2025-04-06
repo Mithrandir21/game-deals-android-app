@@ -31,10 +31,10 @@ android {
 
         releaseKeyPresent = true
         releaseSigningKey = "release"
-        releaseKeyAlias = localProperties.getProperty("keyAlias")
-        releaseKeyPassword = localProperties.getProperty("keyPassword")
+        releaseKeyAlias = localProperties.getProperty("keyAlias") ?: "FakeAlias"
+        releaseKeyPassword = localProperties.getProperty("keyPassword") ?: "FakePassword"
         releaseKeyStoreFile = "../upload_keystore.jks"
-        releaseKeyStorePassword = localProperties.getProperty("storePassword")
+        releaseKeyStorePassword = localProperties.getProperty("storePassword") ?: "FakeStorePassword"
     }
     // Check if environment variables are present, meaning CI environment.
     else if (System.getenv("RELEASE_KEY_ALIAS") != null) {
