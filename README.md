@@ -1,5 +1,5 @@
 # game-deals-android-app
-A repository for an Android app showing game deals from CheapShark API
+A repository for an Android app showing game deals from CheapShark and GamerPower API
 
 # External Tools
 ## Code Quality
