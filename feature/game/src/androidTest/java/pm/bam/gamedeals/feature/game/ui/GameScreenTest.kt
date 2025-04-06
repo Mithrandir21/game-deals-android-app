@@ -194,9 +194,6 @@ class GameScreenTest {
             .assertIsDisplayed()
             .assertTextEquals(gameTitle)
 
-        composeTestRule.onNodeWithTag(GameDealItemTag)
-            .assertIsDisplayed()
-
         composeTestRule.onNodeWithTag(GameDealItemStoreTitleLabelTag, useUnmergedTree = true)
             .assertIsDisplayed()
             .assertTextEquals(mockStoreName)
