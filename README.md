@@ -10,8 +10,7 @@ A repository for an Android app showing game deals from CheapShark and GamerPowe
 - Instrumentation testing of end-to-end journeys
 
 #### Usage
-- App can used as standalone app
-
+- App can be used as a standalone app
 ##### List of improvements
 - Instrumentation testing tooling should be improved to allow less boilerplate code and more generalisation and abstraction, allowing faster writing of tests.
 - App designs should be done by actual designer.
