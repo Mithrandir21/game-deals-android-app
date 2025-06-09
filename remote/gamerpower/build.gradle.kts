@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "pm.bam.gamedeals.remote.gamerpower"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         minSdk = 26

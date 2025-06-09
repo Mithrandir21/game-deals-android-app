@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin)
     alias(libs.plugins.kotlin.kapt)
+    alias(libs.plugins.compose)
     alias(libs.plugins.hilt)
     alias(libs.plugins.google.services)
     alias(libs.plugins.firebase.crashlytics)
@@ -12,7 +13,7 @@ plugins {
 
 android {
     namespace = "pm.bam.gamedeals"
-    compileSdk = 34
+    compileSdk = 35
 
 
     // START - RELEASE SIGNING CONFIGURATION
@@ -163,5 +164,5 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.junit4)
 
     debugImplementation(libs.androidx.ui.tooling)
-    debugImplementation(libs.androidx.ui.test.manifest)
+    debugImplementation(libs.androidx.compose.test)
 }
