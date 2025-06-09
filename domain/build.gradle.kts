@@ -2,13 +2,14 @@ plugins {
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.jetbrains.kotlin)
     alias(libs.plugins.kotlin.kapt)
+    alias(libs.plugins.compose)
     alias(libs.plugins.kotlin.ksp)
     alias(libs.plugins.kotlinx.serialization)
 }
 
 android {
     namespace = "pm.bam.gamedeals.domain"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         minSdk = 26

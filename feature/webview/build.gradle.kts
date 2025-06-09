@@ -2,11 +2,12 @@ plugins {
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.jetbrains.kotlin)
     alias(libs.plugins.kotlin.kapt)
+    alias(libs.plugins.compose)
 }
 
 android {
     namespace = "pm.bam.gamedeals.feature.webview"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         minSdk = 26
