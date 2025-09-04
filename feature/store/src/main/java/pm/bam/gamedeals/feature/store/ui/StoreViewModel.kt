@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import pm.bam.gamedeals.common.logFlow
 import pm.bam.gamedeals.domain.models.Store
 import pm.bam.gamedeals.domain.repositories.deals.DealsRepository
 import pm.bam.gamedeals.domain.repositories.stores.StoresRepository
@@ -45,6 +46,7 @@ internal class StoreViewModel @Inject constructor(
                 .filterNotNull() // Skip our initial null value
                 .distinctUntilChanged() // Skip fetching if storeId is the same, like on orientation change
                 .map { storesRepository.getStore(it) }
+                .logFlow(logger)
                 .catch { logger.fatalThrowable(it) }
                 .collect { _storeDetails.emit(it) }
         }
@@ -61,4 +63,5 @@ internal class StoreViewModel @Inject constructor(
         // e.g. different generations of UI across rotation config change
         .cachedIn(viewModelScope)
         .catch { logger.fatalThrowable(it) }
+        .logFlow(logger)
 }

@@ -13,12 +13,11 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import pm.bam.gamedeals.common.onError
+import pm.bam.gamedeals.common.logFlow
 import pm.bam.gamedeals.domain.models.Giveaway
 import pm.bam.gamedeals.domain.models.GiveawaySearchParameters
 import pm.bam.gamedeals.domain.repositories.giveaway.GiveawaysRepository
 import pm.bam.gamedeals.logging.Logger
-import pm.bam.gamedeals.logging.fatal
 import javax.inject.Inject
 
 
@@ -40,7 +39,7 @@ internal class GiveawaysViewModel @Inject constructor(
         viewModelScope.launch {
             flow { emitAll(giveawaysRepository.observeGiveaways()) }
                 .map { GiveawaysScreenData(status = GiveawaysScreenStatus.SUCCESS, giveaways = it) }
-                .onError { fatal(logger, it) }
+                .logFlow(logger)
                 .catch { emit(_uiState.value.copy(status = GiveawaysScreenStatus.ERROR)) }
                 .collect { _uiState.emit(it) }
         }
@@ -50,7 +49,7 @@ internal class GiveawaysViewModel @Inject constructor(
         viewModelScope.launch {
             flow { emit(_uiState.value.copy(status = GiveawaysScreenStatus.LOADING)) }
                 .onStart { giveawaysRepository.refreshGiveaways() }
-                .onError { fatal(logger, it) }
+                .logFlow(logger)
                 .catch { emit(_uiState.value.copy(status = GiveawaysScreenStatus.ERROR)) }
                 .collect { _uiState.emit(it) }
         }
@@ -60,7 +59,7 @@ internal class GiveawaysViewModel @Inject constructor(
         viewModelScope.launch {
             flow { emitAll(giveawaysRepository.observeGiveaways(parameters)) }
                 .map { GiveawaysScreenData(status = GiveawaysScreenStatus.SUCCESS, giveaways = it) }
-                .onError { fatal(logger, it) }
+                .logFlow(logger)
                 .catch { emit(_uiState.value.copy(status = GiveawaysScreenStatus.ERROR)) }
                 .collect { _uiState.emit(it) }
         }

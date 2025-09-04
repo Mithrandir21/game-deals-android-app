@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.jetbrains.kotlin)
+    alias(libs.plugins.compose)
     alias(libs.plugins.kotlin.kapt)
     alias(libs.plugins.kotlinx.serialization)
 }
@@ -18,6 +19,9 @@ android {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
         }
+    }
+    buildFeatures {
+        compose = true
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -42,6 +46,8 @@ dependencies {
     implementation(libs.hilt.navigation.compose)
     kapt(libs.hilt.compiler)
     kapt(libs.hilt.androidx.compiler)
+
+    implementation(project(":logging"))
 
     testImplementation(libs.junit)
 
