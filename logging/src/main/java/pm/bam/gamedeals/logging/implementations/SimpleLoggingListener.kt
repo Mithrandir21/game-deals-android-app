@@ -1,5 +1,6 @@
 package pm.bam.gamedeals.logging.implementations
 
+import android.util.Log
 import pm.bam.gamedeals.logging.LogLevel
 import pm.bam.gamedeals.logging.LoggingInterface
 import pm.bam.gamedeals.logging.debug
@@ -26,15 +27,16 @@ internal class SimpleLoggingListener @Inject constructor() : LoggingInterface {
      * @param tag The tag to use in logging.
      * @param throwable A specific [Throwable] associated with this log event. This could be a fatal exception to some journey, or simply informative.
      */
-    override fun onLog(level: LogLevel, message: String, tag: String?, throwable: Throwable?) =
+    override fun onLog(level: LogLevel, message: String, tag: String?, throwable: Throwable?) {
         when (level) {
-            LogLevel.VERBOSE -> verbose(tag, throwable) { message }
-            LogLevel.DEBUG -> debug(tag, throwable) { message }
-            LogLevel.INFO -> info(tag, throwable) { message }
-            LogLevel.WARN -> warn(tag, throwable) { message }
-            LogLevel.ERROR -> error(tag, throwable) { message }
-            LogLevel.FATAL -> fatal(tag, throwable) { message }
+            LogLevel.VERBOSE -> Log.v(tag ?: this.javaClass.simpleName, message, throwable)
+            LogLevel.DEBUG -> Log.d(tag ?: this.javaClass.simpleName, message, throwable)
+            LogLevel.INFO -> Log.i(tag ?: this.javaClass.simpleName, message, throwable)
+            LogLevel.WARN -> Log.w(tag ?: this.javaClass.simpleName, message, throwable)
+            LogLevel.ERROR -> Log.e(tag ?: this.javaClass.simpleName, message, throwable)
+            LogLevel.FATAL -> Log.wtf(tag ?: this.javaClass.simpleName, message, throwable)
         }
+    }
 
     /**
      * A fatal [Throwable] has been thrown by the App. This happens when something catastrophic happens, something that cannot be recovered from.
@@ -42,5 +44,7 @@ internal class SimpleLoggingListener @Inject constructor() : LoggingInterface {
      * @param tag The tag to use in logging.
      * @param throwable The [Throwable] that has been thrown by the fatal event.
      */
-    override fun onFatalThrowable(tag: String?, throwable: Throwable) = fatal(tag, throwable) { "Fatal crash" }
+    override fun onFatalThrowable(tag: String?, throwable: Throwable){
+        Log.wtf(tag ?: this.javaClass.simpleName, "Fatal crash", throwable)
+    }
 }

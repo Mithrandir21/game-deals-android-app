@@ -39,23 +39,23 @@ interface Logger {
 }
 
 
-fun Any.verbose(logger: Logger, throwable: Throwable? = null, messageProvider: () -> String) =
-    logger.log(LogLevel.VERBOSE, this.javaClass.simpleName, throwable, messageProvider)
+fun Any.verbose(logger: Logger, throwable: Throwable? = null, tag: String? = null, messageProvider: () -> String) =
+    logger.log(LogLevel.VERBOSE, tag ?: this.javaClass.simpleName, throwable, messageProvider)
 
-fun Any.debug(logger: Logger, throwable: Throwable? = null, messageProvider: () -> String) =
-    logger.log(LogLevel.DEBUG, this.javaClass.simpleName, throwable, messageProvider)
+fun Any.debug(logger: Logger, throwable: Throwable? = null, tag: String? = null, messageProvider: () -> String) =
+    logger.log(LogLevel.DEBUG, tag ?: this.javaClass.simpleName, throwable, messageProvider)
 
-fun Any.info(logger: Logger, throwable: Throwable? = null, messageProvider: () -> String) =
-    logger.log(LogLevel.INFO, this.javaClass.simpleName, throwable, messageProvider)
+fun Any.info(logger: Logger, throwable: Throwable? = null, tag: String? = null, messageProvider: () -> String) =
+    logger.log(LogLevel.INFO, tag ?: this.javaClass.simpleName, throwable, messageProvider)
 
-fun Any.warn(logger: Logger, throwable: Throwable? = null, messageProvider: () -> String) =
-    logger.log(LogLevel.WARN, this.javaClass.simpleName, throwable, messageProvider)
+fun Any.warn(logger: Logger, throwable: Throwable? = null, tag: String? = null, messageProvider: () -> String) =
+    logger.log(LogLevel.WARN, tag ?: this.javaClass.simpleName, throwable, messageProvider)
 
-fun Any.error(logger: Logger, throwable: Throwable? = null, messageProvider: () -> String) =
-    logger.log(LogLevel.ERROR, this.javaClass.simpleName, throwable, messageProvider)
+fun Any.error(logger: Logger, throwable: Throwable? = null, tag: String? = null, messageProvider: () -> String) =
+    logger.log(LogLevel.ERROR, tag ?: this.javaClass.simpleName, throwable, messageProvider)
 
-fun Any.fatal(logger: Logger, throwable: Throwable? = null, messageProvider: () -> String) =
-    logger.log(LogLevel.FATAL, this.javaClass.simpleName, throwable, messageProvider)
+fun Any.fatal(logger: Logger, throwable: Throwable? = null, tag: String? = null, messageProvider: () -> String) =
+    logger.log(LogLevel.FATAL, tag ?: this.javaClass.simpleName, throwable, messageProvider)
 
-fun Any.fatal(logger: Logger, throwable: Throwable) =
-    logger.fatalThrowable(throwable, this.javaClass.simpleName)
+fun Any.fatal(logger: Logger, throwable: Throwable, tag: String? = null) =
+    logger.fatalThrowable(throwable, tag ?: this.javaClass.simpleName)
