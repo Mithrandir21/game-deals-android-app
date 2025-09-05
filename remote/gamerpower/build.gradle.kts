@@ -30,6 +30,9 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
+    tasks.withType<Test> {
+        jvmArgs = listOf("-XX:+EnableDynamicAgentLoading")
+    }
 }
 
 dependencies {
