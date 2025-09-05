@@ -19,7 +19,7 @@ import pm.bam.gamedeals.logging.warn
  * that uses Common provided classes, such as AndroidX, Logger, custom exceptions and other non-pure Kotlin/Java Flow functionality.
  */
 
-inline fun <reified T> Flow<T>.logFlow(logger: Logger, tag: String = this.javaClass.simpleName, logErrorAsWarning: Boolean = false): Flow<T> =
+inline fun <reified T> Flow<T>.logFlow(logger: Logger, tag: String? = null, logErrorAsWarning: Boolean = false): Flow<T> =
     onEach { debug(logger, tag = tag) { "Collected ${it.toString()}" } }
         .onError { if (logErrorAsWarning) warn(logger, it, tag = tag) { it.message ?: "Error" } }
         .onError { if (!logErrorAsWarning) error(logger, it, tag = tag) { it.message ?: "Error" } }
