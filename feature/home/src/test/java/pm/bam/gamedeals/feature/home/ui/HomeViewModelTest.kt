@@ -170,8 +170,7 @@ class HomeViewModelTest {
         assertNotNull(emissions.third())
         assertEquals(HomeScreenData(state = HomeScreenStatus.ERROR), emissions.third())
 
-        assertEquals(0, releaseGameId.size)
-        assertNull(releaseGameId.first())
+        assertNull(releaseGameId.firstOrNull())
 
         coVerify(exactly = 1) { storesRepository.observeStores() }
         coVerify(exactly = 1) { gamesRepository.getReleaseGameId(releaseTitle) }
