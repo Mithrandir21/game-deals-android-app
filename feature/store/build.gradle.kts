@@ -41,6 +41,9 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+    tasks.withType<Test> {
+        jvmArgs = listOf("-XX:+EnableDynamicAgentLoading")
+    }
 }
 
 dependencies {
