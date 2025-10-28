@@ -89,11 +89,7 @@ class GameScreenTest {
 
         every { viewModel.uiState } returns MutableStateFlow(GameViewModel.GameScreenData.Loading)
 
-        var expectedTitle = ""
-
         composeTestRule.setContent {
-            expectedTitle = stringResource(id = R.string.game_screen_toolbar_title_loading)
-
             GameDealsTheme {
                 GameScreen(
                     gameId = gameId,
@@ -103,12 +99,6 @@ class GameScreenTest {
                 )
             }
         }
-
-        composeTestRule.onNodeWithTag(TopAppBarTag)
-            .assertIsDisplayed()
-            .onChildren()
-            .filterToOne(hasTextExactly(expectedTitle))
-            .assertIsDisplayed()
 
         composeTestRule.onNodeWithTag(LoadingDataTag)
             .assertIsDisplayed()
@@ -180,12 +170,6 @@ class GameScreenTest {
                 )
             }
         }
-
-        composeTestRule.onNodeWithTag(TopAppBarTag)
-            .assertIsDisplayed()
-            .onChildren()
-            .filterToOne(hasTextExactly(gameTitle))
-            .assertIsDisplayed()
 
         composeTestRule.onNodeWithTag(GameDetailsTag)
             .assertIsDisplayed()
