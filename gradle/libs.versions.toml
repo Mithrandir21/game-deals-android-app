@@ -1,5 +1,5 @@
 [versions]
-android-gradle-plugin = "8.10.1"
+android-gradle-plugin = "8.13.0"
 jetbrains-kotlin-plugin = "2.2.21"
 google-ksp-plugin = "2.3.0"
 google-services-plugin = "4.4.4"
