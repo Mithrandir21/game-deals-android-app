@@ -16,12 +16,11 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.serialization.ExperimentalSerializationApi
 import pm.bam.gamedeals.common.flatMapLatestDelayAtLeast
-import pm.bam.gamedeals.common.onError
+import pm.bam.gamedeals.common.logFlow
 import pm.bam.gamedeals.domain.models.Deal
 import pm.bam.gamedeals.domain.models.SearchParameters
 import pm.bam.gamedeals.domain.repositories.games.GamesRepository
 import pm.bam.gamedeals.logging.Logger
-import pm.bam.gamedeals.logging.fatal
 import javax.inject.Inject
 
 @Suppress("NullChecksToSafeCall")
@@ -59,7 +58,7 @@ internal class SearchViewModel @Inject constructor(
                             }
                     }
                 }
-                .onError { fatal(logger, it) }
+                .logFlow(logger)
                 .catch { emit(SearchData.Error) }
                 .collect { _resultState.emit(it) }
         }

@@ -17,14 +17,13 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import pm.bam.gamedeals.common.delayOnStart
-import pm.bam.gamedeals.common.onError
+import pm.bam.gamedeals.common.logFlow
 import pm.bam.gamedeals.common.toFlow
 import pm.bam.gamedeals.domain.models.GameDetails
 import pm.bam.gamedeals.domain.models.Store
 import pm.bam.gamedeals.domain.repositories.games.GamesRepository
 import pm.bam.gamedeals.domain.repositories.stores.StoresRepository
 import pm.bam.gamedeals.logging.Logger
-import pm.bam.gamedeals.logging.fatal
 import javax.inject.Inject
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -52,6 +51,7 @@ internal class GameViewModel @Inject constructor(
                 .distinctUntilChanged() // Skip fetching if storeId is the same, like on orientation change
                 .delayOnStart(1000)
                 .flatMapLatest { loadGameDetailsFlow(it) }
+                .logFlow(logger)
                 .collect { _uiState.emit(it) }
         }
     }
@@ -74,7 +74,7 @@ internal class GameViewModel @Inject constructor(
                     .toFlow<GameScreenData>()
             }
             .onStart { _uiState.emit(GameScreenData.Loading) }
-            .onError { fatal(logger, it) }
+            .logFlow(logger)
             .catch { emit(GameScreenData.Error) }
 
 

@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import pm.bam.gamedeals.common.logFlow
 import pm.bam.gamedeals.common.mapDelayAtLeast
 import pm.bam.gamedeals.common.onError
 import pm.bam.gamedeals.domain.repositories.deals.DealsRepository
@@ -64,7 +65,7 @@ class DealDetailsViewModel @Inject constructor(
                         gameSalesPriceDenominated = dealPriceDenominated
                     ).let { emit(it) }
                 }
-                .onError { fatal(logger, it) }
+                .logFlow(logger)
                 .catch {
                     DealBottomSheetData.DealDetailsError(
                         store = storesRepository.getStore(dealStoreId),

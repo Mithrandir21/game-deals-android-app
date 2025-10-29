@@ -56,6 +56,7 @@ class HomeViewModelTest {
         coEvery { storesRepository.observeStores() } returns flowOf(listOf())
         coEvery { releasesRepository.observeReleases() } returns flowOf(listOf())
         coEvery { giveawaysRepository.observeGiveaways() } returns flowOf(listOf())
+        coEvery { giveawaysRepository.refreshGiveaways() } returns Unit
 
         viewModel = HomeViewModel(storesRepository, dealsRepository, gamesRepository, releasesRepository, giveawaysRepository, logger)
 
@@ -81,6 +82,7 @@ class HomeViewModelTest {
         coEvery { storesRepository.observeStores() } returns flowOf(listOf(store))
         coEvery { releasesRepository.observeReleases() } returns flowOf(listOf())
         coEvery { giveawaysRepository.observeGiveaways() } returns flowOf(listOf())
+        coEvery { giveawaysRepository.refreshGiveaways() } returns Unit
         coEvery { dealsRepository.getStoreDeals(topStores.first(), LIMIT_DEALS) } returns listOf(deal)
 
         viewModel = HomeViewModel(storesRepository, dealsRepository, gamesRepository, releasesRepository, giveawaysRepository, logger)
@@ -127,6 +129,7 @@ class HomeViewModelTest {
         coEvery { storesRepository.observeStores() } returns flowOf(listOf())
         coEvery { releasesRepository.observeReleases() } returns flowOf(listOf())
         coEvery { giveawaysRepository.observeGiveaways() } returns flowOf(listOf())
+        coEvery { giveawaysRepository.refreshGiveaways() } returns Unit
         coEvery { gamesRepository.getReleaseGameId(releaseTitle) } returns gameId
 
         viewModel = HomeViewModel(storesRepository, dealsRepository, gamesRepository, releasesRepository, giveawaysRepository, logger)
@@ -139,10 +142,9 @@ class HomeViewModelTest {
         assertNotNull(emissions.second())
         assertEquals(HomeScreenData(state = HomeScreenStatus.SUCCESS), emissions.second())
 
-        assertEquals(2, releaseGameId.size)
-        assertNull(releaseGameId.first())
-        assertNotNull(releaseGameId.second())
-        assertEquals(gameId, releaseGameId.second()?.getContentIfNotHandled())
+        assertEquals(1, releaseGameId.size)
+        assertNotNull(releaseGameId.first())
+        assertEquals(gameId, releaseGameId.first())
 
         coVerify(exactly = 1) { storesRepository.observeStores() }
         coVerify(exactly = 1) { gamesRepository.getReleaseGameId(releaseTitle) }
@@ -155,6 +157,7 @@ class HomeViewModelTest {
         coEvery { storesRepository.observeStores() } returns flowOf(listOf())
         coEvery { releasesRepository.observeReleases() } returns flowOf(listOf())
         coEvery { giveawaysRepository.observeGiveaways() } returns flowOf(listOf())
+        coEvery { giveawaysRepository.refreshGiveaways() } returns Unit
         coEvery { gamesRepository.getReleaseGameId(any()) } throws Exception()
 
         viewModel = HomeViewModel(storesRepository, dealsRepository, gamesRepository, releasesRepository, giveawaysRepository, logger)
@@ -167,8 +170,7 @@ class HomeViewModelTest {
         assertNotNull(emissions.third())
         assertEquals(HomeScreenData(state = HomeScreenStatus.ERROR), emissions.third())
 
-        assertEquals(1, releaseGameId.size)
-        assertNull(releaseGameId.first())
+        assertNull(releaseGameId.firstOrNull())
 
         coVerify(exactly = 1) { storesRepository.observeStores() }
         coVerify(exactly = 1) { gamesRepository.getReleaseGameId(releaseTitle) }

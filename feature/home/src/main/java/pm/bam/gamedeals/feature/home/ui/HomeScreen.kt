@@ -44,9 +44,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import pm.bam.gamedeals.common.SingleEventEffect
 import pm.bam.gamedeals.common.ui.FoldableLandscape
 import pm.bam.gamedeals.common.ui.FoldablePortrait
 import pm.bam.gamedeals.common.ui.PhoneLandscape
@@ -63,7 +64,6 @@ import pm.bam.gamedeals.domain.models.Deal
 import pm.bam.gamedeals.domain.models.Giveaway
 import pm.bam.gamedeals.domain.models.Release
 import pm.bam.gamedeals.domain.models.Store
-import pm.bam.gamedeals.domain.utils.collectSingleEvent
 import pm.bam.gamedeals.feature.deal.ui.DealBottomSheet
 import pm.bam.gamedeals.feature.deal.ui.DealBottomSheetData
 import pm.bam.gamedeals.feature.deal.ui.DealDetailsViewModel
@@ -85,9 +85,6 @@ internal fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
     dealDealDetailsViewModel: DealDetailsViewModel = hiltViewModel()
 ) {
-    // Collect the release game id and navigate to the game screen
-    viewModel.releaseGameId.collectSingleEvent { goToGame(it) }
-
     val data = viewModel.uiState.collectAsStateWithLifecycle()
     val dealDetails = dealDealDetailsViewModel.dealDealDetails.collectAsStateWithLifecycle()
 
@@ -112,6 +109,9 @@ internal fun HomeScreen(
         goToWeb = goToWeb,
         onRetry = { viewModel.loadTopStoresDeals() }
     )
+
+    // Collect the release game id and navigate to the game screen
+    SingleEventEffect(viewModel.releaseGameId) { goToGame(it) }
 }
 
 @Composable

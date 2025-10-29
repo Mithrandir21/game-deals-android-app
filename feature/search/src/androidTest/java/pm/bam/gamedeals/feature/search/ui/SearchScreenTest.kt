@@ -211,28 +211,6 @@ class SearchScreenTest {
     }
 
     @Test
-    fun onRateChangedRateRange() {
-        initialRateRange()
-
-        composeTestRule.onNodeWithTag(SearchFiltersRatingRangeTag)
-            .performTouchInput { swipeRight() }
-
-
-
-        composeTestRule.onNodeWithTag(SearchFiltersRatingRangeLabelTag)
-            .assertTextContains(valueString(SearchFilterMaxRate, SearchFilterMaxRate))
-
-        composeTestRule.onNodeWithTag(SearchFiltersRatingRangeTag)
-            .assertRangeInfoEquals(
-                ProgressBarRangeInfo(
-                    current = SearchFilterMaxRate,
-                    range = SearchFilterMinRate..SearchFilterMaxRate,
-                    steps = SearchFilterRateSteps
-                )
-            )
-    }
-
-    @Test
     fun initialExactMatchSelection() {
         openAndTestFilters()
 

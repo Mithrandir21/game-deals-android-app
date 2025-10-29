@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin)
     alias(libs.plugins.kotlin.kapt)
+    alias(libs.plugins.compose)
     alias(libs.plugins.hilt)
     alias(libs.plugins.google.services)
     alias(libs.plugins.firebase.crashlytics)
@@ -12,7 +13,7 @@ plugins {
 
 android {
     namespace = "pm.bam.gamedeals"
-    compileSdk = 34
+    compileSdk = 36
 
 
     // START - RELEASE SIGNING CONFIGURATION
@@ -82,11 +83,11 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
-    kotlinOptions {
-        jvmTarget = "17"
+    kotlin {
+        jvmToolchain(21)
     }
     buildFeatures {
         compose = true
@@ -96,10 +97,17 @@ android {
     }
     packaging {
         resources {
+
             excludes += "/META-INF/LICENSE.md"
             excludes += "/META-INF/LICENSE-notice.md"
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+
+            // Temporary fix for OSGi issue org.jspecify:jspecify:1.0.0 and com.squareup.okhttp3:logging-interceptor:5.2.1
+            excludes += "META-INF/versions/9/OSGI-INF/MANIFEST.MF"
         }
+    }
+    tasks.withType<Test> {
+        jvmArgs = listOf("-XX:+EnableDynamicAgentLoading")
     }
 }
 
@@ -163,5 +171,5 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.junit4)
 
     debugImplementation(libs.androidx.ui.tooling)
-    debugImplementation(libs.androidx.ui.test.manifest)
+    debugImplementation(libs.androidx.compose.test)
 }

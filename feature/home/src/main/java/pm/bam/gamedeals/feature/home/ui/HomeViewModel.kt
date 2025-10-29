@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -15,8 +16,10 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import pm.bam.gamedeals.common.logFlow
 import pm.bam.gamedeals.common.onError
 import pm.bam.gamedeals.domain.models.Deal
 import pm.bam.gamedeals.domain.models.Giveaway
@@ -27,7 +30,6 @@ import pm.bam.gamedeals.domain.repositories.games.GamesRepository
 import pm.bam.gamedeals.domain.repositories.giveaway.GiveawaysRepository
 import pm.bam.gamedeals.domain.repositories.releases.ReleasesRepository
 import pm.bam.gamedeals.domain.repositories.stores.StoresRepository
-import pm.bam.gamedeals.domain.utils.SingleLiveEvent
 import pm.bam.gamedeals.logging.Logger
 import pm.bam.gamedeals.logging.fatal
 import javax.inject.Inject
@@ -54,12 +56,8 @@ internal class HomeViewModel @Inject constructor(
         initialValue = HomeScreenData()
     )
 
-    private val _releaseGameId = MutableStateFlow<SingleLiveEvent<Int>?>(null)
-    val releaseGameId: StateFlow<SingleLiveEvent<Int>?> = _releaseGameId.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = null
-    )
+    private val _releaseGameId = Channel<Int>(capacity = Channel.BUFFERED)
+    val releaseGameId: Flow<Int> = _releaseGameId.receiveAsFlow()
 
     init {
         viewModelScope.launch {
@@ -71,6 +69,7 @@ internal class HomeViewModel @Inject constructor(
     fun loadTopStoresDeals() =
         viewModelScope.launch {
             loadTopStoreDataFlow()
+                .logFlow(logger)
                 .onStart { emit(_uiState.value.copy(state = HomeScreenStatus.LOADING)) }
                 .collect { _uiState.emit(it) }
         }
@@ -87,7 +86,7 @@ internal class HomeViewModel @Inject constructor(
                         else -> _uiState.emit(_uiState.value.copy(state = HomeScreenStatus.ERROR))
                     }
                 }
-                .collect { _releaseGameId.emit(SingleLiveEvent(content = it)) }
+                .collect { _releaseGameId.send(it) }
         }
 
     private fun loadTopStoreDataFlow() =
@@ -108,18 +107,18 @@ internal class HomeViewModel @Inject constructor(
             .flatMapLatest { loadNewReleases().map { releases -> releases to it } }
             .flatMapLatest { loadGiveaways().map { giveaways -> Triple(it.first, giveaways.take(LIMIT_GIVEAWAYS), it.second) } }
             .map { HomeScreenData(state = HomeScreenStatus.SUCCESS, releases = it.first, giveaways = it.second, items = it.third) }
-            .onError { fatal(logger, it) }
+            .logFlow(logger)
             .catch { emit(HomeScreenData(state = HomeScreenStatus.ERROR)) }
 
     private fun loadNewReleases(): Flow<List<Release>> =
         flow { emitAll(releasesRepository.observeReleases()) }
-            .onError { fatal(logger, it) }
+            .logFlow(logger)
             .catch { emit(emptyList()) }
 
     private fun loadGiveaways(): Flow<List<Giveaway>> =
         flow { emitAll(giveawaysRepository.observeGiveaways()) }
             .onStart { giveawaysRepository.refreshGiveaways() }
-            .onError { fatal(logger, it) }
+            .logFlow(logger)
             .catch { emit(emptyList()) }
 
     internal data class HomeScreenData(

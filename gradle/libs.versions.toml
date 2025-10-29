@@ -1,61 +1,61 @@
 [versions]
-android-gradle-plugin = "8.9.1"
-jetbrains-kotlin-plugin = "1.9.23"
-google-ksp-plugin = "1.9.23-1.0.20"
-google-services-plugin = "4.4.1"
-firebase-crashlytics-plugin = "2.9.9"
-firebase-performance-plugin = "1.4.2"
+android-gradle-plugin = "8.13.0"
+jetbrains-kotlin-plugin = "2.2.21"
+google-ksp-plugin = "2.3.0"
+google-services-plugin = "4.4.4"
+firebase-crashlytics-plugin = "3.0.6"
+firebase-performance-plugin = "2.0.1"
 
-activity-compose = "1.9.0"
-core-ktx = "1.13.0"
-lifecycle-runtime-ktx = "2.7.0"
-compose-ui = "1.6.6"
-webview = "1.10.0"
-compose-bom = "2024.04.01"
-compose-runtime = "2.7.0"
-compose-navigation = "2.7.7"
-material3 = "1.2.1"
+activity-compose = "1.11.0"
+core-ktx = "1.17.0"
+lifecycle-runtime-ktx = "2.9.4"
+compose-ui = "1.9.4"
+webview = "1.14.0"
+compose-bom = "2025.10.01"
+compose-runtime = "2.9.4"
+compose-navigation = "2.9.5"
+material3 = "1.4.0"
 material3-adaptive = "1.0.0-alpha06"
-appcompat = "1.6.1"
-material = "1.11.0"
+appcompat = "1.7.1"
+material = "1.13.0"
 
-firebase-bom = "32.8.1"
+firebase-bom = "34.4.0"
 
-paging = "3.2.1"
+paging = "3.3.6"
 
-hilt-core = "2.49"
-hilt-plugin = "2.48.1"
-hilt-compiler = "1.2.0"
-hilt-navigation = "1.2.0"
-hilt-testing = "2.48.1"
+hilt-core = "2.57.2"
+hilt-plugin = "2.57.2"
+hilt-compiler = "1.3.0"
+hilt-navigation = "1.3.0"
+hilt-testing = "2.57.2"
 
-okio = "3.8.0"
-okhttp = "4.12.0"
-okhttp-logging = "4.10.0"
-retrofit = "2.9.0"
-sandwich = "2.0.5"
+okio = "3.16.2"
+okhttp = "5.2.1"
+okhttp-logging = "5.2.1"
+retrofit = "3.0.0"
+sandwich = "2.1.3"
 
-kotlinx = '1.6.2'
+kotlinx = '1.9.0'
 kotlinx-retrofit = "1.0.0"
 
-room = '2.6.1'
+room = '2.8.3'
 
-coroutines = '1.7.3'
+coroutines = '1.10.2'
 
-coil = '2.6.0'
+coil = '2.7.0'
 
-tracing = '1.2.0'
+tracing = '1.3.0'
 
 junit = "4.13.2"
-mockk = "1.13.9"
-coroutines-testing = "1.7.3"
+mockk = "1.14.6"
+coroutines-testing = "1.10.2"
 core-testing = "2.2.0"
 
-androidx-junit = "1.1.5"
-androidx-runner = "1.5.2"
-espresso-core = "3.5.1"
-espresso-device = "1.0.0-alpha08"
-ui-test-junit4 = "1.6.6"
+androidx-junit = "1.3.0"
+androidx-runner = "1.7.0"
+espresso-core = "3.7.0"
+espresso-device = "1.1.0"
+ui-test-junit4 = "1.9.4"
 
 
 [libraries]
@@ -65,7 +65,7 @@ androidx-ktx-lifecycle-runtime = { group = "androidx.lifecycle", name = "lifecyc
 androidx-ui = { group = "androidx.compose.ui", name = "ui", version.ref = "compose-ui" }
 androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics", version.ref = "compose-ui" }
 androidx-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling", version.ref = "compose-ui" }
-androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest", version.ref = "compose-ui" }
+compose-material-icons = { group = "androidx.compose.material", name = "material-icons-core" }
 
 androidx-webview = { group = "androidx.webkit", name = "webkit", version.ref = "webview" }
 
@@ -81,7 +81,7 @@ androidx-tracing = { group = "androidx.tracing", name = "tracing", version.ref =
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebase-bom" }
-firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics-ktx" }
+firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics" }
 firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashlytics" }
 firebase-performance = { group = "com.google.firebase", name = "firebase-perf" }
 
@@ -142,6 +142,7 @@ androidx-compose-test = { group = "androidx.compose.ui", name = "ui-test-manifes
 [plugins]
 android-application = { id = "com.android.application", version.ref = "android-gradle-plugin" }
 jetbrains-kotlin = { id = "org.jetbrains.kotlin.android", version.ref = "jetbrains-kotlin-plugin" }
+compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "jetbrains-kotlin-plugin" }
 androidLibrary = { id = "com.android.library", version.ref = "android-gradle-plugin" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt-plugin" }
 kotlin-kapt = { id = "org.jetbrains.kotlin.kapt", version.ref = "jetbrains-kotlin-plugin" }
