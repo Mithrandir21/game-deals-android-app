@@ -4,8 +4,6 @@ package pm.bam.gamedeals.feature.giveaways.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ContextualFlowRow
-import androidx.compose.foundation.layout.ContextualFlowRowOverflow
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
@@ -58,17 +56,25 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.SubcomposeLayout
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlin.time.Clock
 import coil3.compose.AsyncImage
+import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.toImmutableList
@@ -333,7 +339,6 @@ private fun CenteredMessage(
  * "Go to giveaway" claim button. Tapping the card body opens the in-app detail; the button is the
  * fast path straight to the claim URL.
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun GiveawayCard(
     giveaway: Giveaway,
@@ -360,7 +365,8 @@ private fun GiveawayCard(
     val platformsCd = platformsText.takeIf { it.isNotBlank() }
         ?.let { stringResource(Res.string.giveaway_screen_list_item_platforms_cd, it) }
     val expiryCd = endDateMillis?.let {
-        "${stringResource(Res.string.giveaway_screen_countdown_label)} ${formatCountdown((it - Clock.System.now().toEpochMilliseconds()).coerceAtLeast(0L))}"
+        val remaining = (it - Clock.System.now().toEpochMilliseconds()).coerceAtLeast(0L)
+        "${stringResource(Res.string.giveaway_screen_countdown_label)} ${spokenCountdown(remaining)}"
     } ?: stringResource(Res.string.giveaway_screen_no_expiry)
     val opensDetailCd = stringResource(Res.string.giveaway_screen_list_item_opens_detail)
     val cardCd = listOfNotNull(baseCd, platformsCd, expiryCd, opensDetailCd).joinToString(", ")
@@ -403,26 +409,13 @@ private fun GiveawayCard(
             ) {
                 // Cap to one line so every card's badge row is the same height. Platforms that don't
                 // fit collapse into a trailing "+N" indicator so the user knows there are more (they're
-                // also all named in the "… FREE on <platforms>" title above).
-                ContextualFlowRow(
-                    itemCount = giveaway.platforms.size,
+                // also all named in the "… FREE on <platforms>" title above). See PlatformBadgeRow for
+                // why this is hand-rolled rather than using ContextualFlowRow / FlowRow overflow.
+                PlatformBadgeRow(
+                    platforms = giveaway.platforms,
+                    spacing = GameDealsCustomTheme.spacing.small,
                     modifier = Modifier.weight(1f),
-                    horizontalArrangement = Arrangement.spacedBy(GameDealsCustomTheme.spacing.small),
-                    verticalArrangement = Arrangement.spacedBy(GameDealsCustomTheme.spacing.extraSmall),
-                    maxLines = 1,
-                    overflow = ContextualFlowRowOverflow.expandIndicator {
-                        Text(
-                            text = stringResource(
-                                Res.string.giveaway_screen_platforms_overflow,
-                                totalItemCount - shownItemCount,
-                            ),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    },
-                ) { index ->
-                    StoreLabel(storeName = giveaway.platforms[index].platformValue)
-                }
+                )
                 endDateMillis?.let {
                     GiveawayCountdown(expiryEpochMs = it, style = MaterialTheme.typography.labelMedium)
                 } ?: Text(
@@ -474,6 +467,89 @@ private fun GiveawayCard(
     }
 }
 
+/**
+ * A single-line strip of platform badges that shows as many chips as fit and collapses the rest into
+ * a trailing "+N" indicator.
+ *
+ * Hand-rolled with [SubcomposeLayout] rather than the stock overflow APIs because both are broken for
+ * this: `ContextualFlowRow` keys its overflow indicator by "$canExpand$itemCount$shownItemCount" and
+ * can subcompose the same key twice in one pass, crashing with `Key "true20" was already used`; and
+ * eager `FlowRow`'s `expandIndicator` only exposes `shownItemCount` in the draw phase, so composing a
+ * "+N" [Text] with it throws "Accessing shownItemCount before it is set". Here we own the subcompose
+ * keys (so no collision) and compute the remaining count ourselves during measurement (so no
+ * draw-phase-only access).
+ */
+@Composable
+private fun PlatformBadgeRow(
+    platforms: ImmutableList<GiveawayPlatform>,
+    spacing: Dp,
+    modifier: Modifier = Modifier,
+) {
+    SubcomposeLayout(modifier) { constraints ->
+        val spacingPx = spacing.roundToPx()
+        val maxWidth = constraints.maxWidth
+        val childConstraints = Constraints(maxWidth = maxWidth.coerceAtLeast(0))
+
+        val chips = subcompose("chips") {
+            platforms.forEach { StoreLabel(storeName = it.platformValue) }
+        }.map { it.measure(childConstraints) }
+
+        // Cumulative width of the first [count] chips, including the gaps between them.
+        fun chipsWidth(count: Int): Int =
+            chips.take(count).sumOf { it.width } + spacingPx * (count - 1).coerceAtLeast(0)
+
+        // Fill the allotted width (this sits in a weighted Row slot) so the sibling countdown stays
+        // pinned to the right edge, exactly as the weighted flow row did before.
+        val laidOutWidth = if (constraints.hasBoundedWidth) maxWidth else chipsWidth(chips.size)
+
+        // Fast path: everything fits, no overflow badge needed.
+        if (chips.isEmpty() || chipsWidth(chips.size) <= maxWidth) {
+            val rowHeight = chips.maxOfOrNull { it.height } ?: 0
+            return@SubcomposeLayout layout(laidOutWidth.coerceAtLeast(0), rowHeight) {
+                var x = 0
+                chips.forEach { chip ->
+                    chip.placeRelative(x, (rowHeight - chip.height) / 2)
+                    x += chip.width + spacingPx
+                }
+            }
+        }
+
+        // Overflow: reserve room for the widest possible badge (all items hidden), then greedily keep
+        // whatever chips still fit alongside it. Reserving the widest keeps us from ever overflowing
+        // once the real, smaller count is known.
+        val badgeReserve = subcompose("badgeReserve") { OverflowBadge(platforms.size) }
+            .first().measure(childConstraints).width
+
+        var shown = 0
+        while (shown < chips.size && chipsWidth(shown + 1) + spacingPx + badgeReserve <= maxWidth) {
+            shown++
+        }
+
+        val badge = subcompose("badge") { OverflowBadge(platforms.size - shown) }
+            .first().measure(childConstraints)
+        val rowHeight = maxOf(chips.take(shown).maxOfOrNull { it.height } ?: 0, badge.height)
+
+        layout(laidOutWidth.coerceAtLeast(0), rowHeight) {
+            var x = 0
+            chips.take(shown).forEach { chip ->
+                chip.placeRelative(x, (rowHeight - chip.height) / 2)
+                x += chip.width + spacingPx
+            }
+            badge.placeRelative(x, (rowHeight - badge.height) / 2)
+        }
+    }
+}
+
+/** The trailing "+N" overflow indicator for [PlatformBadgeRow]. */
+@Composable
+private fun OverflowBadge(hiddenCount: Int) {
+    Text(
+        text = stringResource(Res.string.giveaway_screen_platforms_overflow, hiddenCount),
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun GiveawayFilters(
@@ -513,7 +589,9 @@ private fun Filters(
             .navigationBarsPadding()
     ) {
         Text(
-            modifier = Modifier.padding(horizontal = GameDealsCustomTheme.spacing.medium),
+            modifier = Modifier
+                .padding(horizontal = GameDealsCustomTheme.spacing.medium)
+                .semantics { heading() },
             text = stringResource(Res.string.giveaway_screen_filters_platform_label)
         )
         FlowRow(
@@ -535,7 +613,9 @@ private fun Filters(
         HorizontalDivider()
 
         Text(
-            modifier = Modifier.padding(GameDealsCustomTheme.spacing.medium),
+            modifier = Modifier
+                .padding(GameDealsCustomTheme.spacing.medium)
+                .semantics { heading() },
             text = stringResource(Res.string.giveaway_screen_filters_type_label)
         )
         FlowRow(
@@ -557,7 +637,9 @@ private fun Filters(
         HorizontalDivider()
 
         Text(
-            modifier = Modifier.padding(GameDealsCustomTheme.spacing.medium),
+            modifier = Modifier
+                .padding(GameDealsCustomTheme.spacing.medium)
+                .semantics { heading() },
             text = stringResource(Res.string.giveaway_screen_filters_sort_by_label)
         )
         GiveawaySortByOptions(existingParameters, onSortBySelection)
@@ -571,8 +653,14 @@ private fun GiveawaySortByOptions(
     existingParameters: GiveawaySearchParameters,
     onSortBySelection: (sortBy: GiveawaySortBy) -> Unit
 ) {
+    // Exactly one sort is active at a time, so this is a single-choice group: selectableGroup() lets
+    // TalkBack announce "N of M", and Role.RadioButton on each chip conveys single-choice (rather than
+    // the multi-select "checked/unchecked" a bare FilterChip implies). The platform/type chips above
+    // are genuinely multi-select and intentionally left as plain FilterChips.
     FlowRow(
-        modifier = Modifier.padding(horizontal = GameDealsCustomTheme.spacing.small),
+        modifier = Modifier
+            .padding(horizontal = GameDealsCustomTheme.spacing.small)
+            .selectableGroup(),
         horizontalArrangement = Arrangement.spacedBy(GameDealsCustomTheme.spacing.medium),
         verticalArrangement = Arrangement.spacedBy(GameDealsCustomTheme.spacing.extraSmall)
     ) {
@@ -585,6 +673,7 @@ private fun GiveawaySortByOptions(
             }
             .forEach { (sortBy, selected) ->
                 FilterChip(
+                    modifier = Modifier.semantics { role = Role.RadioButton },
                     label = {
                         Text(
                             modifier = Modifier.padding(GameDealsCustomTheme.spacing.extraSmall),

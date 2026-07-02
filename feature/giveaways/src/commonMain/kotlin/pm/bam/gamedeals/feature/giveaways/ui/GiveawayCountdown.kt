@@ -10,11 +10,16 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import kotlinx.coroutines.delay
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import kotlin.time.Clock
 import pm.bam.gamedeals.common.ui.theme.GameDealsTheme
 import pm.bam.gamedeals.feature.giveaways.generated.resources.Res
+import pm.bam.gamedeals.feature.giveaways.generated.resources.giveaway_countdown_days
+import pm.bam.gamedeals.feature.giveaways.generated.resources.giveaway_countdown_hours
+import pm.bam.gamedeals.feature.giveaways.generated.resources.giveaway_countdown_minutes
+import pm.bam.gamedeals.feature.giveaways.generated.resources.giveaway_countdown_seconds
 import pm.bam.gamedeals.feature.giveaways.generated.resources.giveaway_screen_countdown_ended
 import pm.bam.gamedeals.feature.giveaways.generated.resources.giveaway_screen_countdown_label
 
@@ -48,11 +53,42 @@ internal fun GiveawayCountdown(
     } else {
         formatCountdown(remaining)
     }
+    // Spoken form spells the units out ("16 hours") so TalkBack doesn't read the abbreviated
+    // "16 h" as the letter "h". Resolved unconditionally to keep the composable call count stable.
+    val spoken = spokenCountdown(remaining)
+    val spokenDescription = if (remaining <= 0L) text else "$label: $spoken"
     Text(
         text = text,
         style = style,
-        modifier = modifier.semantics { contentDescription = "$label: $text" },
+        modifier = modifier.semantics { contentDescription = spokenDescription },
     )
+}
+
+/**
+ * A TalkBack-friendly rendering of a remaining duration, e.g. "16 hours, 32 minutes, 5 seconds"
+ * (days only when non-zero, mirroring [formatCountdown]). Uses full words rather than the visual
+ * d/h/m/s abbreviations, which screen readers pronounce as bare letters.
+ *
+ * All four units are resolved every call — never conditionally — so the number of composable
+ * invocations stays constant as the countdown ticks past a unit boundary.
+ */
+@Composable
+internal fun spokenCountdown(remainingMs: Long): String {
+    val totalSeconds = (remainingMs / 1000).coerceAtLeast(0)
+    val days = (totalSeconds / 86_400).toInt()
+    val hours = ((totalSeconds % 86_400) / 3_600).toInt()
+    val minutes = ((totalSeconds % 3_600) / 60).toInt()
+    val seconds = (totalSeconds % 60).toInt()
+    val daysStr = pluralStringResource(Res.plurals.giveaway_countdown_days, days, days)
+    val hoursStr = pluralStringResource(Res.plurals.giveaway_countdown_hours, hours, hours)
+    val minutesStr = pluralStringResource(Res.plurals.giveaway_countdown_minutes, minutes, minutes)
+    val secondsStr = pluralStringResource(Res.plurals.giveaway_countdown_seconds, seconds, seconds)
+    return listOfNotNull(
+        daysStr.takeIf { days > 0 },
+        hoursStr,
+        minutesStr,
+        secondsStr,
+    ).joinToString(", ")
 }
 
 /**
