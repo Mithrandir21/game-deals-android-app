@@ -67,6 +67,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlin.time.Clock
 import coil3.compose.AsyncImage
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
@@ -90,6 +91,7 @@ import pm.bam.gamedeals.domain.models.GiveawaySortBy
 import pm.bam.gamedeals.domain.models.GiveawayType
 import pm.bam.gamedeals.domain.models.GiveawayTypeSelection
 import pm.bam.gamedeals.feature.giveaways.generated.resources.Res
+import pm.bam.gamedeals.feature.giveaways.generated.resources.giveaway_screen_countdown_label
 import pm.bam.gamedeals.feature.giveaways.generated.resources.giveaway_screen_data_loading_error_msg
 import pm.bam.gamedeals.feature.giveaways.generated.resources.giveaway_screen_data_loading_error_retry
 import pm.bam.gamedeals.feature.giveaways.generated.resources.giveaway_screen_empty_live
@@ -103,6 +105,7 @@ import pm.bam.gamedeals.feature.giveaways.generated.resources.giveaway_screen_ga
 import pm.bam.gamedeals.feature.giveaways.generated.resources.giveaway_screen_list_item_free_label
 import pm.bam.gamedeals.feature.giveaways.generated.resources.giveaway_screen_list_item_go_to_giveaway
 import pm.bam.gamedeals.feature.giveaways.generated.resources.giveaway_screen_list_item_opens_detail
+import pm.bam.gamedeals.feature.giveaways.generated.resources.giveaway_screen_list_item_platforms_cd
 import pm.bam.gamedeals.feature.giveaways.generated.resources.giveaway_screen_list_item_row_description
 import pm.bam.gamedeals.feature.giveaways.generated.resources.giveaway_screen_list_item_row_description_worth
 import pm.bam.gamedeals.feature.giveaways.generated.resources.giveaway_screen_list_item_title_free_on
@@ -346,16 +349,27 @@ private fun GiveawayCard(
         giveaway.title
     }
 
-    val rowCd = giveaway.worthDenominated?.let {
+    // Spoken label for the whole (merged) card node. The platform badges and the live countdown below
+    // are visual-only here — the card sets one explicit contentDescription, so they'd otherwise be lost
+    // to TalkBack. Mirror what a sighted user sees: title, worth, the platforms it's free on, and how
+    // long is left. The expiry is a snapshot at composition (the card doesn't tick), which is fine at
+    // the day/hour scale these run on; the peek sheet carries the live countdown.
+    val baseCd = giveaway.worthDenominated?.let {
         stringResource(Res.string.giveaway_screen_list_item_row_description_worth, giveaway.title, it)
     } ?: stringResource(Res.string.giveaway_screen_list_item_row_description, giveaway.title)
+    val platformsCd = platformsText.takeIf { it.isNotBlank() }
+        ?.let { stringResource(Res.string.giveaway_screen_list_item_platforms_cd, it) }
+    val expiryCd = endDateMillis?.let {
+        "${stringResource(Res.string.giveaway_screen_countdown_label)} ${formatCountdown((it - Clock.System.now().toEpochMilliseconds()).coerceAtLeast(0L))}"
+    } ?: stringResource(Res.string.giveaway_screen_no_expiry)
     val opensDetailCd = stringResource(Res.string.giveaway_screen_list_item_opens_detail)
+    val cardCd = listOfNotNull(baseCd, platformsCd, expiryCd, opensDetailCd).joinToString(", ")
 
     Card(
         onClick = onOpenDetail,
         modifier = modifier
             .fillMaxWidth()
-            .semantics(mergeDescendants = true) { contentDescription = "$rowCd, $opensDetailCd" },
+            .semantics(mergeDescendants = true) { contentDescription = cardCd },
     ) {
         Column(
             modifier = Modifier

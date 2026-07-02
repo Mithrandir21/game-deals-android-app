@@ -66,6 +66,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -379,31 +381,47 @@ internal fun DealsContent(
                     detailPane = {
                         AnimatedPane {
                             val selectedGameId = gamePeek?.gameId?.takeIf { it.isNotEmpty() }
-                            if (gameDetailPane == null) {
-                                // No slot (previews/tests): fall back to the peek (also handles upcoming
-                                // games with no id, and the no-selection placeholder).
-                                DealDetailPane(
-                                    gamePeek = gamePeek,
-                                    waitlistIds = waitlistIds,
-                                    collectionIds = collectionIds,
-                                    ignoredIds = ignoredIds,
-                                    goToWeb = goToWeb,
-                                    goToGame = goToGame,
-                                    onShare = onShare,
-                                    onToggleWaitlist = onToggleWaitlist,
-                                    onToggleCollection = onToggleCollection,
-                                    onToggleIgnore = onToggleIgnore,
-                                    onRetryPeek = onRetryPeek,
-                                )
-                            } else if (selectedGameId != null) {
-                                // :app injected the full game page — render it for the selected game.
-                                // canNavigateBack() is true only in single-pane (portrait), where the
-                                // scaffold's back is what returns to the list.
-                                gameDetailPane(selectedGameId, navigator.canNavigateBack()) {
-                                    scope.launch { navigator.navigateBack() }
+                            // Portrait tablet (single-pane): tapping a row swaps the list out for this
+                            // pane, so move focus into it — otherwise TalkBack / keyboard focus is
+                            // stranded on the now-hidden list. Requesting focus on this non-focusable
+                            // wrapper delegates to its first focusable child (a real element, not an
+                            // empty stop). Skipped in dual-pane (Expanded), where the list stays visible
+                            // and stealing focus to the detail would be wrong. Keyed on the selection so
+                            // each new pick re-focuses.
+                            val detailFocusRequester = remember { FocusRequester() }
+                            val canReturnToList = navigator.canNavigateBack()
+                            LaunchedEffect(selectedGameId, canReturnToList) {
+                                if (selectedGameId != null && canReturnToList) {
+                                    runCatching { detailFocusRequester.requestFocus() }
                                 }
-                            } else {
-                                DealDetailPlaceholder()
+                            }
+                            Box(modifier = Modifier.fillMaxSize().focusRequester(detailFocusRequester)) {
+                                if (gameDetailPane == null) {
+                                    // No slot (previews/tests): fall back to the peek (also handles upcoming
+                                    // games with no id, and the no-selection placeholder).
+                                    DealDetailPane(
+                                        gamePeek = gamePeek,
+                                        waitlistIds = waitlistIds,
+                                        collectionIds = collectionIds,
+                                        ignoredIds = ignoredIds,
+                                        goToWeb = goToWeb,
+                                        goToGame = goToGame,
+                                        onShare = onShare,
+                                        onToggleWaitlist = onToggleWaitlist,
+                                        onToggleCollection = onToggleCollection,
+                                        onToggleIgnore = onToggleIgnore,
+                                        onRetryPeek = onRetryPeek,
+                                    )
+                                } else if (selectedGameId != null) {
+                                    // :app injected the full game page — render it for the selected game.
+                                    // canReturnToList is true only in single-pane (portrait), where the
+                                    // scaffold's back is what returns to the list.
+                                    gameDetailPane(selectedGameId, canReturnToList) {
+                                        scope.launch { navigator.navigateBack() }
+                                    }
+                                } else {
+                                    DealDetailPlaceholder()
+                                }
                             }
                         }
                     },

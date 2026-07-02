@@ -327,7 +327,14 @@ private fun DetailsTable(game: IgdbGame) {
             developers?.let { DetailRow(stringResource(Res.string.game_page_details_developer_label), it) }
             publishers?.let { DetailRow(stringResource(Res.string.game_page_details_publisher_label), it) }
             if (hasAge) {
-                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                // Merge so the label and the badge content descriptions ("ESRB M", "PEGI 18") read as one
+                // node, e.g. "Age rating ESRB M PEGI 18", instead of the label and each badge separately.
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics(mergeDescendants = true) {},
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     Text(text = stringResource(Res.string.game_page_details_age_label), modifier = Modifier.width(112.dp), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     AgeRatingsRow(ratings = game.ageRatings, modifier = Modifier.weight(1f), badgeHeight = 32.dp)
                 }
@@ -338,7 +345,14 @@ private fun DetailsTable(game: IgdbGame) {
 
 @Composable
 private fun DetailRow(label: String, value: String) {
-    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
+    // Merge the label + value into one node so TalkBack reads "Platforms: Windows, PlayStation 5" as a
+    // single stop, rather than two separate stops whose association is only visual.
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics(mergeDescendants = true) { contentDescription = "$label: $value" },
+        verticalAlignment = Alignment.Top,
+    ) {
         Text(text = label, modifier = Modifier.width(112.dp), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(text = value, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
     }
