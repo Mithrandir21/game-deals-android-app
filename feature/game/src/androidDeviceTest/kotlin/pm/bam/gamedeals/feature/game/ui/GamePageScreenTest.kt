@@ -8,8 +8,6 @@ import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.test.espresso.device.action.ScreenOrientation
-import androidx.test.espresso.device.rules.ScreenOrientationRule
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -49,9 +47,6 @@ class GamePageScreenTest {
 
     @get:Rule
     val composeTestRule = createComposeRule()
-
-    @get:Rule
-    val screenOrientationRule: ScreenOrientationRule = ScreenOrientationRule(ScreenOrientation.PORTRAIT)
 
     private val viewModel: GamePageViewModel = mockk(relaxed = true)
     private val onBack = mockk<() -> Unit>(relaxed = true)

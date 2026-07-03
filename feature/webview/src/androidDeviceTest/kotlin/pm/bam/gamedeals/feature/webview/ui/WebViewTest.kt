@@ -166,27 +166,26 @@ class WebViewTest {
             )
         }
 
-        composeTestRule.onNode(SemanticsMatcher.keyIsDefined(SemanticsProperties.ProgressBarRangeInfo))
-            .assertIsDisplayed()
-
         val subFrameRequest = mockk<WebResourceRequest>(relaxed = true) {
             every { isForMainFrame } returns false
         }
         val error = mockk<WebResourceError>(relaxed = true)
         val errorResponse = mockk<WebResourceResponse>(relaxed = true)
 
+        // This test uniquely needs `loading` to STAY true, which conflicts with the real
+        // https://example.com load: its onPageFinished (and any error the halt itself induces)
+        // clears loading at an unpredictable moment, racing the final assert with an intermittent
+        // "ProgressBarRangeInfo is not displayed". Halt the real load first and let invokeOnWebViewClient's
+        // trailing waitForIdle flush any main-frame error the stop induces...
+        invokeOnWebViewClient { _, view -> view.stopLoading() }
+
+        // ...then, with no clearing callback left pending, pin loading=true and drive the sub-frame
+        // failures — which must NOT clear it. Kept in one block so it stays atomic w.r.t. the looper.
         invokeOnWebViewClient { client, view ->
-            // Pin `loading = true` before exercising the sub-frame error callbacks. The
-            // real WebView is loading https://example.com on the emulator and may have
-            // already fired onPageFinished (which clears loading) by the time we reach
-            // here — that would mask the actual assertion we want to make: sub-frame
-            // failures themselves do NOT clear loading.
             client.onPageStarted(view, "https://example.com", null)
             client.onReceivedError(view, subFrameRequest, error)
             client.onReceivedHttpError(view, subFrameRequest, errorResponse)
         }
-
-        composeTestRule.waitForIdle()
 
         // Sub-frame failures must not kill the spinner.
         composeTestRule.onNode(SemanticsMatcher.keyIsDefined(SemanticsProperties.ProgressBarRangeInfo))

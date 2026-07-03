@@ -6,6 +6,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -68,7 +69,8 @@ class NotificationDayScreenTest {
     fun dataStateRendersGameTitle() {
         setContent(NotificationDayScreenData(loading = false, games = persistentListOf(game)))
 
-        composeTestRule.onNodeWithText(GAME_TITLE).assertIsDisplayed()
+        // The card leads with a full-width hero image, so the title sits below the fold on smaller screens.
+        composeTestRule.onNodeWithText(GAME_TITLE).performScrollTo().assertIsDisplayed()
     }
 
     @Test
@@ -83,7 +85,7 @@ class NotificationDayScreenTest {
     fun openGameDispatchesToViewModel() {
         setContent(NotificationDayScreenData(loading = false, games = persistentListOf(game)))
 
-        composeTestRule.onNodeWithText(labels.openGame).performClick()
+        composeTestRule.onNodeWithText(labels.openGame).performScrollTo().performClick()
 
         verify(exactly = 1) { viewModel.onOpenGame(GAME_ID) }
     }

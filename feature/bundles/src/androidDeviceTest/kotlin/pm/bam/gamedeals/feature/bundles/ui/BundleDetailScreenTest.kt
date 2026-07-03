@@ -15,8 +15,13 @@ import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.jetbrains.compose.resources.stringResource
+import org.junit.AfterClass
+import org.junit.BeforeClass
 import org.junit.Rule
 import org.junit.Test
+import org.koin.core.context.startKoin
+import org.koin.core.context.stopKoin
+import org.koin.dsl.module
 import pm.bam.gamedeals.common.ui.deal.GamePeekSheetData
 import pm.bam.gamedeals.common.ui.theme.GameDealsTheme
 import pm.bam.gamedeals.domain.models.Bundle
@@ -25,6 +30,7 @@ import pm.bam.gamedeals.feature.bundles.generated.resources.bundle_detail_get_bu
 import pm.bam.gamedeals.feature.bundles.generated.resources.bundles_screen_data_loading_error_retry
 import pm.bam.gamedeals.feature.bundles.generated.resources.bundles_screen_navigation_back_button
 import pm.bam.gamedeals.feature.bundles.ui.BundleDetailViewModel.BundleDetailScreenData
+import pm.bam.gamedeals.logging.analytics.Analytics
 
 /**
  * Device UI test for [BundleDetailScreen] via a mocked [BundleDetailViewModel]. Asserts the bundle
@@ -119,10 +125,25 @@ class BundleDetailScreenTest {
         }
     }
 
-    private companion object {
+    companion object {
         const val BUNDLE_TITLE = "Indie Bundle"
         const val BUNDLE_URL = "https://example.com/b"
         const val GAME_ID = "hk"
         const val GAME_TITLE = "Hollow Knight"
+
+        // BundleDetailBody resolves an Analytics via koinInject() for its Data content. Koin is kept up for
+        // the whole class (not per-test) so a late resolution during Compose disposal never hits a closed
+        // scope — a per-test stopKoin() in @After races the compose rule's teardown.
+        @JvmStatic
+        @BeforeClass
+        fun startKoinForAnalytics() {
+            startKoin { modules(module { single<Analytics> { mockk(relaxed = true) } }) }
+        }
+
+        @JvmStatic
+        @AfterClass
+        fun stopKoinForAnalytics() {
+            stopKoin()
+        }
     }
 }
