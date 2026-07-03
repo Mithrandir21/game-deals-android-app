@@ -5,8 +5,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -222,6 +227,19 @@ private fun AccountScreenContent(
     }
 }
 
+/**
+ * Content padding for the hub's scrolling list. The app shell deliberately hands tab screens a zero bottom
+ * inset (its hide-on-scroll bottom bar would otherwise leave a gap when it slides away — see
+ * AppShellScaffold), so we reserve the system navigation-bar inset ourselves as bottom padding. Without it
+ * the last row (Website settings / How it works) scrolls under the gesture pill / device nav bar.
+ */
+@Composable
+private fun accountListPadding(): PaddingValues {
+    val edge = GameDealsCustomTheme.spacing.large
+    val navBar = WindowInsets.navigationBars.only(WindowInsetsSides.Bottom).asPaddingValues().calculateBottomPadding()
+    return PaddingValues(start = edge, top = edge, end = edge, bottom = edge + navBar)
+}
+
 @Composable
 private fun LoggedOutContent(
     loggingIn: Boolean,
@@ -240,7 +258,7 @@ private fun LoggedOutContent(
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(GameDealsCustomTheme.spacing.large),
+        contentPadding = accountListPadding(),
         verticalArrangement = Arrangement.spacedBy(GameDealsCustomTheme.spacing.medium),
     ) {
         item { SignInCard(loggingIn = loggingIn, onLogin = onLogin) }
@@ -307,7 +325,7 @@ private fun LoggedInContent(
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(GameDealsCustomTheme.spacing.large),
+        contentPadding = accountListPadding(),
         verticalArrangement = Arrangement.spacedBy(GameDealsCustomTheme.spacing.medium),
     ) {
         item { ProfileHeader(username = data.username, onLogout = onLogout) }

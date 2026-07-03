@@ -6,11 +6,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
@@ -244,7 +247,10 @@ private fun OnboardingContent(
     }
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Column(modifier = Modifier.fillMaxSize()) {
+        // Edge-to-edge is on app-wide (MainActivity.enableEdgeToEdge) and onboarding owns no Scaffold, so
+        // inset the content ourselves: safeDrawing keeps the pager (icon/heading) clear of the status bar
+        // and the BottomControls clear of the gesture/nav bar. The Surface still paints under the bars.
+        Column(modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
             // No Skip: the consent steps are mandatory, so the only way forward is to make a choice. The
             // sign-in step keeps its own "Maybe later", so the flow still ends without an ITAD account.
             HorizontalPager(
