@@ -10,11 +10,17 @@ import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.collections.immutable.persistentListOf
 import org.jetbrains.compose.resources.stringResource
+import org.junit.AfterClass
+import org.junit.BeforeClass
 import org.junit.Rule
 import org.junit.Test
+import org.koin.core.context.startKoin
+import org.koin.core.context.stopKoin
+import org.koin.dsl.module
 import pm.bam.gamedeals.common.ui.PreviewStore
 import pm.bam.gamedeals.common.ui.theme.GameDealsTheme
 import pm.bam.gamedeals.domain.models.GameDetails
+import pm.bam.gamedeals.logging.analytics.Analytics
 import pm.bam.gamedeals.common.ui.generated.resources.Res
 import pm.bam.gamedeals.common.ui.generated.resources.deal_collection_add_action
 import pm.bam.gamedeals.common.ui.generated.resources.deal_details_data_loading_error_msg
@@ -234,7 +240,22 @@ class GamePeekSheetTest {
         }
     }
 
-    private companion object {
+    companion object {
+        // PeekBody resolves an Analytics via koinInject() to record deal-open click-throughs. Koin is kept up
+        // for the whole class (not per-test) so a late resolution during Compose disposal never hits a closed
+        // scope — a per-test stopKoin() in @After races the compose rule's teardown.
+        @JvmStatic
+        @BeforeClass
+        fun startKoinForAnalytics() {
+            startKoin { modules(module { single<Analytics> { mockk(relaxed = true) } }) }
+        }
+
+        @JvmStatic
+        @AfterClass
+        fun stopKoinForAnalytics() {
+            stopKoin()
+        }
+
         const val GAME_ID = "123"
         const val GAME_NAME = "No Man's Sky"
         const val BEST_PRICE = "$18.86"

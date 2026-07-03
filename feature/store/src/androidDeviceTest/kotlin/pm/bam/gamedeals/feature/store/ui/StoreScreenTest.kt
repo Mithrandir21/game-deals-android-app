@@ -63,6 +63,11 @@ class StoreScreenTest {
         every { deal.gameID } returns "1"
         every { deal.title } returns dealTitle
         every { deal.salePriceDenominated } returns dealPrice
+        every { deal.normalPriceDenominated } returns "NormalPrice"
+        every { deal.savings } returns 25.0
+        every { deal.hasVoucher } returns false
+        every { deal.isNewHistoricalLow } returns false
+        every { deal.isStoreLow } returns false
         every { deal.artwork } returns GameArtwork(banner300 = dealThumb)
         val deals: StateFlow<ImmutableList<Deal>> = MutableStateFlow(persistentListOf(deal))
         val gamePeek: StateFlow<GamePeekSheetData?> = MutableStateFlow(null)

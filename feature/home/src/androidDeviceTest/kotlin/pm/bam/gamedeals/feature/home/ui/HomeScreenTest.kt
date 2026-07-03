@@ -17,11 +17,18 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import org.jetbrains.compose.resources.stringResource
+import org.junit.AfterClass
 import org.junit.Before
+import org.junit.BeforeClass
 import org.junit.Rule
 import org.junit.Test
+import org.koin.core.context.startKoin
+import org.koin.core.context.stopKoin
+import org.koin.dsl.module
 import pm.bam.gamedeals.common.ui.PreviewDeal
 import pm.bam.gamedeals.domain.models.Bundle
+import pm.bam.gamedeals.domain.models.RecentlyViewedGame
+import pm.bam.gamedeals.logging.analytics.Analytics
 import pm.bam.gamedeals.feature.home.generated.resources.Res
 import pm.bam.gamedeals.feature.home.generated.resources.home_screen_all_bundles_label
 import pm.bam.gamedeals.feature.home.generated.resources.home_screen_data_loading_error_msg
@@ -60,6 +67,7 @@ class HomeScreenTest {
         every { viewModel.collectionIds } returns MutableStateFlow(persistentSetOf())
         every { viewModel.ignoredIds } returns MutableStateFlow(persistentSetOf())
         every { viewModel.stores } returns MutableStateFlow(persistentMapOf())
+        every { viewModel.recentlyViewed } returns MutableStateFlow(persistentListOf<RecentlyViewedGame>())
         every { viewModel.events } returns MutableSharedFlow<HomeViewModel.HomeUiEvent>().asSharedFlow()
     }
 
@@ -203,8 +211,23 @@ class HomeScreenTest {
         }
     }
 
-    private companion object {
-        const val TRENDING_TITLE = "Trending Game"
-        const val TRENDING_GAME_ID = "trend-g"
+    companion object {
+        private const val TRENDING_TITLE = "Trending Game"
+        private const val TRENDING_GAME_ID = "trend-g"
+
+        // HomeScreen resolves an Analytics via koinInject() for its non-loading content. Koin is kept up for
+        // the whole class (not per-test) so a late resolution during Compose disposal never hits a closed
+        // scope — a per-test stopKoin() in @After races the compose rule's teardown.
+        @JvmStatic
+        @BeforeClass
+        fun startKoinForAnalytics() {
+            startKoin { modules(module { single<Analytics> { mockk(relaxed = true) } }) }
+        }
+
+        @JvmStatic
+        @AfterClass
+        fun stopKoinForAnalytics() {
+            stopKoin()
+        }
     }
 }

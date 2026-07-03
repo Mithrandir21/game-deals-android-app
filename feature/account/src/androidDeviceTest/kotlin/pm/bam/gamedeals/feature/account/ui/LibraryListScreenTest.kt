@@ -10,10 +10,15 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.persistentSetOf
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import org.jetbrains.compose.resources.stringResource
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
+import pm.bam.gamedeals.common.ui.deal.GamePeekSheetData
 import pm.bam.gamedeals.common.ui.theme.GameDealsTheme
 import pm.bam.gamedeals.feature.account.generated.resources.Res
 import pm.bam.gamedeals.feature.account.generated.resources.account_collection_empty
@@ -42,6 +47,17 @@ class LibraryListScreenTest {
     private val goToWeb = mockk<(String) -> Unit>(relaxed = true)
 
     private lateinit var labels: Labels
+
+    // The peek delegate's flows are collected by LibraryListScreen's sheet host. A relaxed mock hands back
+    // proxies that fail the erasure checkcast (e.g. to GamePeekSheetData), so stub them with real values.
+    @Before
+    fun setup() {
+        every { peek.data } returns MutableStateFlow<GamePeekSheetData?>(null)
+        every { peek.waitlistIds } returns MutableStateFlow(persistentSetOf())
+        every { peek.collectionIds } returns MutableStateFlow(persistentSetOf())
+        every { peek.ignoredIds } returns MutableStateFlow(persistentSetOf())
+        every { peek.events } returns MutableSharedFlow<GamePeekEvent>().asSharedFlow()
+    }
 
     private fun waitlistRow() = WaitlistRowUi(
         gameId = GAME_ID, title = GAME_TITLE, imageUrl = null, addedEpochMs = null,
