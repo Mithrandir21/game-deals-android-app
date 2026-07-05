@@ -8,6 +8,8 @@ import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertTrue
 
 /**
  * Verifies the virtual-time correctness of the `*DelayAtLeast` Flow operators.
@@ -132,6 +134,123 @@ class FlowExtensionsTest {
         assertEquals(listOf(2), results)
         // Value 2 arrives at DELAY_MILLIS / 2, then pads for DELAY_MILLIS.
         assertEquals(DELAY_MILLIS / 2 + DELAY_MILLIS, elapsed)
+    }
+
+    // --- retryWhenDelay ---
+
+    @Test
+    fun retryWhenDelay_retries_after_the_delay_until_the_flow_succeeds() = runTest {
+        var calls = 0
+        val retries = mutableListOf<Long>()
+        val start = testScheduler.currentTime
+
+        val results = flow {
+            calls++
+            if (calls <= 2) throw RuntimeException("boom $calls")
+            emit("ok")
+        }.retryWhenDelay(
+            delayMillis = DELAY_MILLIS,
+            onRetry = { _, attempt -> retries += attempt },
+        ) { _, attempt -> attempt < 2 }.toList()
+
+        assertEquals(listOf("ok"), results)
+        assertEquals(3, calls)                 // two failures + one success
+        assertEquals(listOf(0L, 1L), retries)  // attempt is zero-based
+        assertEquals(2 * DELAY_MILLIS, testScheduler.currentTime - start) // one delay per retry
+    }
+
+    @Test
+    fun retryWhenDelay_stops_and_rethrows_when_the_predicate_is_false() = runTest {
+        var notRetried: Pair<Throwable, Long>? = null
+
+        val error = assertFailsWith<IllegalStateException> {
+            flow<Int> { throw IllegalStateException("fatal") }
+                .retryWhenDelay(
+                    delayMillis = DELAY_MILLIS,
+                    onNotRetry = { cause, attempt -> notRetried = cause to attempt },
+                ) { _, _ -> false }
+                .toList()
+        }
+
+        assertEquals("fatal", error.message)
+        assertEquals("fatal", notRetried?.first?.message)
+        assertEquals(0L, notRetried?.second) // gave up on the very first attempt
+    }
+
+    @Test
+    fun retryWhenDelay_works_without_the_optional_callbacks() = runTest {
+        // onRetry / onNotRetry are nullable — exercise the null path on both branches.
+        var calls = 0
+        val results = flow {
+            calls++
+            if (calls == 1) throw RuntimeException("once")
+            emit(calls)
+        }.retryWhenDelay(delayMillis = DELAY_MILLIS) { _, attempt -> attempt < 1 }.toList()
+
+        assertEquals(listOf(2), results)
+    }
+
+    @Test
+    fun retryWhenDelay_rethrows_without_callbacks_when_giving_up() = runTest {
+        // Give-up path with a null onNotRetry: must not crash on the null-safe invoke, just propagate.
+        assertFailsWith<IllegalStateException> {
+            flow<Int> { throw IllegalStateException("nope") }
+                .retryWhenDelay(delayMillis = DELAY_MILLIS) { _, _ -> false }
+                .toList()
+        }
+    }
+
+    @Test
+    fun retryWhenDelay_does_not_touch_a_successful_flow() = runTest {
+        var predicateCalled = false
+
+        val results = flowOf(1, 2, 3)
+            .retryWhenDelay(delayMillis = DELAY_MILLIS) { _, _ -> predicateCalled = true; true }
+            .toList()
+
+        assertEquals(listOf(1, 2, 3), results)
+        assertTrue(!predicateCalled) // no upstream error, so retryWhen never fires
+    }
+
+    // --- onError ---
+
+    @Test
+    fun onError_runs_the_action_then_rethrows() = runTest {
+        var seen: Throwable? = null
+
+        val error = assertFailsWith<IllegalStateException> {
+            flow<Int> { throw IllegalStateException("up") }
+                .onError { cause -> seen = cause }
+                .toList()
+        }
+
+        assertEquals("up", error.message)
+        assertEquals("up", seen?.message) // action received the original cause
+    }
+
+    @Test
+    fun onError_is_transparent_when_nothing_fails() = runTest {
+        var called = false
+
+        val results = flowOf(1, 2, 3).onError { called = true }.toList()
+
+        assertEquals(listOf(1, 2, 3), results)
+        assertTrue(!called)
+    }
+
+    @Test
+    fun onError_can_emit_a_fallback_before_the_flow_still_rethrows() = runTest {
+        // The action runs with a FlowCollector receiver, so it may emit downstream — but onError still
+        // re-throws afterwards (unlike catchAndContinue). Downstream sees the fallback, then the error.
+        val emitted = mutableListOf<Int>()
+
+        assertFailsWith<IllegalStateException> {
+            flow<Int> { throw IllegalStateException("boom") }
+                .onError { emit(-1) }
+                .collect { emitted += it }
+        }
+
+        assertEquals(listOf(-1), emitted)
     }
 
     private companion object {
