@@ -141,6 +141,7 @@
     <string name="game_page_section_players">Players</string>
     <string name="game_page_section_bundles">Found in bundles</string>
     <string name="game_page_section_dlcs">DLC &amp; expansions</string>
+    <string name="game_page_section_other_editions">Other editions &amp; versions</string>
     <string name="game_page_section_hltb">How long to beat</string>
     <string name="game_page_players_recent">%1$s playing recently</string>
     <string name="game_page_players_peak">%1$s peak</string>
@@ -150,5 +151,8 @@
     <string name="game_page_hltb_hastily">Rushed</string>
     <string name="game_page_hltb_normally">Main</string>
     <string name="game_page_hltb_completely">Completionist</string>
+    <string name="game_page_value_per_hour_title">Cost per hour of play</string>
+    <string name="game_page_value_per_hour_value">%1$s / h</string>
+    <string name="game_page_value_per_hour_subtitle">%1$s at ~%2$s h to beat</string>
 
 </resources>

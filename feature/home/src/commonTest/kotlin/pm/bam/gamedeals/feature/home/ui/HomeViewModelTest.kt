@@ -91,7 +91,9 @@ class HomeViewModelTest : MainDispatcherTest() {
     private val gamesRepository: GamesRepository = mock(MockMode.autoUnit) {
         everySuspend { getGamePrices(any()) } returns emptyList()
     }
-    private val igdbRepository: IgdbRepository = mock(MockMode.autoUnit)
+    private val igdbRepository: IgdbRepository = mock(MockMode.autoUnit) {
+        everySuspend { fetchMostAnticipated() } returns emptyList()
+    }
     private val recommendationsRepository: RecommendationsRepository = mock(MockMode.autoUnit) {
         everySuspend { getRecommendations(any()) } returns emptyList()
     }

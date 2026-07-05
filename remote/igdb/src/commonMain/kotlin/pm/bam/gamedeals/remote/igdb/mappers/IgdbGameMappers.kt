@@ -32,6 +32,12 @@ internal fun RemoteIgdbGame.toIgdbGame(): IgdbGame = IgdbGame(
     similarGames = similarGames.mapNotNull { it.toIgdbSimilarGameOrNull() }.toImmutableList(),
     dlcs = dlcs.mapNotNull { it.toIgdbSimilarGameOrNull() }.toImmutableList(),
     expansions = expansions.mapNotNull { it.toIgdbSimilarGameOrNull() }.toImmutableList(),
+    // Newer-edition relations (#7) — same similar-game mapping path.
+    remakes = remakes.mapNotNull { it.toIgdbSimilarGameOrNull() }.toImmutableList(),
+    remasters = remasters.mapNotNull { it.toIgdbSimilarGameOrNull() }.toImmutableList(),
+    ports = ports.mapNotNull { it.toIgdbSimilarGameOrNull() }.toImmutableList(),
+    standaloneExpansions = standaloneExpansions.mapNotNull { it.toIgdbSimilarGameOrNull() }.toImmutableList(),
+    versionParent = versionParent?.toIgdbSimilarGameOrNull(),
     // Abbreviation ("PC", "PS5") is the compact chip label; fall back to the full name when absent.
     platforms = platforms.mapNotNull { it.abbreviation?.takeIf(String::isNotBlank) ?: it.name?.takeIf(String::isNotBlank) }
         .distinct()

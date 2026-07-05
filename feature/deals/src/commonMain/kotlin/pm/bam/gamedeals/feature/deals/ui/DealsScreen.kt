@@ -27,7 +27,11 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BookmarkAdd
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -42,7 +46,9 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.InputChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -68,6 +74,8 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -102,6 +110,7 @@ import pm.bam.gamedeals.domain.models.DealsSortDirection
 import pm.bam.gamedeals.domain.models.DealsSortField
 import pm.bam.gamedeals.domain.models.ProductType
 import pm.bam.gamedeals.domain.models.ReleaseWindow
+import pm.bam.gamedeals.domain.models.SavedSearch
 import pm.bam.gamedeals.domain.models.Store
 import pm.bam.gamedeals.domain.models.thumbnail
 import pm.bam.gamedeals.feature.deals.generated.resources.Res
@@ -144,6 +153,11 @@ import pm.bam.gamedeals.feature.deals.generated.resources.deals_screen_load_more
 import pm.bam.gamedeals.feature.deals.generated.resources.deals_screen_loading_error_msg
 import pm.bam.gamedeals.feature.deals.generated.resources.deals_screen_loading_error_retry
 import pm.bam.gamedeals.feature.deals.generated.resources.deals_search_loading_indicator
+import pm.bam.gamedeals.feature.deals.generated.resources.deals_search_recent_label
+import pm.bam.gamedeals.feature.deals.generated.resources.deals_search_recent_clear
+import pm.bam.gamedeals.feature.deals.generated.resources.deals_search_saved_label
+import pm.bam.gamedeals.feature.deals.generated.resources.deals_search_saved_remove
+import pm.bam.gamedeals.feature.deals.generated.resources.deals_search_save_action
 import pm.bam.gamedeals.feature.deals.generated.resources.deals_search_no_results_label
 import pm.bam.gamedeals.feature.deals.generated.resources.deals_search_result_count
 import pm.bam.gamedeals.feature.deals.generated.resources.deals_search_result_row_description
@@ -202,6 +216,8 @@ internal fun DealsScreen(
     val searchResults by viewModel.searchResults.collectAsStateWithLifecycle()
     val gamePeek by viewModel.gamePeek.collectAsStateWithLifecycle()
     val discoverEnabled by viewModel.discoverEnabled.collectAsStateWithLifecycle()
+    val recentSearches by viewModel.recentSearches.collectAsStateWithLifecycle()
+    val savedSearches by viewModel.savedSearches.collectAsStateWithLifecycle()
     val platformActions = LocalPlatformActions.current
     val loadMoreError = stringResource(Res.string.deals_screen_load_more_error_msg)
 
@@ -234,6 +250,8 @@ internal fun DealsScreen(
         filter = filter,
         searchQuery = searchQuery,
         searchResults = searchResults,
+        recentSearches = recentSearches,
+        savedSearches = savedSearches,
         showFilters = showFilters,
         gamePeek = gamePeek,
         discoverEnabled = discoverEnabled,
@@ -263,6 +281,14 @@ internal fun DealsScreen(
             viewModel.gamePeek.value?.let { peek -> viewModel.peekGame(peek.gameId, peek.gameName, peek.thumb) }
         },
         onDiscover = goToDiscover,
+        onRunSearch = { query -> SearchController.search(query) },
+        onApplySavedSearch = { saved ->
+            viewModel.applySavedFilter(saved.filter)
+            SearchController.search(saved.query)
+        },
+        onRemoveSavedSearch = { name -> viewModel.removeSavedSearch(name) },
+        onClearRecentSearches = { viewModel.clearRecentSearches() },
+        onSaveCurrentSearch = { viewModel.saveCurrentSearch() },
         goToWeb = goToWeb,
         goToGame = goToGame,
     )
@@ -282,6 +308,8 @@ internal fun DealsContent(
     filter: DealsFilter = DealsFilter(),
     searchQuery: String = "",
     searchResults: SearchResultsState = SearchResultsState.Idle,
+    recentSearches: ImmutableList<String> = persistentListOf(),
+    savedSearches: ImmutableList<SavedSearch> = persistentListOf(),
     showFilters: Boolean = false,
     gamePeek: GamePeekSheetData? = null,
     discoverEnabled: Boolean = false,
@@ -299,6 +327,11 @@ internal fun DealsContent(
     onSetRelease: (ReleaseWindow?) -> Unit = {},
     onClearFilters: () -> Unit = {},
     onShowFiltersChange: (Boolean) -> Unit = {},
+    onRunSearch: (query: String) -> Unit = {},
+    onApplySavedSearch: (SavedSearch) -> Unit = {},
+    onRemoveSavedSearch: (name: String) -> Unit = {},
+    onClearRecentSearches: () -> Unit = {},
+    onSaveCurrentSearch: () -> Unit = {},
     onLoadMore: () -> Unit,
     onRetry: () -> Unit,
     onPeekGame: (gameId: String, gameName: String, thumb: String?) -> Unit,
@@ -368,9 +401,16 @@ internal fun DealsContent(
                                 errorMessage = errorMessage,
                                 filterActiveCount = filterActiveCount,
                                 discoverEnabled = discoverEnabled,
+                                recentSearches = recentSearches,
+                                savedSearches = savedSearches,
                                 onShowFilters = { onShowFiltersChange(true) },
                                 onDiscover = onDiscover,
                                 onLoadMore = onLoadMore,
+                                onRunSearch = onRunSearch,
+                                onApplySavedSearch = onApplySavedSearch,
+                                onRemoveSavedSearch = onRemoveSavedSearch,
+                                onClearRecentSearches = onClearRecentSearches,
+                                onSaveCurrentSearch = onSaveCurrentSearch,
                                 onPeekGame = { gameId, gameName, thumb ->
                                     onPeekGame(gameId, gameName, thumb)
                                     scope.launch { navigator.navigateTo(ListDetailPaneScaffoldRole.Detail) }
@@ -440,9 +480,16 @@ internal fun DealsContent(
                     errorMessage = errorMessage,
                     filterActiveCount = filterActiveCount,
                     discoverEnabled = discoverEnabled,
+                    recentSearches = recentSearches,
+                    savedSearches = savedSearches,
                     onShowFilters = { onShowFiltersChange(true) },
                     onDiscover = onDiscover,
                     onLoadMore = onLoadMore,
+                    onRunSearch = onRunSearch,
+                    onApplySavedSearch = onApplySavedSearch,
+                    onRemoveSavedSearch = onRemoveSavedSearch,
+                    onClearRecentSearches = onClearRecentSearches,
+                    onSaveCurrentSearch = onSaveCurrentSearch,
                     onPeekGame = onPeekGame,
                 )
 
@@ -508,9 +555,16 @@ private fun DealsListPane(
     errorMessage: String,
     filterActiveCount: Int,
     discoverEnabled: Boolean,
+    recentSearches: ImmutableList<String>,
+    savedSearches: ImmutableList<SavedSearch>,
     onShowFilters: () -> Unit,
     onDiscover: () -> Unit,
     onLoadMore: () -> Unit,
+    onRunSearch: (query: String) -> Unit,
+    onApplySavedSearch: (SavedSearch) -> Unit,
+    onRemoveSavedSearch: (name: String) -> Unit,
+    onClearRecentSearches: () -> Unit,
+    onSaveCurrentSearch: () -> Unit,
     onPeekGame: (gameId: String, gameName: String, thumb: String?) -> Unit,
 ) {
     val listState = rememberLazyListState()
@@ -551,6 +605,7 @@ private fun DealsListPane(
                     collectionIds = collectionIds,
                     storesById = storesById,
                     errorMessage = errorMessage,
+                    onSaveCurrentSearch = onSaveCurrentSearch,
                     onPeekGame = onPeekGame,
                 )
 
@@ -574,6 +629,20 @@ private fun DealsListPane(
                             WindowInsets.navigationBars.only(WindowInsetsSides.Bottom).asPaddingValues().calculateBottomPadding(),
                     ),
                 ) {
+                    // Recent + saved searches — quick re-run affordance above the browse feed (#6). Only
+                    // appears once the user has history, so a fresh install isn't cluttered.
+                    if (recentSearches.isNotEmpty() || savedSearches.isNotEmpty()) {
+                        item(key = "search-suggestions", contentType = "search-suggestions") {
+                            SearchSuggestions(
+                                recent = recentSearches,
+                                saved = savedSearches,
+                                onRunSearch = onRunSearch,
+                                onApplySavedSearch = onApplySavedSearch,
+                                onRemoveSavedSearch = onRemoveSavedSearch,
+                                onClearRecentSearches = onClearRecentSearches,
+                            )
+                        }
+                    }
                     items(items = visibleDeals, key = { it.dealID }) { deal ->
                         val store = storesById[deal.storeID]
                         val isWaitlisted = deal.gameID in waitlistIds
@@ -667,6 +736,71 @@ private fun DealDetailPlaceholder() {
     }
 }
 
+/**
+ * Recent-query and saved-search chips shown above the browse feed (#6). Recent chips re-run a query;
+ * saved chips re-apply a query + its stored filter, and carry a remove affordance.
+ */
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
+@Composable
+private fun SearchSuggestions(
+    recent: ImmutableList<String>,
+    saved: ImmutableList<SavedSearch>,
+    onRunSearch: (String) -> Unit,
+    onApplySavedSearch: (SavedSearch) -> Unit,
+    onRemoveSavedSearch: (String) -> Unit,
+    onClearRecentSearches: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = GameDealsCustomTheme.spacing.medium, vertical = GameDealsCustomTheme.spacing.small),
+        verticalArrangement = Arrangement.spacedBy(GameDealsCustomTheme.spacing.small),
+    ) {
+        if (saved.isNotEmpty()) {
+            Text(
+                text = stringResource(Res.string.deals_search_saved_label),
+                style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier.semantics { heading() },
+            )
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(GameDealsCustomTheme.spacing.small)) {
+                saved.forEach { search ->
+                    InputChip(
+                        selected = false,
+                        onClick = { onApplySavedSearch(search) },
+                        label = { Text(search.name) },
+                        trailingIcon = {
+                            Icon(
+                                imageVector = Icons.Filled.Close,
+                                contentDescription = stringResource(Res.string.deals_search_saved_remove, search.name),
+                                modifier = Modifier
+                                    .size(18.dp)
+                                    .clickable(role = Role.Button) { onRemoveSavedSearch(search.name) },
+                            )
+                        },
+                    )
+                }
+            }
+        }
+        if (recent.isNotEmpty()) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = stringResource(Res.string.deals_search_recent_label),
+                    style = MaterialTheme.typography.labelLarge,
+                    modifier = Modifier.weight(1f).semantics { heading() },
+                )
+                TextButton(onClick = onClearRecentSearches) {
+                    Text(stringResource(Res.string.deals_search_recent_clear))
+                }
+            }
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(GameDealsCustomTheme.spacing.small)) {
+                recent.forEach { term ->
+                    SuggestionChip(onClick = { onRunSearch(term) }, label = { Text(term) })
+                }
+            }
+        }
+    }
+}
+
 @Composable
 private fun SearchResultsBody(
     state: SearchResultsState,
@@ -675,6 +809,7 @@ private fun SearchResultsBody(
     collectionIds: ImmutableSet<String>,
     storesById: Map<Int, Store>,
     errorMessage: String,
+    onSaveCurrentSearch: () -> Unit,
     onPeekGame: (gameId: String, gameName: String, thumb: String?) -> Unit,
 ) {
     when (state) {
@@ -710,6 +845,19 @@ private fun SearchResultsBody(
                         WindowInsets.navigationBars.only(WindowInsetsSides.Bottom).asPaddingValues().calculateBottomPadding(),
                 ),
             ) {
+                // "Save this search" pins the active query + current filter as a preset (#6).
+                item(key = "save-search", contentType = "save-search") {
+                    TextButton(
+                        onClick = onSaveCurrentSearch,
+                        modifier = Modifier.padding(horizontal = GameDealsCustomTheme.spacing.small),
+                    ) {
+                        Icon(Icons.Filled.BookmarkAdd, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Text(
+                            text = stringResource(Res.string.deals_search_save_action),
+                            modifier = Modifier.padding(start = GameDealsCustomTheme.spacing.small),
+                        )
+                    }
+                }
                 items(items = visible, key = { it.gameID }) { group ->
                     SearchResultListItem(
                         deal = group.cheapestDeal,

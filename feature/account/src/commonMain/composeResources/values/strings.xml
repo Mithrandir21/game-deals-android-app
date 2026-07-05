@@ -108,6 +108,8 @@
     <string name="account_followed_series_empty">You're not following any series yet. Follow one from a game's page to track its new releases and deals.</string>
     <string name="account_followed_series_unfollow">Unfollow %1$s</string>
     <string name="account_followed_series_game_image">Cover art for %1$s</string>
+    <string name="account_followed_series_backlog">You own %1$d of %2$d</string>
+    <string name="account_followed_series_owned">Owned</string>
 
     <!-- Library list enrichment: waitlist buy-dashboard + collection metadata (#274 follow-up) -->
     <string name="account_game_image">Cover art for %1$s</string>

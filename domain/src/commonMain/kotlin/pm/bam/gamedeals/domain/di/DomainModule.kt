@@ -36,6 +36,8 @@ import pm.bam.gamedeals.domain.repositories.franchise.FollowedFranchiseRepositor
 import pm.bam.gamedeals.domain.repositories.franchise.FollowedFranchiseRepositoryImpl
 import pm.bam.gamedeals.domain.repositories.franchise.FranchiseFollowSeeder
 import pm.bam.gamedeals.domain.repositories.franchise.FranchiseSaleSnapshotStore
+import pm.bam.gamedeals.domain.repositories.search.SearchHistoryRepository
+import pm.bam.gamedeals.domain.repositories.search.SearchHistoryRepositoryImpl
 import pm.bam.gamedeals.domain.repositories.franchise.FranchiseSaleSnapshotStoreImpl
 import pm.bam.gamedeals.domain.repositories.games.GamesRepository
 import pm.bam.gamedeals.domain.repositories.games.GamesRepositoryImpl
@@ -144,6 +146,8 @@ val domainModule = module {
     single<NotificationSync> { NotificationSyncImpl(get(), get(), get()) }
     // Followed franchises/series (#7) — client-side, Storage-backed.
     single<FollowedFranchiseRepository> { FollowedFranchiseRepositoryImpl(get(SETTINGS_QUALIFIER), get(), get()) }
+    // Recent + saved Deals searches (#6) — client-side, Storage-backed.
+    single<SearchHistoryRepository> { SearchHistoryRepositoryImpl(get(SETTINGS_QUALIFIER), get()) }
     // Followed-franchise deal alerts: the client-side checker compares each followed franchise's games to
     // live ITAD prices in the same background poll as the ITAD sync, deduped via the seen store. The alert
     // title is built here (domain has no string resources) — concise English copy, consistent with the

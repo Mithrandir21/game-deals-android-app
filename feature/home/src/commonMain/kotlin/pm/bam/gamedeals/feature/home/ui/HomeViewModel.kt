@@ -73,6 +73,7 @@ internal const val LIMIT_STATS = 10
 // source returns at least that many; a short source can still leave a gap, same as the hero).
 internal const val LIMIT_BUNDLES = 6
 internal const val LIMIT_RELEASES = 6
+internal const val LIMIT_ANTICIPATED = 6
 internal const val LIMIT_RECOMMENDATIONS = 12
 
 /**
@@ -190,6 +191,7 @@ internal class HomeViewModel(
                 val mostWaitlisted = async { section { statsRepository.getMostWaitlisted(LIMIT_STATS) } }
                 val mostCollected = async { section { statsRepository.getMostCollected(LIMIT_STATS) } }
                 val releases = async { section { loadReleases() } }
+                val mostAnticipated = async { section { igdbRepository.fetchMostAnticipated().take(LIMIT_ANTICIPATED) } }
                 val bundles = async { section { bundlesRepository.getBundles().take(LIMIT_BUNDLES) } }
                 val recommendations = async { section { recommendationsRepository.getRecommendations(LIMIT_RECOMMENDATIONS) } }
 
@@ -207,6 +209,7 @@ internal class HomeViewModel(
                     mostWaitlisted = enrichRanked(mostWaitlistedRaw, prices),
                     mostCollected = enrichRanked(mostCollectedRaw, prices),
                     releases = releases.await(),
+                    mostAnticipated = mostAnticipated.await(),
                     bundles = bundles.await(),
                     recommendations = recommendations.await(),
                 )
@@ -326,6 +329,7 @@ internal class HomeViewModel(
         val mostWaitlisted: ImmutableList<RankedGame> = persistentListOf(),
         val mostCollected: ImmutableList<RankedGame> = persistentListOf(),
         val releases: ImmutableList<Release> = persistentListOf(),
+        val mostAnticipated: ImmutableList<Release> = persistentListOf(),
         val bundles: ImmutableList<Bundle> = persistentListOf(),
         val recommendations: ImmutableList<IgdbGame.IgdbSimilarGame> = persistentListOf(),
     ) {
@@ -334,7 +338,7 @@ internal class HomeViewModel(
         val hasContent: Boolean
             get() = featuredHero.isNotEmpty() || trending.isNotEmpty() ||
                 mostWaitlisted.isNotEmpty() || mostCollected.isNotEmpty() || releases.isNotEmpty() ||
-                bundles.isNotEmpty() || recommendations.isNotEmpty()
+                mostAnticipated.isNotEmpty() || bundles.isNotEmpty() || recommendations.isNotEmpty()
     }
 
     @Immutable

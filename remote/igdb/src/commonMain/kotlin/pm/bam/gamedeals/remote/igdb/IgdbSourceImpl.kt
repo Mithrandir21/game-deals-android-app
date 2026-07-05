@@ -38,6 +38,15 @@ internal class IgdbSourceImpl(
             .mapNotNull { it.toReleaseOrNull() }
     }
 
+    override suspend fun fetchMostAnticipated(): List<Release> {
+        val nowEpochSeconds = clock.nowMillis() / 1000
+        return igdbGamesApi.fetchMostAnticipated(nowEpochSeconds = nowEpochSeconds, limit = MOST_ANTICIPATED_LIMIT)
+            .log(logger, tag = TAG)
+            .mapAnyFailure { remoteExceptionTransformer.transformApiException(this) }
+            .getOrThrow()
+            .mapNotNull { it.toReleaseOrNull() }
+    }
+
     override suspend fun fetchGameBySteamId(steamId: Int): IgdbGame? =
         igdbGamesApi.fetchGameBySteamId(steamId)
             .log(logger, tag = TAG)
@@ -155,6 +164,7 @@ internal class IgdbSourceImpl(
 
     internal companion object {
         internal const val NEW_RELEASES_LIMIT = 20
+        internal const val MOST_ANTICIPATED_LIMIT = 12
         private val TAG: String = IgdbSourceImpl::class.simpleName.orEmpty()
 
         // The four small IGDB vocabulary endpoints and the dimension each one represents. Keywords are

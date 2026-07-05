@@ -33,6 +33,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import org.jetbrains.compose.resources.stringResource
+import kotlin.math.round
 import kotlin.time.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -169,6 +170,29 @@ internal fun formatCount(value: Int): String {
 
 /** Seconds → nearest whole hour, as a string (HowLongToBeat values are coarse, so whole hours read fine). */
 internal fun hoursFromSeconds(seconds: Long): String = ((seconds + 1800) / 3600).toString()
+
+/**
+ * Scales an already-denominated price to a per-hour figure using the playtime in seconds, inheriting the
+ * currency symbol/suffix and decimal convention straight from [priceDenominated] (the deal carries no raw
+ * currency code). `formatMoney` emits no thousands separators, so the price is a single `digits[.digits]?`
+ * token we splice the scaled value back into. Returns null when playtime is missing/zero.
+ * E.g. ("$59.99", 59.99, 540000) → "$0.40"; ("¥6800", 6800.0, 108000) → "¥227".
+ */
+internal fun perHourDenominated(priceDenominated: String, priceValue: Double, playtimeSeconds: Long): String? {
+    if (playtimeSeconds <= 0L || priceValue <= 0.0) return null
+    val hours = playtimeSeconds / 3600.0
+    val perHour = priceValue / hours
+    val match = Regex("""\d+(\.\d+)?""").find(priceDenominated) ?: return null
+    val decimals = match.value.substringAfter('.', "").length
+    val scaled = if (decimals == 0) {
+        round(perHour).toLong().toString()
+    } else {
+        val unit = LongArray(decimals) { 10L }.fold(1L) { acc, ten -> acc * ten }
+        val minor = round(perHour * unit).toLong()
+        "${minor / unit}.${(minor % unit).toString().padStart(decimals, '0')}"
+    }
+    return priceDenominated.replaceRange(match.range, scaled)
+}
 
 private val MONTH_ABBREV = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 

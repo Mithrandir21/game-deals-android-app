@@ -14,6 +14,13 @@ interface IgdbSource {
      * Returns a capped, newest-first list (empty on miss).
      */
     suspend fun fetchNewReleases(): List<Release>
+
+    /**
+     * Most-anticipated *upcoming* games for the Home "coming soon" strip (#8), ranked by IGDB hype
+     * (anticipation). Returns a capped list of future-dated games (empty on miss).
+     */
+    suspend fun fetchMostAnticipated(): List<Release>
+
     /**
      * Lean lookup — only `id`, `name`, `summary` are populated. Drives the deal-screen summary
      * card. Returns null when no IGDB record matches the given Steam app ID.

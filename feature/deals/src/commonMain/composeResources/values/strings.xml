@@ -80,6 +80,11 @@
     <string name="deals_search_close">Close search</string>
     <string name="deals_search_loading_indicator">Searching for games</string>
     <string name="deals_search_no_results_label">No results found</string>
+    <string name="deals_search_recent_label">Recent searches</string>
+    <string name="deals_search_recent_clear">Clear</string>
+    <string name="deals_search_saved_label">Saved searches</string>
+    <string name="deals_search_saved_remove">Remove saved search %1$s</string>
+    <string name="deals_search_save_action">Save this search</string>
     <string name="deals_search_result_count">%1$d deals</string>
     <string name="deals_search_result_row_description">%1$s, %2$s</string>
     <string name="deals_search_result_row_description_waitlisted">%1$s, waitlisted, %2$s</string>

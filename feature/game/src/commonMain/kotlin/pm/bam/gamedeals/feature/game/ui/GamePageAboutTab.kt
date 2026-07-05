@@ -87,6 +87,7 @@ import pm.bam.gamedeals.feature.game.generated.resources.game_page_details_publi
 import pm.bam.gamedeals.feature.game.generated.resources.game_page_hltb_hours
 import pm.bam.gamedeals.feature.game.generated.resources.game_page_section_details
 import pm.bam.gamedeals.feature.game.generated.resources.game_page_section_dlcs
+import pm.bam.gamedeals.feature.game.generated.resources.game_page_section_other_editions
 import pm.bam.gamedeals.feature.game.generated.resources.game_page_section_hltb
 import pm.bam.gamedeals.feature.game.generated.resources.game_page_section_media
 import pm.bam.gamedeals.feature.game.generated.resources.game_page_overview_empty
@@ -149,6 +150,12 @@ internal fun AboutTab(
                     if (!game.summary.isNullOrBlank() || !game.storyline.isNullOrBlank()) DescriptionSection(game)
                     if (game.videos.isNotEmpty() || game.screenshotImageIds.isNotEmpty()) MediaGallery(game, goToWeb)
                     DetailsTable(game)
+                    // Newer-edition awareness (#7): remasters/remakes/ports/standalone spin-offs + the base
+                    // edition this record is a version of — so the user can avoid buying an outdated version.
+                    val otherEditions = (game.remasters + game.remakes + game.ports + game.standaloneExpansions + listOfNotNull(game.versionParent))
+                        .distinctBy { it.id }
+                        .filter { it.id != game.id }
+                    if (otherEditions.isNotEmpty()) GameTileRow(Res.string.game_page_section_other_editions, otherEditions, onSimilarGameClick)
                     val dlcs = game.dlcs + game.expansions
                     if (dlcs.isNotEmpty()) GameTileRow(Res.string.game_page_section_dlcs, dlcs, onSimilarGameClick)
                     if (game.similarGames.isNotEmpty()) GameTileRow(Res.string.game_details_section_similar, game.similarGames, onSimilarGameClick)

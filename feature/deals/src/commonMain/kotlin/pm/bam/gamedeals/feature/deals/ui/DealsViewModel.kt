@@ -46,12 +46,14 @@ import pm.bam.gamedeals.domain.models.DealsSortField
 import pm.bam.gamedeals.domain.models.ProductType
 import pm.bam.gamedeals.domain.models.ReleaseWindow
 import pm.bam.gamedeals.domain.models.RepoUpdateResult
+import pm.bam.gamedeals.domain.models.SavedSearch
 import pm.bam.gamedeals.domain.models.SearchParameters
 import pm.bam.gamedeals.domain.models.Store
 import pm.bam.gamedeals.domain.repositories.deals.DealsRepository
 import pm.bam.gamedeals.domain.repositories.games.GamesRepository
 import pm.bam.gamedeals.domain.repositories.ignored.IgnoredRepository
 import pm.bam.gamedeals.domain.repositories.region.RegionRepository
+import pm.bam.gamedeals.domain.repositories.search.SearchHistoryRepository
 import pm.bam.gamedeals.domain.repositories.settings.SettingsRepository
 import pm.bam.gamedeals.domain.repositories.stores.StoresRepository
 import pm.bam.gamedeals.domain.repositories.collection.CollectionRepository
@@ -92,6 +94,7 @@ internal class DealsViewModel(
     private val ignoredRepository: IgnoredRepository,
     private val gamesRepository: GamesRepository,
     private val settingsRepository: SettingsRepository,
+    private val searchHistoryRepository: SearchHistoryRepository,
     featureFlags: FeatureFlags,
 ) : ViewModel() {
 
@@ -134,6 +137,20 @@ internal class DealsViewModel(
      */
     val filter: StateFlow<DealsFilter> = settingsRepository.observeDealsFilter()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DealsFilter())
+
+    /** Recently submitted search terms (most-recent first) — quick re-run chips in the blank search state (#6). */
+    val recentSearches: StateFlow<ImmutableList<String>> = searchHistoryRepository.observeRecentSearches()
+        .map { it.toImmutableList() }
+        .onStart { emit(persistentListOf()) }
+        .catch { emit(persistentListOf()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), persistentListOf())
+
+    /** User-pinned query+filter presets (#6). */
+    val savedSearches: StateFlow<ImmutableList<SavedSearch>> = searchHistoryRepository.observeSavedSearches()
+        .map { it.toImmutableList() }
+        .onStart { emit(persistentListOf()) }
+        .catch { emit(persistentListOf()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), persistentListOf())
 
     /**
      * Whether the "Discover by Tag" entry point is shown — feature-flagged via [FeatureFlag.DiscoverByTag].
@@ -201,6 +218,8 @@ internal class DealsViewModel(
                             .flatMapLatestDelayAtLeast(SEARCH_MIN_LOADING_MILLIS) {
                                 gamesRepository.searchGames(SearchParameters(title = it))
                             }
+                            // Record only queries that actually resolved to results, so the recent list stays useful.
+                            .onEach { deals -> if (deals.isNotEmpty()) searchHistoryRepository.recordSearch(query) }
                             .map { deals ->
                                 if (deals.isEmpty()) SearchResultsState.NoResults
                                 else SearchResultsState.Results(deals.groupByGame().toImmutableList())
@@ -262,6 +281,28 @@ internal class DealsViewModel(
     fun setSearchQuery(query: String) = searchQueryState.update { query }
 
     fun clearSearch() = searchQueryState.update { "" }
+
+    // --- Recent & saved searches (#6) ---
+
+    /** Pin the current query + active filter as a preset (named by the query text). No-op when blank. */
+    fun saveCurrentSearch() {
+        val query = searchQueryState.value.trim()
+        if (query.isBlank()) return
+        viewModelScope.launch { searchHistoryRepository.saveSearch(name = query, query = query, filter = filter.value) }
+    }
+
+    /** Re-apply a saved preset's filter; the caller drives the query text (via the shared search controller). */
+    fun applySavedFilter(savedFilter: DealsFilter) {
+        viewModelScope.launch { settingsRepository.setDealsFilter(savedFilter) }
+    }
+
+    fun removeSavedSearch(name: String) {
+        viewModelScope.launch { searchHistoryRepository.removeSavedSearch(name) }
+    }
+
+    fun clearRecentSearches() {
+        viewModelScope.launch { searchHistoryRepository.clearRecentSearches() }
+    }
 
     fun retry() {
         viewModelScope.launch {

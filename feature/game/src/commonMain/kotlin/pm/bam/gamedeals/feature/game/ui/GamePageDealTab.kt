@@ -54,6 +54,9 @@ import pm.bam.gamedeals.feature.game.generated.resources.game_page_regions_loadi
 import pm.bam.gamedeals.feature.game.generated.resources.game_screen_list_item_savings_label
 import pm.bam.gamedeals.feature.game.generated.resources.game_screen_share_action
 import pm.bam.gamedeals.feature.game.generated.resources.game_screen_store_deal_row_description
+import pm.bam.gamedeals.feature.game.generated.resources.game_page_value_per_hour_subtitle
+import pm.bam.gamedeals.feature.game.generated.resources.game_page_value_per_hour_title
+import pm.bam.gamedeals.feature.game.generated.resources.game_page_value_per_hour_value
 import pm.bam.gamedeals.feature.game.ui.GamePageViewModel.GamePageData
 import pm.bam.gamedeals.logging.analytics.Analytics
 import androidx.compose.runtime.getValue
@@ -78,6 +81,7 @@ internal fun DealTab(
         modifier = Modifier.fillMaxWidth().padding(horizontal = GameDealsCustomTheme.spacing.large),
         verticalArrangement = Arrangement.spacedBy(GameDealsCustomTheme.spacing.large),
     ) {
+        ValuePerHourCard(data)
         if (data.bundles.isNotEmpty()) BundlesSection(data.bundles, onBundleClick)
         when (val deals = data.deals) {
             SectionState.Loading -> TabLoading()
@@ -101,6 +105,40 @@ internal fun DealTab(
                 else PriceHistoryChart(priceHistory = priceHistory.value, modifier = Modifier.fillMaxWidth())
         }
         RegionalPricesExpander(state = data.regionalPricesState, gameTitle = data.title, goToWeb = goToWeb, onExpand = onRegionsSelected)
+    }
+}
+
+/**
+ * "Cost per hour of play" — the current best price divided by the HowLongToBeat *main-story* playtime.
+ * Hidden unless there's both a live (paid) deal and a playtime estimate; the two load independently, so
+ * either can be absent. Reuses [perHourDenominated] so the currency formatting matches the buy box.
+ */
+@Composable
+private fun ValuePerHourCard(data: GamePageData.Data) {
+    val deal = data.buyBox?.pair?.deal ?: return
+    val playtimeSeconds = data.igdbGameOrNull?.timeToBeat?.normally ?: return
+    val perHour = perHourDenominated(deal.priceDenominated, deal.priceValue, playtimeSeconds) ?: return
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(GameDealsCustomTheme.spacing.large),
+            verticalArrangement = Arrangement.spacedBy(GameDealsCustomTheme.spacing.extraSmall),
+        ) {
+            Text(
+                text = stringResource(Res.string.game_page_value_per_hour_title),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = stringResource(Res.string.game_page_value_per_hour_value, perHour),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text = stringResource(Res.string.game_page_value_per_hour_subtitle, deal.priceDenominated, hoursFromSeconds(playtimeSeconds)),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 

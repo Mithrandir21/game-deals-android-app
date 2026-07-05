@@ -8,14 +8,22 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import pm.bam.gamedeals.domain.models.AuthState
+import pm.bam.gamedeals.domain.models.FollowedFranchise
 import pm.bam.gamedeals.domain.models.IgdbImageSize
 import pm.bam.gamedeals.domain.models.igdbImageUrl
+import pm.bam.gamedeals.domain.repositories.account.AccountRepository
+import pm.bam.gamedeals.domain.repositories.collection.CollectionRepository
 import pm.bam.gamedeals.domain.repositories.franchise.FollowedFranchiseChecker
 import pm.bam.gamedeals.domain.repositories.franchise.FollowedFranchiseRepository
 import pm.bam.gamedeals.domain.repositories.franchise.FranchiseSaleSnapshotStore
+import pm.bam.gamedeals.domain.repositories.games.GamesRepository
 import pm.bam.gamedeals.domain.repositories.igdb.IgdbRepository
 import pm.bam.gamedeals.logging.Logger
 import pm.bam.gamedeals.logging.error
@@ -30,24 +38,39 @@ internal data class FollowedSeriesGame(
     val igdbGameId: Long,
     val title: String,
     val coverUrl: String?,
+    /** Resolved ITAD id (Steam-appid bridge), or null when the entry can't be priced/owned-checked. */
+    val itadGameId: String? = null,
+    /** True when this entry is in the user's ITAD collection (only meaningful while logged in). */
+    val owned: Boolean = false,
     val cutPercent: Int? = null,
     val priceDenominated: String? = null,
 ) {
     val onSale: Boolean get() = cutPercent != null
 }
 
-/** One followed franchise/series and (lazily) the games IGDB lists under it. */
+/**
+ * One followed franchise/series and (lazily) the games IGDB lists under it. [ownedCount] / [resolvableCount]
+ * back the "you own X of Y" backlog line — [resolvableCount] excludes entries with no ITAD match (non-Steam
+ * members), which can't be owned-checked and would otherwise read as falsely unowned.
+ */
 @Immutable
 internal data class FollowedSeriesItem(
     val franchiseId: Long,
     val name: String,
     val games: ImmutableList<FollowedSeriesGame> = persistentListOf(),
-)
+    val ownedCount: Int = 0,
+    val resolvableCount: Int = 0,
+) {
+    /** Priceable entries the user doesn't own yet — the actionable backlog. */
+    val missingCount: Int get() = (resolvableCount - ownedCount).coerceAtLeast(0)
+}
 
 @Immutable
 internal data class FollowedSeriesState(
     val loading: Boolean = false,
     val refreshing: Boolean = false,
+    /** Ownership backlog is only meaningful (and only shown) when signed in to ITAD. */
+    val loggedIn: Boolean = false,
     val items: ImmutableList<FollowedSeriesItem> = persistentListOf(),
 )
 
@@ -66,6 +89,9 @@ internal class FollowedSeriesViewModel(
     private val igdbRepository: IgdbRepository,
     private val snapshotStore: FranchiseSaleSnapshotStore,
     private val franchiseChecker: FollowedFranchiseChecker,
+    private val collectionRepository: CollectionRepository,
+    private val accountRepository: AccountRepository,
+    private val gamesRepository: GamesRepository,
     private val logger: Logger,
 ) : ViewModel() {
 
@@ -82,28 +108,44 @@ internal class FollowedSeriesViewModel(
             snapshot.value = loadSnapshot()
         }
         viewModelScope.launch {
-            combine(followedFranchiseRepository.observeFollowed(), snapshot) { followed, sales -> followed to sales }
-                .collect { (followed, sales) ->
+            combine(
+                followedFranchiseRepository.observeFollowed(),
+                snapshot,
+                collectionRepository.observeCollectionIds(),
+                accountRepository.observeAuthState(),
+            ) { followed, sales, ownedIds, auth -> Inputs(followed, sales, ownedIds, auth is AuthState.LoggedIn) }
+                .collect { (followed, sales, ownedIds, loggedIn) ->
                     val items = followed
                         .sortedByDescending { it.addedAtMs }
                         .map { franchise ->
                             val games = gamesFor(franchise.franchiseId)
                                 .map { game ->
                                     val sale = sales[game.igdbGameId]
-                                    game.copy(cutPercent = sale?.first, priceDenominated = sale?.second)
+                                    val owned = game.itadGameId != null && game.itadGameId in ownedIds
+                                    game.copy(cutPercent = sale?.first, priceDenominated = sale?.second, owned = owned)
                                 }
-                                // On-sale (highest cut) first, then the rest in IGDB order.
-                                .sortedByDescending { it.cutPercent ?: -1 }
+                                // Unowned first (the backlog), then on-sale (highest cut) within each group.
+                                .sortedWith(compareByDescending<FollowedSeriesGame> { !it.owned }.thenByDescending { it.cutPercent ?: -1 })
                             FollowedSeriesItem(
                                 franchiseId = franchise.franchiseId,
                                 name = franchise.name,
                                 games = games.toImmutableList(),
+                                ownedCount = games.count { it.owned },
+                                resolvableCount = games.count { it.itadGameId != null },
                             )
                         }
-                    uiState.update { it.copy(loading = false, items = items.toImmutableList()) }
+                    uiState.update { it.copy(loading = false, loggedIn = loggedIn, items = items.toImmutableList()) }
                 }
         }
     }
+
+    /** Combine carrier — keeps the 4-arg [combine] transform readable and destructurable. */
+    private data class Inputs(
+        val followed: List<FollowedFranchise>,
+        val sales: Map<Long, Pair<Int, String>>,
+        val ownedIds: Set<String>,
+        val loggedIn: Boolean,
+    )
 
     /** Pull-to-refresh: recompute the on-sale snapshot (expensive) and rewrite the cache. */
     fun refresh() {
@@ -124,16 +166,25 @@ internal class FollowedSeriesViewModel(
 
     private suspend fun gamesFor(franchiseId: Long): List<FollowedSeriesGame> =
         gamesCache.getOrElse(franchiseId) {
-            runCatching { igdbRepository.fetchFranchiseGames(franchiseId, GAMES_PER_FRANCHISE) }
+            val members = runCatching { igdbRepository.fetchFranchiseGames(franchiseId, GAMES_PER_FRANCHISE) }
                 .getOrElse { error(logger, it); emptyList() }
-                .map { game ->
-                    FollowedSeriesGame(
-                        igdbGameId = game.id,
-                        title = game.name,
-                        coverUrl = game.coverImageId?.let { igdbImageUrl(it, IgdbImageSize.CoverBig) },
-                    )
-                }
-                .also { gamesCache[franchiseId] = it }
+            // Resolve each member to an ITAD id concurrently (Steam-appid bridge, 30-day cached) so we can
+            // diff against the owned-games set. Non-Steam members resolve to null and are excluded from the count.
+            coroutineScope {
+                members.map { game ->
+                    async {
+                        val itadId = game.steamAppId?.let { steamId ->
+                            runCatching { gamesRepository.findGameIdBySteamAppId(steamId, game.name) }.getOrNull()
+                        }
+                        FollowedSeriesGame(
+                            igdbGameId = game.id,
+                            title = game.name,
+                            coverUrl = game.coverImageId?.let { igdbImageUrl(it, IgdbImageSize.CoverBig) },
+                            itadGameId = itadId,
+                        )
+                    }
+                }.awaitAll()
+            }.also { gamesCache[franchiseId] = it }
         }
 
     fun unfollow(franchiseId: Long) {

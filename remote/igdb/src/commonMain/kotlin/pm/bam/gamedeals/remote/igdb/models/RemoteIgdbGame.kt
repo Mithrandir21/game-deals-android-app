@@ -25,6 +25,13 @@ data class RemoteIgdbGame(
     // DLCs and expansions share the similar-game shape (id, name, cover) so they map through the same path.
     val dlcs: List<RemoteIgdbSimilarGame> = emptyList(),
     val expansions: List<RemoteIgdbSimilarGame> = emptyList(),
+    // Newer-edition awareness (#7): the version/edition relation arrays all share the similar-game shape.
+    val remakes: List<RemoteIgdbSimilarGame> = emptyList(),
+    val remasters: List<RemoteIgdbSimilarGame> = emptyList(),
+    val ports: List<RemoteIgdbSimilarGame> = emptyList(),
+    @SerialName("standalone_expansions") val standaloneExpansions: List<RemoteIgdbSimilarGame> = emptyList(),
+    // The parent edition this record is a version of (e.g. this is the base game of a Deluxe Edition).
+    @SerialName("version_parent") val versionParent: RemoteIgdbSimilarGame? = null,
     val platforms: List<RemoteIgdbPlatform> = emptyList(),
     val videos: List<RemoteIgdbVideo> = emptyList(),
     val franchises: List<RemoteIgdbFranchise> = emptyList(),

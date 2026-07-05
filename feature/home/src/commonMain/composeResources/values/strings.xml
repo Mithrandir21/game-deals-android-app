@@ -4,6 +4,7 @@
     <string name="home_screen_game_image">%1$s Game image</string>
 
     <string name="home_screen_new_releases_label">New Releases</string>
+    <string name="home_screen_most_anticipated_label">Most Anticipated</string>
 
     <!-- Curated feed sections (epic #219, Phase 5) -->
     <string name="home_screen_featured_label">Featured</string>

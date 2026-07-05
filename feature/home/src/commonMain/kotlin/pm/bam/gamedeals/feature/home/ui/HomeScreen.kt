@@ -101,6 +101,7 @@ import pm.bam.gamedeals.feature.home.generated.resources.home_screen_data_loadin
 import pm.bam.gamedeals.feature.home.generated.resources.home_screen_featured_label
 import pm.bam.gamedeals.feature.home.generated.resources.home_screen_hero_deal_description
 import pm.bam.gamedeals.feature.home.generated.resources.home_screen_loading_indicator
+import pm.bam.gamedeals.feature.home.generated.resources.home_screen_most_anticipated_label
 import pm.bam.gamedeals.feature.home.generated.resources.home_screen_most_collected_label
 import pm.bam.gamedeals.feature.home.generated.resources.home_screen_most_waitlisted_label
 import pm.bam.gamedeals.feature.home.generated.resources.home_screen_new_releases_label
@@ -548,6 +549,30 @@ private fun HomeFeed(
                         onPeekGame = onPeekGame,
                     )
                 }
+            }
+        }
+
+        // 5.4. Most Anticipated (IGDB hype) — upcoming, not-yet-released games. Placed here so it sits
+        // directly below Most Collected on compact (and above New Releases in every width class). Same
+        // title-only row anatomy as New Releases (neutral "Upcoming" chip; tap resolves the title → game).
+        if (data.mostAnticipated.isNotEmpty()) {
+            if (renderedSection) sectionDivider()
+            renderedSection = true
+            item(contentType = CONTENT_TYPE_SECTION_HEADER) { SectionHeader(stringResource(Res.string.home_screen_most_anticipated_label)) }
+            gridSection(
+                items = data.mostAnticipated,
+                columns = otherCols,
+                key = { "anticipated-${it.title}" },
+                contentType = CONTENT_TYPE_RELEASE,
+            ) { release, cellModifier ->
+                DealListRow(
+                    title = release.title,
+                    contentDescription = stringResource(Res.string.home_screen_release_row_description, release.title),
+                    onClick = { onPeekRelease(release.title, release.image) },
+                    imageUrl = release.image,
+                    neutralChip = upcomingChip,
+                    modifier = cellModifier,
+                )
             }
         }
 

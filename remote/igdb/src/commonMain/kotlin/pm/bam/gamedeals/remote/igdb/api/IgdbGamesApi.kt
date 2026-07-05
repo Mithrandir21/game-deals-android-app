@@ -166,6 +166,24 @@ class IgdbGamesApi(
     }
 
     /**
+     * Most-anticipated *upcoming* games for the Home "coming soon" strip (#8). Returns games whose
+     * `first_release_date` is in the future and that have a cover, ranked by IGDB `hypes` (anticipation
+     * count) — a real forward-looking popularity signal, unlike `total_rating_count` which is ~0 pre-release.
+     */
+    suspend fun fetchMostAnticipated(nowEpochSeconds: Long, limit: Int): ApiResponse<List<RemoteIgdbGame>> = try {
+        ApiResponse.Success(
+            httpClient.post("/v4/games") {
+                contentType(ContentType.Text.Plain)
+                setBody(buildMostAnticipatedQuery(nowEpochSeconds, limit))
+            }.igdbGames()
+        )
+    } catch (e: CancellationException) {
+        throw e
+    } catch (t: Throwable) {
+        ApiResponse.exception(t)
+    }
+
+    /**
      * HowLongToBeat-style completion estimates for a game (epic #291, Phase 2). IGDB exposes these on the
      * dedicated `/v4/game_time_to_beats` endpoint (not via the games dot-expansion), keyed by `game_id`.
      * Returns at most one row; empty list means IGDB has no time-to-beat data for that game.
@@ -292,6 +310,11 @@ class IgdbGamesApi(
                 game.similar_games.id, game.similar_games.name, game.similar_games.cover.image_id,
                 game.dlcs.id, game.dlcs.name, game.dlcs.cover.image_id,
                 game.expansions.id, game.expansions.name, game.expansions.cover.image_id,
+                game.remakes.id, game.remakes.name, game.remakes.cover.image_id,
+                game.remasters.id, game.remasters.name, game.remasters.cover.image_id,
+                game.ports.id, game.ports.name, game.ports.cover.image_id,
+                game.standalone_expansions.id, game.standalone_expansions.name, game.standalone_expansions.cover.image_id,
+                game.version_parent.id, game.version_parent.name, game.version_parent.cover.image_id,
                 game.platforms.name, game.platforms.abbreviation,
                 game.videos.name, game.videos.video_id,
                 game.franchises.id, game.franchises.name, game.franchises.games.id, game.franchises.games.name, game.franchises.games.cover.image_id,
@@ -316,6 +339,11 @@ class IgdbGamesApi(
                 similar_games.id, similar_games.name, similar_games.cover.image_id,
                 dlcs.id, dlcs.name, dlcs.cover.image_id,
                 expansions.id, expansions.name, expansions.cover.image_id,
+                remakes.id, remakes.name, remakes.cover.image_id,
+                remasters.id, remasters.name, remasters.cover.image_id,
+                ports.id, ports.name, ports.cover.image_id,
+                standalone_expansions.id, standalone_expansions.name, standalone_expansions.cover.image_id,
+                version_parent.id, version_parent.name, version_parent.cover.image_id,
                 platforms.name, platforms.abbreviation,
                 videos.name, videos.video_id,
                 franchises.id, franchises.name, franchises.games.id, franchises.games.name, franchises.games.cover.image_id,
@@ -350,6 +378,11 @@ class IgdbGamesApi(
                     similar_games.id, similar_games.name, similar_games.cover.image_id,
                     dlcs.id, dlcs.name, dlcs.cover.image_id,
                     expansions.id, expansions.name, expansions.cover.image_id,
+                    remakes.id, remakes.name, remakes.cover.image_id,
+                    remasters.id, remasters.name, remasters.cover.image_id,
+                    ports.id, ports.name, ports.cover.image_id,
+                    standalone_expansions.id, standalone_expansions.name, standalone_expansions.cover.image_id,
+                    version_parent.id, version_parent.name, version_parent.cover.image_id,
                     platforms.name, platforms.abbreviation,
                     videos.name, videos.video_id,
                     franchises.id, franchises.name, franchises.games.id, franchises.games.name, franchises.games.cover.image_id,
@@ -375,6 +408,11 @@ class IgdbGamesApi(
                     similar_games.id, similar_games.name, similar_games.cover.image_id,
                     dlcs.id, dlcs.name, dlcs.cover.image_id,
                     expansions.id, expansions.name, expansions.cover.image_id,
+                    remakes.id, remakes.name, remakes.cover.image_id,
+                    remasters.id, remasters.name, remasters.cover.image_id,
+                    ports.id, ports.name, ports.cover.image_id,
+                    standalone_expansions.id, standalone_expansions.name, standalone_expansions.cover.image_id,
+                    version_parent.id, version_parent.name, version_parent.cover.image_id,
                     platforms.name, platforms.abbreviation,
                     videos.name, videos.video_id,
                     franchises.id, franchises.name, franchises.games.id, franchises.games.name, franchises.games.cover.image_id,
@@ -405,6 +443,16 @@ class IgdbGamesApi(
             fields name, cover.image_id, first_release_date;
             where first_release_date != null & first_release_date <= $nowEpochSeconds & cover != null;
             sort first_release_date desc;
+            limit $limit;
+            """.trimIndent()
+
+        // Home "most anticipated": upcoming (future-dated) games with a cover and an anticipation signal,
+        // ranked by IGDB `hypes` desc. `hypes != null` drops the long tail of future stubs nobody follows.
+        internal fun buildMostAnticipatedQuery(nowEpochSeconds: Long, limit: Int): String =
+            """
+            fields name, cover.image_id, first_release_date;
+            where first_release_date != null & first_release_date > $nowEpochSeconds & cover != null & hypes != null;
+            sort hypes desc;
             limit $limit;
             """.trimIndent()
 

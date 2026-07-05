@@ -59,6 +59,7 @@ internal val PreviewIgdbGame = IgdbGame(
     ),
     similarGames = PreviewSimilarGames,
     dlcs = persistentListOf(IgdbGame.IgdbSimilarGame(id = 4L, name = "Hades II", coverImageId = null)),
+    remasters = persistentListOf(IgdbGame.IgdbSimilarGame(id = 5L, name = "Hades: Definitive Edition", coverImageId = null)),
     platforms = persistentListOf("PC", "PS5", "Switch"),
     videos = persistentListOf(IgdbGame.IgdbVideo(videoId = "dQw4w9WgXcQ", name = "Launch Trailer")),
     franchises = persistentListOf(

@@ -25,6 +25,15 @@ data class IgdbGame(
     val similarGames: ImmutableList<IgdbSimilarGame> = persistentListOf(),
     val dlcs: ImmutableList<IgdbSimilarGame> = persistentListOf(),
     val expansions: ImmutableList<IgdbSimilarGame> = persistentListOf(),
+    /**
+     * Newer-edition awareness (#7): IGDB version/edition relations so the user can avoid buying an
+     * outdated or wrong-edition version. [versionParent] is the base edition this record is a version of.
+     */
+    val remakes: ImmutableList<IgdbSimilarGame> = persistentListOf(),
+    val remasters: ImmutableList<IgdbSimilarGame> = persistentListOf(),
+    val ports: ImmutableList<IgdbSimilarGame> = persistentListOf(),
+    val standaloneExpansions: ImmutableList<IgdbSimilarGame> = persistentListOf(),
+    val versionParent: IgdbSimilarGame? = null,
     /** Platform labels (IGDB `platforms`, abbreviation preferred over full name) — "PC", "PS5", "Switch". */
     val platforms: ImmutableList<String> = persistentListOf(),
     /** Trailers/gameplay clips (IGDB `videos`) — each carries a YouTube id the UI opens externally. */

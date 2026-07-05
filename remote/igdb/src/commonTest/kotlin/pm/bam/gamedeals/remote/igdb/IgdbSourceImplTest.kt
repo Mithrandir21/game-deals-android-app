@@ -22,6 +22,7 @@ import pm.bam.gamedeals.remote.exceptions.RemoteExceptionTransformer
 import pm.bam.gamedeals.remote.igdb.api.IgdbGamesApi
 import pm.bam.gamedeals.remote.igdb.api.IgdbGamesApi.Companion.buildExactNameLookupDetailsQuery
 import pm.bam.gamedeals.remote.igdb.api.IgdbGamesApi.Companion.buildIgdbIdLookupDetailsQuery
+import pm.bam.gamedeals.remote.igdb.api.IgdbGamesApi.Companion.buildMostAnticipatedQuery
 import pm.bam.gamedeals.remote.igdb.api.IgdbGamesApi.Companion.buildNewReleasesQuery
 import pm.bam.gamedeals.remote.igdb.api.IgdbGamesApi.Companion.buildSearchCandidatesQuery
 import pm.bam.gamedeals.remote.igdb.api.IgdbGamesApi.Companion.buildSearchLookupDetailsQuery
@@ -517,6 +518,35 @@ class IgdbSourceImplTest {
             buildNewReleasesQuery(FIXED_NOW_MS / 1000, IgdbSourceImpl.NEW_RELEASES_LIMIT),
             (request.body as TextContent).text,
         )
+    }
+
+    @Test
+    fun fetchMostAnticipated_posts_hype_query_to_games_and_maps_to_releases() = runTest {
+        val recorded = mutableListOf<HttpRequestData>()
+        val impl = rig(recorded) { _ ->
+            respond(
+                content = NEW_RELEASES_BODY,
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+
+        val result = impl.fetchMostAnticipated()
+
+        assertEquals(
+            listOf(Release(title = "Some Game", date = 1_700_000_000, image = igdbImageUrl("abc123", IgdbImageSize.CoverBig))),
+            result,
+        )
+        val request = recorded.single()
+        assertEquals("/v4/games", request.url.encodedPath)
+        assertEquals(
+            buildMostAnticipatedQuery(FIXED_NOW_MS / 1000, IgdbSourceImpl.MOST_ANTICIPATED_LIMIT),
+            (request.body as TextContent).text,
+        )
+        // The query must target upcoming games ranked by hype, not recent releases.
+        val query = (request.body as TextContent).text
+        assertTrue("sort hypes desc;" in query)
+        assertTrue("first_release_date > ${FIXED_NOW_MS / 1000}" in query)
     }
 
     @Test

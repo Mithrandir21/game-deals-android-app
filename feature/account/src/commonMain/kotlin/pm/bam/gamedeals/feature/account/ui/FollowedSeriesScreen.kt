@@ -34,6 +34,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.Role
@@ -54,8 +55,10 @@ import pm.bam.gamedeals.common.ui.components.DiscountBadge
 import pm.bam.gamedeals.common.ui.theme.GameDealsCustomTheme
 import pm.bam.gamedeals.common.ui.theme.GameDealsTheme
 import pm.bam.gamedeals.feature.account.generated.resources.Res
+import pm.bam.gamedeals.feature.account.generated.resources.account_followed_series_backlog
 import pm.bam.gamedeals.feature.account.generated.resources.account_followed_series_empty
 import pm.bam.gamedeals.feature.account.generated.resources.account_followed_series_game_image
+import pm.bam.gamedeals.feature.account.generated.resources.account_followed_series_owned
 import pm.bam.gamedeals.feature.account.generated.resources.account_followed_series_unfollow
 import pm.bam.gamedeals.feature.account.generated.resources.account_navigation_back
 import pm.bam.gamedeals.feature.account.generated.resources.account_section_followed_series
@@ -133,7 +136,7 @@ private fun FollowedSeriesContent(
                         verticalArrangement = Arrangement.spacedBy(GameDealsCustomTheme.spacing.medium),
                     ) {
                         items(state.items, key = { it.franchiseId }) { item ->
-                            FollowedSeriesCard(item, onGameClick, onUnfollow)
+                            FollowedSeriesCard(item, state.loggedIn, onGameClick, onUnfollow)
                         }
                     }
                 }
@@ -145,6 +148,7 @@ private fun FollowedSeriesContent(
 @Composable
 private fun FollowedSeriesCard(
     item: FollowedSeriesItem,
+    loggedIn: Boolean,
     onGameClick: (igdbGameId: Long) -> Unit,
     onUnfollow: (franchiseId: Long) -> Unit,
 ) {
@@ -163,11 +167,21 @@ private fun FollowedSeriesCard(
                     .padding(horizontal = GameDealsCustomTheme.spacing.large),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    text = item.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.weight(1f).semantics { heading() },
-                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = item.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.semantics { heading() },
+                    )
+                    // Ownership backlog — only meaningful when signed in and at least one entry is priceable.
+                    if (loggedIn && item.resolvableCount > 0) {
+                        Text(
+                            text = stringResource(Res.string.account_followed_series_backlog, item.ownedCount, item.resolvableCount),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
                 IconButton(onClick = { onUnfollow(item.franchiseId) }) {
                     Icon(
                         imageVector = Icons.Filled.Close,
@@ -206,7 +220,9 @@ private fun FollowedSeriesGameTile(game: FollowedSeriesGame, onGameClick: (igdbG
             modifier = Modifier
                 .fillMaxWidth()
                 .height(150.dp)
-                .clip(RoundedCornerShape(GameDealsCustomTheme.spacing.extraSmall)),
+                .clip(RoundedCornerShape(GameDealsCustomTheme.spacing.extraSmall))
+                // Owned entries are dimmed so the unowned backlog stands out.
+                .alpha(if (game.owned) 0.4f else 1f),
         )
         Text(
             text = game.title,
@@ -214,7 +230,14 @@ private fun FollowedSeriesGameTile(game: FollowedSeriesGame, onGameClick: (igdbG
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
-        if (game.onSale) {
+        if (game.owned) {
+            Text(
+                text = stringResource(Res.string.account_followed_series_owned),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.SemiBold,
+            )
+        } else if (game.onSale) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(GameDealsCustomTheme.spacing.extraSmall),
@@ -237,10 +260,12 @@ private val previewItems = persistentListOf(
         franchiseId = 1L,
         name = "Halo",
         games = persistentListOf(
-            FollowedSeriesGame(10L, "Halo: Combat Evolved", null, cutPercent = 75, priceDenominated = "€4.99"),
-            FollowedSeriesGame(11L, "Halo 2", null),
-            FollowedSeriesGame(12L, "Halo 3", null),
+            FollowedSeriesGame(10L, "Halo: Combat Evolved", null, itadGameId = "a", cutPercent = 75, priceDenominated = "€4.99"),
+            FollowedSeriesGame(11L, "Halo 2", null, itadGameId = "b"),
+            FollowedSeriesGame(12L, "Halo 3", null, itadGameId = "c", owned = true),
         ),
+        ownedCount = 1,
+        resolvableCount = 3,
     ),
     FollowedSeriesItem(franchiseId = 2L, name = "Half-Life"),
 )
@@ -250,7 +275,7 @@ private val previewItems = persistentListOf(
 private fun FollowedSeriesContentPreview() {
     GameDealsTheme {
         FollowedSeriesContent(
-            state = FollowedSeriesState(items = previewItems),
+            state = FollowedSeriesState(loggedIn = true, items = previewItems),
             onBack = {},
             onGameClick = {},
             onUnfollow = {},

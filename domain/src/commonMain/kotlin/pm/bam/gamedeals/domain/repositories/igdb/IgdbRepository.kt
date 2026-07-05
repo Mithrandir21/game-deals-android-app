@@ -4,10 +4,14 @@ import kotlinx.collections.immutable.ImmutableList
 import pm.bam.gamedeals.domain.models.IgdbGame
 import pm.bam.gamedeals.domain.models.IgdbTag
 import pm.bam.gamedeals.domain.models.IgdbTagFilter
+import pm.bam.gamedeals.domain.models.Release
 import pm.bam.gamedeals.domain.source.IgdbSource
 
 interface IgdbRepository {
     suspend fun fetchGameBySteamId(steamId: Int): IgdbGame?
+
+    /** Most-anticipated upcoming games ranked by IGDB hype, for the Home "coming soon" strip (#8). */
+    suspend fun fetchMostAnticipated(): List<Release>
     suspend fun fetchGameDetailsBySteamId(steamId: Int): IgdbGame?
     suspend fun fetchGameDetailsByIgdbId(igdbGameId: Long): IgdbGame?
     suspend fun fetchGameDetailsByTitle(title: String): IgdbGame?
@@ -33,6 +37,9 @@ internal class IgdbRepositoryImpl(
 
     override suspend fun fetchGameBySteamId(steamId: Int): IgdbGame? =
         igdbSource.fetchGameBySteamId(steamId)
+
+    override suspend fun fetchMostAnticipated(): List<Release> =
+        igdbSource.fetchMostAnticipated()
 
     override suspend fun fetchGameDetailsBySteamId(steamId: Int): IgdbGame? =
         igdbSource.fetchGameDetailsBySteamId(steamId)
