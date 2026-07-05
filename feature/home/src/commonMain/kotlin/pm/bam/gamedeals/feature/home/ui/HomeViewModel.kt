@@ -11,6 +11,7 @@ import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.toImmutableMap
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.BufferOverflow
@@ -191,7 +192,9 @@ internal class HomeViewModel(
                 val mostWaitlisted = async { section { statsRepository.getMostWaitlisted(LIMIT_STATS) } }
                 val mostCollected = async { section { statsRepository.getMostCollected(LIMIT_STATS) } }
                 val releases = async { section { loadReleases() } }
-                val mostAnticipated = async { section { igdbRepository.fetchMostAnticipated().take(LIMIT_ANTICIPATED) } }
+                // distinctBy title: the feed can repeat a title (editions/platforms) and the UI keys lazy
+                // items on title — a duplicate key would crash the Home tab. distinct before take to fill the limit.
+                val mostAnticipated = async { section { igdbRepository.fetchMostAnticipated().distinctBy { it.title }.take(LIMIT_ANTICIPATED) } }
                 val bundles = async { section { bundlesRepository.getBundles().take(LIMIT_BUNDLES) } }
                 val recommendations = async { section { recommendationsRepository.getRecommendations(LIMIT_RECOMMENDATIONS) } }
 
@@ -285,7 +288,9 @@ internal class HomeViewModel(
 
     private suspend fun loadReleases(): List<Release> {
         releasesRepository.refreshReleases()
-        return releasesRepository.observeReleases().first().take(LIMIT_RELEASES)
+        // distinctBy title: releases can repeat a title (same game across days/editions) and the UI keys
+        // lazy items on title — a duplicate key would crash the Home tab. distinct before take to fill the limit.
+        return releasesRepository.observeReleases().first().distinctBy { it.title }.take(LIMIT_RELEASES)
     }
 
     /** One batched best-price lookup over the ranked games' ids; best-effort (empty on failure). */
@@ -309,12 +314,17 @@ internal class HomeViewModel(
             )
         }.toImmutableList()
 
-    /** Runs a section's fetch best-effort: failures are logged and yield an empty (hidden) section. */
+    /** Runs a section's fetch best-effort: real failures are logged and yield an empty (hidden) section;
+     *  cancellation (region change re-triggers load(), or the VM is cleared) is rethrown, not logged. */
     private suspend fun <T> section(block: suspend () -> List<T>): ImmutableList<T> =
-        runCatching { block() }
-            .onFailure { error(logger, it) { "Home section failed" } }
-            .getOrElse { emptyList() }
-            .toImmutableList()
+        try {
+            block().toImmutableList()
+        } catch (ce: CancellationException) {
+            throw ce
+        } catch (t: Throwable) {
+            error(logger, t) { "Home section failed" }
+            persistentListOf()
+        }
 
     internal sealed interface HomeUiEvent {
         data class ShareDeal(val text: String) : HomeUiEvent

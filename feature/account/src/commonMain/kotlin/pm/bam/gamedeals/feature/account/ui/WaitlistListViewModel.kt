@@ -24,7 +24,7 @@ import pm.bam.gamedeals.domain.repositories.region.RegionRepository
 import pm.bam.gamedeals.domain.repositories.stores.StoresRepository
 import pm.bam.gamedeals.domain.repositories.waitlist.WaitlistRepository
 import pm.bam.gamedeals.logging.Logger
-import pm.bam.gamedeals.logging.error
+import pm.bam.gamedeals.logging.runCatchingLogged
 
 /** The available sort orders for the Waitlist "buy-decision dashboard". */
 internal enum class WaitlistSort {
@@ -141,8 +141,7 @@ internal class WaitlistListViewModel(
         refreshInFlight = true
         viewModelScope.launch {
             uiState.update { it.copy(refreshing = true) }
-            val failed = runCatching { waitlistRepository.refreshWaitlistDisplay() }
-                .onFailure { error(logger, it) }
+            val failed = runCatchingLogged(logger) { waitlistRepository.refreshWaitlistDisplay() }
                 .isFailure
             // On success the snapshot flow drives `loading` false via combine; on a failed *cold* load
             // (no cache) nothing re-emits, so clear the spinner here to avoid it spinning forever.

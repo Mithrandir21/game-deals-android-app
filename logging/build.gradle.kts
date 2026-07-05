@@ -6,6 +6,8 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(libs.koin.core)
+            // For runCatchingLogged's cancellation-safe guard (CancellationException).
+            implementation(libs.coroutines)
             // Sentry KMP — shared bridge for Android + iOS (SentryLoggingListener / configureSentryOptions).
             // The iOS klib's cinterop symbols resolve at app-link: iosApp.xcodeproj links Sentry-Cocoa via SPM,
             // pinned to the cocoa version this KMP release was built against (see gradle/libs.versions.toml).

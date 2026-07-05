@@ -178,11 +178,13 @@ internal fun hoursFromSeconds(seconds: Long): String = ((seconds + 1800) / 3600)
  * token we splice the scaled value back into. Returns null when playtime is missing/zero.
  * E.g. ("$59.99", 59.99, 540000) → "$0.40"; ("¥6800", 6800.0, 108000) → "¥227".
  */
+private val PRICE_TOKEN_REGEX = Regex("""\d+(\.\d+)?""")
+
 internal fun perHourDenominated(priceDenominated: String, priceValue: Double, playtimeSeconds: Long): String? {
     if (playtimeSeconds <= 0L || priceValue <= 0.0) return null
     val hours = playtimeSeconds / 3600.0
     val perHour = priceValue / hours
-    val match = Regex("""\d+(\.\d+)?""").find(priceDenominated) ?: return null
+    val match = PRICE_TOKEN_REGEX.find(priceDenominated) ?: return null
     val decimals = match.value.substringAfter('.', "").length
     val scaled = if (decimals == 0) {
         round(perHour).toLong().toString()

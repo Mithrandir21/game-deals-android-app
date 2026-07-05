@@ -20,7 +20,7 @@ import pm.bam.gamedeals.domain.repositories.ignored.IgnoredRepository
 import pm.bam.gamedeals.domain.repositories.stores.StoresRepository
 import pm.bam.gamedeals.domain.repositories.waitlist.WaitlistRepository
 import pm.bam.gamedeals.logging.Logger
-import pm.bam.gamedeals.logging.error
+import pm.bam.gamedeals.logging.runCatchingLogged
 
 /** Sort orders for the (lightweight, price-less) Collection list. */
 internal enum class CollectionSort {
@@ -112,8 +112,7 @@ internal class CollectionListViewModel(
         refreshInFlight = true
         viewModelScope.launch {
             uiState.update { it.copy(refreshing = true) }
-            val failed = runCatching { collectionRepository.refreshCollectionDisplay() }
-                .onFailure { error(logger, it) }
+            val failed = runCatchingLogged(logger) { collectionRepository.refreshCollectionDisplay() }
                 .isFailure
             // On success the snapshot flow drives `loading` false via combine; clear the spinner here for a
             // failed cold load (no cache) so it doesn't spin forever.

@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import pm.bam.gamedeals.domain.repositories.notes.NotesRepository
 import pm.bam.gamedeals.logging.Logger
-import pm.bam.gamedeals.logging.error
+import pm.bam.gamedeals.logging.runCatchingLogged
 
 /** A single noted game in the "My notes" list (#283). */
 @Immutable
@@ -45,8 +45,8 @@ internal class MyNotesViewModel(
 
     init {
         viewModelScope.launch {
-            val items = runCatching { notesRepository.getNotedGames() }
-                .getOrElse { error(logger, it); emptyList() }
+            val items = runCatchingLogged(logger) { notesRepository.getNotedGames() }
+                .getOrElse { emptyList() }
                 .map { NotesListItem(it.gameId, it.title, it.boxart, it.note) }
             uiState.update { it.copy(loading = false, items = items.toImmutableList()) }
         }

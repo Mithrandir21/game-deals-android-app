@@ -8,6 +8,7 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -151,7 +152,13 @@ internal class FollowedSeriesViewModel(
     fun refresh() {
         viewModelScope.launch {
             uiState.update { it.copy(refreshing = true) }
-            val onSale = runCatching { franchiseChecker.currentOnSale() }.getOrElse { error(logger, it); null }
+            val onSale = try {
+                franchiseChecker.currentOnSale()
+            } catch (ce: CancellationException) {
+                throw ce
+            } catch (t: Throwable) {
+                error(logger, t); null
+            }
             if (onSale != null) {
                 runCatching { snapshotStore.replace(onSale) }
                 snapshot.value = onSale.associate { it.igdbGameId to (it.cutPercent to it.priceDenominated) }
@@ -166,15 +173,28 @@ internal class FollowedSeriesViewModel(
 
     private suspend fun gamesFor(franchiseId: Long): List<FollowedSeriesGame> =
         gamesCache.getOrElse(franchiseId) {
-            val members = runCatching { igdbRepository.fetchFranchiseGames(franchiseId, GAMES_PER_FRANCHISE) }
-                .getOrElse { error(logger, it); emptyList() }
+            // Don't cache a transient failure: rethrow cancellation, and return (without writing the cache)
+            // on a real error so a network blip doesn't pin this franchise to "0 games" for the VM's lifetime.
+            val members = try {
+                igdbRepository.fetchFranchiseGames(franchiseId, GAMES_PER_FRANCHISE)
+            } catch (ce: CancellationException) {
+                throw ce
+            } catch (t: Throwable) {
+                error(logger, t); return emptyList()
+            }
             // Resolve each member to an ITAD id concurrently (Steam-appid bridge, 30-day cached) so we can
             // diff against the owned-games set. Non-Steam members resolve to null and are excluded from the count.
             coroutineScope {
                 members.map { game ->
                     async {
                         val itadId = game.steamAppId?.let { steamId ->
-                            runCatching { gamesRepository.findGameIdBySteamAppId(steamId, game.name) }.getOrNull()
+                            try {
+                                gamesRepository.findGameIdBySteamAppId(steamId, game.name)
+                            } catch (ce: CancellationException) {
+                                throw ce
+                            } catch (t: Throwable) {
+                                null
+                            }
                         }
                         FollowedSeriesGame(
                             igdbGameId = game.id,
