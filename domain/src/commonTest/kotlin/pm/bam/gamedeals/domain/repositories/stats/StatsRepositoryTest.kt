@@ -91,6 +91,24 @@ class StatsRepositoryTest {
         assertEquals(listOf(RankedGame("a", "A"), RankedGame("b", "B")), repo.getMostWaitlisted(limit = 2))
     }
 
+    @Test
+    fun omitting_the_limit_defaults_to_null_for_every_ranking() = runTest {
+        // Only getMostPopular() was previously called without a limit; exercise the no-arg default on all
+        // three so each forwards null (the whole ranking) to its source.
+        everySuspend { statsRankingsCacheDao.get(any(), country) } returns null
+        everySuspend { statsSource.fetchMostWaitlisted(null) } returns listOf(RankedGame("a", "A"))
+        everySuspend { statsSource.fetchMostCollected(null) } returns listOf(RankedGame("b", "B"))
+        everySuspend { statsSource.fetchMostPopular(null) } returns listOf(RankedGame("c", "C"))
+
+        assertEquals(listOf(RankedGame("a", "A")), repo.getMostWaitlisted())
+        assertEquals(listOf(RankedGame("b", "B")), repo.getMostCollected())
+        assertEquals(listOf(RankedGame("c", "C")), repo.getMostPopular())
+
+        verifySuspend(exactly(1)) { statsSource.fetchMostWaitlisted(null) }
+        verifySuspend(exactly(1)) { statsSource.fetchMostCollected(null) }
+        verifySuspend(exactly(1)) { statsSource.fetchMostPopular(null) }
+    }
+
     private fun entryFor(rankingType: String, ranking: List<RankedGame>, expires: Long) = StatsRankingsCacheEntry(
         rankingType = rankingType,
         country = country,

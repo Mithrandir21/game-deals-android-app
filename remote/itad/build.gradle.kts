@@ -34,5 +34,15 @@ kotlin {
             implementation(project(":testing"))
             implementation(libs.coroutines.testing)
         }
+
+        // JVM-host tests for the android-only OAuth redirect bus, which parses android.net.Uri (not
+        // available in commonTest) — Uri is stubbed with mockk, mirroring :domain's androidHostTest.
+        val androidHostTest by getting {
+            dependencies {
+                implementation(libs.junit)
+                implementation(libs.mockk)
+                implementation(libs.coroutines.testing)
+            }
+        }
     }
 }

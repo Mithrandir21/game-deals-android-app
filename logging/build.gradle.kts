@@ -26,6 +26,16 @@ kotlin {
         commonTest.dependencies {
             implementation(kotlin("test"))
         }
+
+        // JVM-host tests for the LoggingInterface listeners, which delegate to global SDK statics
+        // (android.util.Log, Sentry) that can't be faked in commonTest — intercepted with mockk, mirroring
+        // the androidHostTest approach in :domain (AndroidNotificationSchedulerTest).
+        val androidHostTest by getting {
+            dependencies {
+                implementation(libs.junit)
+                implementation(libs.mockk)
+            }
+        }
     }
 }
 
