@@ -31,6 +31,7 @@ import pm.bam.gamedeals.domain.models.DealsSortDirection
 import pm.bam.gamedeals.domain.models.DealsSortField
 import pm.bam.gamedeals.domain.models.ProductType
 import pm.bam.gamedeals.domain.models.RepoUpdateResult
+import pm.bam.gamedeals.domain.models.SavedSearch
 import pm.bam.gamedeals.domain.repositories.deals.DealsRepository
 import pm.bam.gamedeals.domain.repositories.games.GamesRepository
 import pm.bam.gamedeals.domain.repositories.ignored.IgnoredRepository
@@ -86,9 +87,16 @@ class DealsViewModelTest : MainDispatcherTest() {
         everySuspend { setDealsFilter(any()) } calls { (filter: DealsFilter) -> dealsFilterFlow.value = filter }
     }
 
+    // Real backing flow so saveSearch persists and observeSavedSearches re-derives (front-insert,
+    // replace-by-name), mirroring SearchHistoryRepositoryImpl closely enough for currentSearchSaved.
+    private val savedSearchesFlow = MutableStateFlow<List<SavedSearch>>(emptyList())
     private val searchHistoryRepository: SearchHistoryRepository = mock(MockMode.autoUnit) {
         every { observeRecentSearches() } returns flowOf(emptyList())
-        every { observeSavedSearches() } returns flowOf(emptyList())
+        every { observeSavedSearches() } returns savedSearchesFlow
+        everySuspend { saveSearch(any(), any(), any()) } calls { (name: String, query: String, filter: DealsFilter) ->
+            savedSearchesFlow.value = listOf(SavedSearch(name = name, query = query, filter = filter, addedAtMs = 0L)) +
+                savedSearchesFlow.value.filterNot { it.name.equals(name, ignoreCase = true) }
+        }
     }
 
     private val featureFlags = FakeFeatureFlags()
@@ -352,5 +360,62 @@ class DealsViewModelTest : MainDispatcherTest() {
         advanceUntilIdle()
 
         assertEquals(DealsViewModel.SearchResultsState.Idle, vm.searchResults.value)
+    }
+
+    @Test
+    fun currentSearchSaved_flips_true_after_saving_then_false_when_the_filter_changes() = runTest {
+        everySuspend { dealsRepository.getDeals(any()) } returns emptyList()
+
+        val vm = createViewModel()
+        advanceUntilIdle()
+        // Keep the WhileSubscribed flow hot so its combine actually recomputes.
+        val saved = vm.currentSearchSaved.observeEmissions(this.backgroundScope, testDispatcher)
+
+        // Blank query is never "saved".
+        assertFalse(saved.last())
+
+        vm.setSearchQuery("Halo")
+        advanceUntilIdle()
+        assertFalse(saved.last())
+
+        // Pinning the active query + current (empty) filter settles the CTA into the saved state.
+        vm.saveCurrentSearch()
+        advanceUntilIdle()
+        assertTrue(saved.last())
+
+        // Same query but a changed filter no longer matches the stored preset, re-exposing the CTA.
+        vm.setMinCut(50)
+        advanceUntilIdle()
+        assertFalse(saved.last())
+    }
+
+    @Test
+    fun saveCurrentSearch_persists_the_query_and_emits_SearchSaved() = runTest {
+        everySuspend { dealsRepository.getDeals(any()) } returns emptyList()
+
+        val vm = createViewModel()
+        advanceUntilIdle()
+        val events = vm.events.observeEmissions(this.backgroundScope, testDispatcher)
+
+        vm.setSearchQuery("  Halo  ")
+        vm.saveCurrentSearch()
+        advanceUntilIdle()
+
+        verifySuspend(exactly(1)) { searchHistoryRepository.saveSearch(name = "Halo", query = "Halo", filter = DealsFilter()) }
+        assertEquals(DealsViewModel.DealsUiEvent.SearchSaved, events.last())
+    }
+
+    @Test
+    fun saveCurrentSearch_is_a_no_op_for_a_blank_query() = runTest {
+        everySuspend { dealsRepository.getDeals(any()) } returns emptyList()
+
+        val vm = createViewModel()
+        advanceUntilIdle()
+
+        vm.saveCurrentSearch()
+        advanceUntilIdle()
+
+        verifySuspend(exactly(0)) { searchHistoryRepository.saveSearch(any(), any(), any()) }
+        assertFalse(vm.currentSearchSaved.value)
     }
 }

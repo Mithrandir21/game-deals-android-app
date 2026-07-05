@@ -170,6 +170,17 @@ internal class DealsViewModel(
     /** The raw title-search text; blank means browse mode (the sorted/filtered deals list). */
     val searchQuery: StateFlow<String> = searchQueryState.asStateFlow()
 
+    /**
+     * Whether the active search (its query text **and** current filter together) is already pinned as a
+     * saved preset (#6) — drives the "Save this search" CTA into a settled "Saved" state. Presets are keyed
+     * by query text, so changing the filter for the same query re-exposes the save affordance (letting the
+     * user re-pin it with the new filter). Blank query is never "saved".
+     */
+    val currentSearchSaved: StateFlow<Boolean> = combine(searchQueryState, filter, savedSearches) { query, activeFilter, saved ->
+        val trimmed = query.trim()
+        trimmed.isNotBlank() && saved.any { it.query.equals(trimmed, ignoreCase = true) && it.filter == activeFilter }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
     val searchResults: StateFlow<SearchResultsState>
         field = MutableStateFlow<SearchResultsState>(SearchResultsState.Idle)
 
@@ -288,7 +299,10 @@ internal class DealsViewModel(
     fun saveCurrentSearch() {
         val query = searchQueryState.value.trim()
         if (query.isBlank()) return
-        viewModelScope.launch { searchHistoryRepository.saveSearch(name = query, query = query, filter = filter.value) }
+        viewModelScope.launch {
+            searchHistoryRepository.saveSearch(name = query, query = query, filter = filter.value)
+            events.tryEmit(DealsUiEvent.SearchSaved)
+        }
     }
 
     /** Re-apply a saved preset's filter; the caller drives the query text (via the shared search controller). */
@@ -427,6 +441,7 @@ internal class DealsViewModel(
         data class ShareDeal(val text: String) : DealsUiEvent
         data object LoadMoreError : DealsUiEvent
         data object SignInRequired : DealsUiEvent
+        data object SearchSaved : DealsUiEvent
     }
 
     /** Result state for the overlaid title search; [Idle] means browse mode (no active query). */

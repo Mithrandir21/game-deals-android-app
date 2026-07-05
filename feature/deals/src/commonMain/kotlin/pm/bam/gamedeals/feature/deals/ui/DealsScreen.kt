@@ -31,6 +31,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BookmarkAdd
+import androidx.compose.material.icons.filled.BookmarkAdded
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material3.BottomSheetDefaults
@@ -158,6 +159,8 @@ import pm.bam.gamedeals.feature.deals.generated.resources.deals_search_recent_cl
 import pm.bam.gamedeals.feature.deals.generated.resources.deals_search_saved_label
 import pm.bam.gamedeals.feature.deals.generated.resources.deals_search_saved_remove
 import pm.bam.gamedeals.feature.deals.generated.resources.deals_search_save_action
+import pm.bam.gamedeals.feature.deals.generated.resources.deals_search_saved_state
+import pm.bam.gamedeals.feature.deals.generated.resources.deals_search_saved_confirmation
 import pm.bam.gamedeals.feature.deals.generated.resources.deals_search_no_results_label
 import pm.bam.gamedeals.feature.deals.generated.resources.deals_search_result_count
 import pm.bam.gamedeals.feature.deals.generated.resources.deals_search_result_row_description
@@ -218,8 +221,10 @@ internal fun DealsScreen(
     val discoverEnabled by viewModel.discoverEnabled.collectAsStateWithLifecycle()
     val recentSearches by viewModel.recentSearches.collectAsStateWithLifecycle()
     val savedSearches by viewModel.savedSearches.collectAsStateWithLifecycle()
+    val currentSearchSaved by viewModel.currentSearchSaved.collectAsStateWithLifecycle()
     val platformActions = LocalPlatformActions.current
     val loadMoreError = stringResource(Res.string.deals_screen_load_more_error_msg)
+    val searchSavedConfirmation = stringResource(Res.string.deals_search_saved_confirmation)
 
     var showFilters by rememberSaveable { mutableStateOf(false) }
 
@@ -235,6 +240,7 @@ internal fun DealsScreen(
             is DealsViewModel.DealsUiEvent.ShareDeal -> platformActions.share(event.text)
             DealsViewModel.DealsUiEvent.LoadMoreError -> snackbarHostState.showSnackbar(loadMoreError)
             DealsViewModel.DealsUiEvent.SignInRequired -> SignInPromptController.request()
+            DealsViewModel.DealsUiEvent.SearchSaved -> snackbarHostState.showSnackbar(searchSavedConfirmation)
         }
     }
 
@@ -252,6 +258,7 @@ internal fun DealsScreen(
         searchResults = searchResults,
         recentSearches = recentSearches,
         savedSearches = savedSearches,
+        searchSaved = currentSearchSaved,
         showFilters = showFilters,
         gamePeek = gamePeek,
         discoverEnabled = discoverEnabled,
@@ -310,6 +317,7 @@ internal fun DealsContent(
     searchResults: SearchResultsState = SearchResultsState.Idle,
     recentSearches: ImmutableList<String> = persistentListOf(),
     savedSearches: ImmutableList<SavedSearch> = persistentListOf(),
+    searchSaved: Boolean = false,
     showFilters: Boolean = false,
     gamePeek: GamePeekSheetData? = null,
     discoverEnabled: Boolean = false,
@@ -403,6 +411,7 @@ internal fun DealsContent(
                                 discoverEnabled = discoverEnabled,
                                 recentSearches = recentSearches,
                                 savedSearches = savedSearches,
+                                searchSaved = searchSaved,
                                 onShowFilters = { onShowFiltersChange(true) },
                                 onDiscover = onDiscover,
                                 onLoadMore = onLoadMore,
@@ -482,6 +491,7 @@ internal fun DealsContent(
                     discoverEnabled = discoverEnabled,
                     recentSearches = recentSearches,
                     savedSearches = savedSearches,
+                    searchSaved = searchSaved,
                     onShowFilters = { onShowFiltersChange(true) },
                     onDiscover = onDiscover,
                     onLoadMore = onLoadMore,
@@ -557,6 +567,7 @@ private fun DealsListPane(
     discoverEnabled: Boolean,
     recentSearches: ImmutableList<String>,
     savedSearches: ImmutableList<SavedSearch>,
+    searchSaved: Boolean,
     onShowFilters: () -> Unit,
     onDiscover: () -> Unit,
     onLoadMore: () -> Unit,
@@ -605,6 +616,7 @@ private fun DealsListPane(
                     collectionIds = collectionIds,
                     storesById = storesById,
                     errorMessage = errorMessage,
+                    searchSaved = searchSaved,
                     onSaveCurrentSearch = onSaveCurrentSearch,
                     onPeekGame = onPeekGame,
                 )
@@ -809,6 +821,7 @@ private fun SearchResultsBody(
     collectionIds: ImmutableSet<String>,
     storesById: Map<Int, Store>,
     errorMessage: String,
+    searchSaved: Boolean,
     onSaveCurrentSearch: () -> Unit,
     onPeekGame: (gameId: String, gameName: String, thumb: String?) -> Unit,
 ) {
@@ -845,15 +858,26 @@ private fun SearchResultsBody(
                         WindowInsets.navigationBars.only(WindowInsetsSides.Bottom).asPaddingValues().calculateBottomPadding(),
                 ),
             ) {
-                // "Save this search" pins the active query + current filter as a preset (#6).
+                // "Save this search" pins the active query + current filter as a preset (#6). Once that
+                // exact query+filter is pinned, the CTA settles into a non-interactive "Saved" state
+                // (removal stays on the saved-search chip's × in the browse state); changing the filter
+                // re-enables it so the user can re-pin the updated search.
                 item(key = "save-search", contentType = "save-search") {
                     TextButton(
                         onClick = onSaveCurrentSearch,
+                        enabled = !searchSaved,
                         modifier = Modifier.padding(horizontal = GameDealsCustomTheme.spacing.small),
                     ) {
-                        Icon(Icons.Filled.BookmarkAdd, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Icon(
+                            imageVector = if (searchSaved) Icons.Filled.BookmarkAdded else Icons.Filled.BookmarkAdd,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
                         Text(
-                            text = stringResource(Res.string.deals_search_save_action),
+                            text = stringResource(
+                                if (searchSaved) Res.string.deals_search_saved_state
+                                else Res.string.deals_search_save_action
+                            ),
                             modifier = Modifier.padding(start = GameDealsCustomTheme.spacing.small),
                         )
                     }
