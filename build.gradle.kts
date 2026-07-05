@@ -18,6 +18,7 @@ dependencies {
     kover(project(":app"))
     kover(project(":common"))
     kover(project(":common:ui"))
+    kover(project(":common:imaging"))
     kover(project(":logging"))
     kover(project(":testing"))
     kover(project(":remote"))
@@ -32,6 +33,8 @@ dependencies {
     kover(project(":feature:bundles"))
     kover(project(":feature:account"))
     kover(project(":feature:deals"))
+    kover(project(":feature:discover"))
+    kover(project(":feature:onboarding"))
 }
 
 // Modules whose connectedAndroidDeviceTest / connectedDebugAndroidTest outputs feed the parallel JaCoCo report. Add a module here when it gains an
