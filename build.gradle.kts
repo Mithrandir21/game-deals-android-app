@@ -24,6 +24,7 @@ dependencies {
     kover(project(":remote"))
     kover(project(":remote:gamerpower"))
     kover(project(":remote:itad"))
+    kover(project(":remote:igdb"))
     kover(project(":domain"))
     kover(project(":feature:store"))
     kover(project(":feature:game"))
