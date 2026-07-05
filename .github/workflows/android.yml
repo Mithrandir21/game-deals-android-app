@@ -45,6 +45,14 @@ jobs:
     - name: Build with Gradle
       run: ./gradlew --no-daemon build test
 
+    # Enforces the aggregated Kover coverage floor (LINE >= 30%, see
+    # RootCoverageConventionPlugin.COVERAGE_FLOOR_PERCENT). A ratchet against
+    # logic-test regression, not a target — raise it as coverage grows. Host
+    # tests already ran in the `test` step above, so koverVerify reuses their
+    # outputs rather than re-running them.
+    - name: Coverage Floor (Kover)
+      run: ./gradlew --no-daemon koverVerify
+
     # Compares the live composable stability state against the committed
     # `<module>/stability/<module>-debug.stability` baselines. Fails the
     # PR on any drift (e.g. a domain model lost `@Immutable`, a Composable
