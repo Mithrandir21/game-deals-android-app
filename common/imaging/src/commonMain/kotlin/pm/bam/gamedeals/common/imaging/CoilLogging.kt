@@ -1,6 +1,7 @@
 package pm.bam.gamedeals.common.imaging
 
 import coil3.network.HttpException
+import coil3.request.NullRequestDataException
 import coil3.util.Logger as CoilLogger
 import okio.IOException
 import pm.bam.gamedeals.logging.LogLevel
@@ -27,8 +28,15 @@ fun appCoilLogger(logger: Logger, debug: Boolean): CoilLogger = object : CoilLog
  * Maps a Coil log event to an app [LogLevel], downgrading transient image-load failures so they
  * don't reach Sentry as issues. Only genuine decode/bitmap bugs stay at [LogLevel.ERROR]:
  * - cancellations (request abandoned, e.g. navigated away) -> DEBUG (breadcrumb only)
+ * - null request data (the item simply has no artwork URL) -> DEBUG (breadcrumb only)
  * - HTTP (404 etc.) and IO/connectivity failures -> WARN (breadcrumb only)
  * - non-error levels pass through unchanged.
+ *
+ * [NullRequestDataException] is Coil's signal that `AsyncImage(model = null)` was composed — a routine
+ * data condition for records with no boxart/banner, not a defect. Coil already renders the request's
+ * `fallback`/`error` painter for it, so the user sees the intended placeholder; left at ERROR it would
+ * only manufacture Sentry noise. The type is Coil-internal (thrown solely by `RealImageLoader` when
+ * `request.data == NullRequestData`), so this arm cannot swallow null-argument failures from elsewhere.
  *
  * `okio.IOException` is Coil's multiplatform IO type — on the JVM it's a typealias to
  * `java.io.IOException`, so it still catches Ktor connectivity failures (UnknownHost/timeout) on Android.
@@ -37,6 +45,7 @@ internal fun coilLogLevel(level: CoilLogger.Level, throwable: Throwable?): LogLe
     if (level != CoilLogger.Level.Error) level.toAppLogLevel()
     else when (throwable) {
         is CancellationException -> LogLevel.DEBUG
+        is NullRequestDataException -> LogLevel.DEBUG
         is HttpException, is IOException -> LogLevel.WARN
         null -> LogLevel.WARN
         else -> LogLevel.ERROR
