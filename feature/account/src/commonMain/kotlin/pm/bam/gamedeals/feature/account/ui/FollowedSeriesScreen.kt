@@ -227,33 +227,49 @@ private fun FollowedSeriesGameTile(game: FollowedSeriesGame, onGameClick: (igdbG
         Text(
             text = game.title,
             style = MaterialTheme.typography.bodySmall,
+            // Always reserve two lines so a 1-line and a 2-line title take the same vertical space —
+            // otherwise the LazyRow's height changes as tiles scroll in and out.
+            minLines = 2,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.fillMaxWidth(),
         )
-        if (game.owned) {
-            Text(
-                text = stringResource(Res.string.account_followed_series_owned),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontWeight = FontWeight.SemiBold,
-            )
-        } else if (game.onSale) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(GameDealsCustomTheme.spacing.extraSmall),
-            ) {
-                game.cutPercent?.let { DiscountBadge(discountPercent = it) }
-                game.priceDenominated?.let { price ->
-                    Text(
-                        text = price,
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Bold,
-                    )
+        // Fixed height so owned / on-sale / neither tiles all take the same vertical space — the
+        // status line is the other thing that made this row's height wobble as tiles scrolled by.
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(SeriesTileStatusRowHeight),
+            contentAlignment = Alignment.CenterStart,
+        ) {
+            if (game.owned) {
+                Text(
+                    text = stringResource(Res.string.account_followed_series_owned),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            } else if (game.onSale) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(GameDealsCustomTheme.spacing.extraSmall),
+                ) {
+                    game.cutPercent?.let { DiscountBadge(discountPercent = it) }
+                    game.priceDenominated?.let { price ->
+                        Text(
+                            text = price,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    }
                 }
             }
         }
     }
 }
+
+// Tall enough for the tallest status occupant (a DiscountBadge: labelMedium + 2x extraSmall padding).
+private val SeriesTileStatusRowHeight = 24.dp
 
 private val previewItems = persistentListOf(
     FollowedSeriesItem(

@@ -128,7 +128,17 @@ internal fun IgdbGameTile(game: IgdbGame.IgdbSimilarGame, onClick: (Long) -> Uni
                 )
             }
         }
-        Text(text = game.name, style = MaterialTheme.typography.labelMedium, maxLines = 2, overflow = TextOverflow.Ellipsis, fontWeight = if (isCurrent) FontWeight.SemiBold else FontWeight.Normal)
+        // minLines = 2 always reserves two lines so a 1-line and a 2-line name take the same vertical
+        // space — otherwise the LazyRow's height changes as tiles scroll in and out.
+        Text(
+            text = game.name,
+            style = MaterialTheme.typography.labelMedium,
+            minLines = 2,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            fontWeight = if (isCurrent) FontWeight.SemiBold else FontWeight.Normal,
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }
 
