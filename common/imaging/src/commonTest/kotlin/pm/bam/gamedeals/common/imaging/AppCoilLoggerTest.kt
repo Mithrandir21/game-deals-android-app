@@ -1,5 +1,6 @@
 package pm.bam.gamedeals.common.imaging
 
+import coil3.request.NullRequestDataException
 import coil3.util.Logger as CoilLogger
 import okio.IOException
 import pm.bam.gamedeals.logging.LogLevel
@@ -65,6 +66,21 @@ class AppCoilLoggerTest {
         appCoilLogger(recorder, debug = false).log("coilTag", CoilLogger.Level.Error, "404", IOException("404"))
 
         assertEquals(LogLevel.WARN, recorder.level)         // IO failure -> breadcrumb, not issue
+    }
+
+    /**
+     * Reproduces the exact event shape Coil emits for `AsyncImage(model = null)` — `RealImageLoader.onError`
+     * logs "🚨 Failed - null" at [CoilLogger.Level.Error] with a [NullRequestDataException]. It must land as
+     * a breadcrumb, never a Sentry issue.
+     */
+    @Test
+    fun log_downgrades_null_model_load_to_debug() {
+        val recorder = RecordingLogger()
+
+        appCoilLogger(recorder, debug = false)
+            .log("RealImageLoader", CoilLogger.Level.Error, "🚨 Failed - null", NullRequestDataException())
+
+        assertEquals(LogLevel.DEBUG, recorder.level)        // absent artwork -> breadcrumb, not issue
     }
 
     @Test

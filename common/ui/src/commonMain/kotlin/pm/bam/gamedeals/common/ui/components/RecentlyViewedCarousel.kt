@@ -154,9 +154,14 @@ private fun RecentlyViewedTile(game: RecentlyViewedGame, onOpen: () -> Unit, onR
         Text(
             text = game.title,
             style = MaterialTheme.typography.bodySmall,
+            // Always reserve two lines so a 1-line and a 2-line title take the same vertical space —
+            // otherwise the LazyRow's height changes as tiles scroll in and out.
+            minLines = 2,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.clearAndSetSemantics { },
+            modifier = Modifier
+                .fillMaxWidth()
+                .clearAndSetSemantics { },
         )
     }
 }

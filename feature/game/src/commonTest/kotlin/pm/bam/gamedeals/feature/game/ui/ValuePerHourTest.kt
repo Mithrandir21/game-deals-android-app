@@ -4,40 +4,45 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
+/**
+ * Names here avoid backticks-with-spaces: `commonTest` is part of the `test` source-set tree, so these
+ * classes are also dexed into the `androidDeviceTest` APK, and D8 rejects spaces in method names below
+ * DEX 040 (minSdk 35). The rest of this module's tests already use this style.
+ */
 class ValuePerHourTest {
 
     @Test
-    fun `scales a prefix-symbol price to two decimals`() {
+    fun scales_a_prefix_symbol_price_to_two_decimals() {
         // $59.99 over 30h (108000s) → $2.00/h
         assertEquals("$2.00", perHourDenominated("$59.99", 59.99, 108_000))
     }
 
     @Test
-    fun `sub-unit per-hour keeps two decimals`() {
+    fun sub_unit_per_hour_keeps_two_decimals() {
         // €40.00 over 100h (360000s) → €0.40/h
         assertEquals("€0.40", perHourDenominated("€40.00", 40.0, 360_000))
     }
 
     @Test
-    fun `zero-decimal currency stays whole`() {
+    fun zero_decimal_currency_stays_whole() {
         // ¥6800 over 30h (108000s) → ¥227/h (no minor unit)
         assertEquals("¥227", perHourDenominated("¥6800", 6800.0, 108_000))
     }
 
     @Test
-    fun `trailing currency code is preserved`() {
+    fun trailing_currency_code_is_preserved() {
         // "40.00 PLN" over 100h → "0.40 PLN"
         assertEquals("0.40 PLN", perHourDenominated("40.00 PLN", 40.0, 360_000))
     }
 
     @Test
-    fun `null when playtime missing or zero`() {
+    fun null_when_playtime_missing_or_zero() {
         assertNull(perHourDenominated("$59.99", 59.99, 0))
         assertNull(perHourDenominated("$59.99", 59.99, -1))
     }
 
     @Test
-    fun `null for free games`() {
+    fun null_for_free_games() {
         assertNull(perHourDenominated("$0.00", 0.0, 108_000))
     }
 }

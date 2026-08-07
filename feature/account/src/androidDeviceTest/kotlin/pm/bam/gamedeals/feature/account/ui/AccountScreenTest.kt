@@ -2,10 +2,15 @@ package pm.bam.gamedeals.feature.account.ui
 
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -75,7 +80,7 @@ class AccountScreenTest {
     fun followedSeriesRowNavigates() {
         setContent()
 
-        composeTestRule.onNodeWithText(labels.followedSeries).performClick()
+        rowWithText(labels.followedSeries).performClick()
 
         verify(exactly = 1) { onOpenFollowedSeries() }
     }
@@ -84,7 +89,7 @@ class AccountScreenTest {
     fun howItWorksRowReplaysOnboarding() {
         setContent()
 
-        composeTestRule.onNodeWithText(labels.howItWorks).performClick()
+        rowWithText(labels.howItWorks).performClick()
 
         verify(exactly = 1) { onReplayOnboarding() }
     }
@@ -93,7 +98,7 @@ class AccountScreenTest {
     fun matureToggleDispatchesOptIn() {
         setContent()
 
-        composeTestRule.onNodeWithContentDescription(labels.matureSwitch).performClick()
+        rowWith(hasContentDescription(labels.matureSwitch)).performClick()
 
         verify(exactly = 1) { viewModel.onSetMatureOptIn(true) }
     }
@@ -102,12 +107,25 @@ class AccountScreenTest {
     fun regionRowOpensPickerAndSelectsCountry() {
         setContent()
 
-        composeTestRule.onNodeWithText(labels.region).performClick()
+        rowWithText(labels.region).performClick()
         // "United Kingdom" appears only inside the opened picker (US is the selected subtitle), so it's unambiguous.
         composeTestRule.onNodeWithText(UK.name).performClick()
 
         verify(exactly = 1) { viewModel.onCountrySelected(UK) }
     }
+
+    /**
+     * The hub's rows live in a `LazyColumn`, which doesn't compose off-screen items — so a row below the
+     * fold can't be matched at all on shorter screens, and `performScrollTo` can't help (it needs an
+     * existing node). Scroll the list to the row first, then match it. The hub is the only scrollable on
+     * screen, so it's addressable without a testTag, consistent with the rest of the suite.
+     */
+    private fun rowWith(matcher: SemanticsMatcher): SemanticsNodeInteraction {
+        composeTestRule.onNode(hasScrollAction()).performScrollToNode(matcher)
+        return composeTestRule.onNode(matcher)
+    }
+
+    private fun rowWithText(label: String): SemanticsNodeInteraction = rowWith(hasText(label))
 
     private data class Labels(
         val signIn: String,
