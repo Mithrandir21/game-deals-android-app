@@ -24,6 +24,7 @@ import pm.bam.gamedeals.common.ui.PreviewDeal
 import pm.bam.gamedeals.common.ui.deal.GamePeekSheetData
 import pm.bam.gamedeals.common.ui.theme.GameDealsTheme
 import pm.bam.gamedeals.domain.models.DealsFilter
+import pm.bam.gamedeals.domain.models.SavedSearch
 import pm.bam.gamedeals.domain.models.Store
 import pm.bam.gamedeals.feature.deals.generated.resources.Res
 import pm.bam.gamedeals.feature.deals.generated.resources.deals_discover_by_tag
@@ -62,6 +63,11 @@ class DealsScreenTest {
         every { viewModel.selectedShops } returns MutableStateFlow<ImmutableSet<Int>>(persistentSetOf())
         every { viewModel.filter } returns MutableStateFlow(DealsFilter())
         every { viewModel.searchQuery } returns MutableStateFlow("")
+        // The relaxed mock returns a generic proxy for anything unstubbed, which the screen then casts
+        // to ImmutableList — so every flow DealsScreen reads has to be stubbed, not just some.
+        every { viewModel.recentSearches } returns MutableStateFlow<ImmutableList<String>>(persistentListOf())
+        every { viewModel.savedSearches } returns MutableStateFlow<ImmutableList<SavedSearch>>(persistentListOf())
+        every { viewModel.currentSearchSaved } returns MutableStateFlow(false)
         every { viewModel.searchResults } returns MutableStateFlow<SearchResultsState>(SearchResultsState.Idle)
         every { viewModel.gamePeek } returns MutableStateFlow<GamePeekSheetData?>(null)
         every { viewModel.discoverEnabled } returns MutableStateFlow(false)

@@ -51,6 +51,11 @@ class DealsFilterSheetTest {
         every { viewModel.selectedShops } returns MutableStateFlow(persistentSetOf())
         every { viewModel.filter } returns MutableStateFlow(DealsFilter())
         every { viewModel.searchQuery } returns MutableStateFlow("")
+        // The relaxed mock returns a generic proxy for anything unstubbed, which the screen then casts
+        // to ImmutableList — so every flow DealsScreen reads has to be stubbed, not just some.
+        every { viewModel.recentSearches } returns MutableStateFlow(persistentListOf())
+        every { viewModel.savedSearches } returns MutableStateFlow(persistentListOf())
+        every { viewModel.currentSearchSaved } returns MutableStateFlow(false)
         every { viewModel.searchResults } returns MutableStateFlow(SearchResultsState.Idle)
         every { viewModel.gamePeek } returns MutableStateFlow(null)
         every { viewModel.discoverEnabled } returns MutableStateFlow(false)
