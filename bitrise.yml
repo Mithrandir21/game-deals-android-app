@@ -114,16 +114,17 @@ workflows:
       Play rejects a duplicate versionCode.
 
       Set $PROMOTE_BUILD_SLUG to the `release-android` build being promoted (the last path segment of
-      its Bitrise build URL). The fetch step pulls that build's archived AAB + mapping over the
-      Bitrise API and checks out the tag it was built from, so the Play release notes match the
-      binary. Requires a Bitrise personal access token in Secrets as $BITRISE_API_TOKEN.
+      its Bitrise build URL). The fetch step pulls that build's archived AAB over the Bitrise API and
+      checks out the tag it was built from, so the Play release notes match the binary. No mapping is
+      re-uploaded — see the comment on the deploy step below. Requires a Bitrise personal access
+      token in Secrets as $BITRISE_API_TOKEN.
 
       Simplest path remains the Play Console "Promote release" button (Internal -> Production) with
       the staged-rollout %; this workflow is the CLI equivalent.
     steps:
     - git-clone@8: {}
     - script@1:
-        title: Fetch the promoted build's AAB + mapping
+        title: Fetch the promoted build's AAB
         inputs:
         - content: |-
             #!/usr/bin/env bash
@@ -164,7 +165,6 @@ workflows:
             }
 
             fetch '\.aab$' app-release.aab
-            fetch 'mapping\.txt$' mapping.txt
 
             # git-clone has no tag to check out on a manually started build, so it lands on the
             # default branch. Move to the promoted tag or Play gets whatever whatsnew/ says today
@@ -175,7 +175,6 @@ workflows:
             fi
 
             envman add --key PROMOTE_AAB_PATH --value "$dest/app-release.aab"
-            envman add --key PROMOTE_MAPPING_PATH --value "$dest/mapping.txt"
     - google-play-deploy@3:
         title: Deploy to Play Store (production, 10% staged)
         inputs:
@@ -185,7 +184,11 @@ workflows:
         - track: production
         - status: inProgress
         - user_fraction: '0.1'
-        - mapping_file: "$PROMOTE_MAPPING_PATH"
+        # No mapping_file on purpose: Play already holds the R8 mapping bound to this bundle's
+        # versionCode from the internal upload, so re-uploading it here is redundant. It is also
+        # actively risky — release-android archives two mapping files (only the timestamped one is
+        # the $BITRISE_MAPPING_PATH that was actually deployed), and they share a pg_map_id, so
+        # picking the wrong one uploads cleanly and quietly breaks production deobfuscation.
         - whatsnews_dir: "$BITRISE_SOURCE_DIR/whatsnew"
     meta:
       bitrise.io:
