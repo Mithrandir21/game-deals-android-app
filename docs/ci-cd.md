@@ -125,13 +125,21 @@ rest:
 | Step | Purpose |
 |---|---|
 | `git-clone` | Lands on the default branch — a manually started build has no tag to check out. |
-| Script — **fetch AAB + mapping** | Reads the build over the Bitrise API (`$BITRISE_API_TOKEN`), refuses it unless `status_text` is `success`, downloads the archived `*.aab` and `mapping.txt` into `promote-artifacts/`, checks out the tag that build was made from, and publishes `PROMOTE_AAB_PATH` / `PROMOTE_MAPPING_PATH` via `envman`. |
+| Script — **fetch the AAB** | Reads the build over the Bitrise API (`$BITRISE_API_TOKEN`), refuses it unless `status_text` is `success`, downloads the archived `*.aab` into `promote-artifacts/`, checks out the tag that build was made from, and publishes `PROMOTE_AAB_PATH` via `envman`. |
 | `google-play-deploy` | Uploads that exact AAB to `production` at 10%. |
 
 Two guards worth knowing. The **success check** exists because a failed run can still have archived
 artifacts, and those are exactly the ones that never passed internal QA. The **tag checkout** exists
 because `whatsnews_dir` is read from the working copy: without it, Play would get whatever
 `whatsnew/` says on the default branch today rather than the notes that shipped with this binary.
+
+**No mapping is uploaded during promotion**, deliberately. Play already holds the R8 mapping bound to
+that bundle's `versionCode` from the internal upload, so re-uploading is redundant — and it is a live
+hazard, because `release-android` archives *two* mapping artifacts (`app-mapping.txt` and a
+timestamped `app-mapping-<ts>.txt`). Only the timestamped one is the `$BITRISE_MAPPING_PATH` that was
+actually deployed; both carry the same `pg_map_id`, so uploading the wrong one succeeds silently and
+leaves production stack traces deobfuscating incorrectly. Why the build emits two has not been run to
+ground — the Sentry Gradle plugin writing a modified copy is the leading guess, not a verified cause.
 
 The dead-simple alternative is still the Play Console **"Promote release"** button, which does the
 same thing without a token.
@@ -173,7 +181,7 @@ it's independent of the `local.properties`-vs-env signing branch. Bitrise sets t
 | `VERSION_NAME`, `VERSION_CODE` | Gradle version | Computed in the `release-android` derive-version step |
 | `BITRISE_API_TOKEN` | `promote-production` — reads the promoted build and its artifacts over the Bitrise API | Bitrise **Secrets** (personal access token, Bitrise → Profile → Security → API tokens) |
 | `PROMOTE_BUILD_SLUG` | `promote-production` — which `release-android` build to promote | Set per-run when starting the workflow |
-| `PROMOTE_AAB_PATH`, `PROMOTE_MAPPING_PATH` | `google-play-deploy` in `promote-production` | Published by that workflow's fetch step |
+| `PROMOTE_AAB_PATH` | `google-play-deploy` in `promote-production` | Published by that workflow's fetch step |
 
 Locally, the same `RELEASE_*` / `IGDB_*` / `ITAD_*` values, plus `sentryDsn`, come from `local.properties`
 (gitignored), and the keystore from `upload_keystore.jks` at the repo root (gitignored). Nothing sensitive
