@@ -118,9 +118,23 @@ build verified locally — no Bitrise-specific signing/versioning magic.
 Triggered by hand after internal QA. It uploads the **already-built** AAB to the `production` track at
 a 10% staged rollout (`user_fraction: "0.1"`); bump to 100% in Play Console after watching vitals.
 
-It deliberately **does not rebuild** — see §4. Set `PROMOTE_AAB_PATH` / `PROMOTE_MAPPING_PATH` to the
-artifacts archived by the matching `release-android` run. The dead-simple alternative is the Play
-Console **"Promote release"** button, which does the same thing.
+It deliberately **does not rebuild** — see §4. Set **`PROMOTE_BUILD_SLUG`** to the `release-android`
+build you are promoting (the last path segment of its Bitrise build URL) and the fetch step does the
+rest:
+
+| Step | Purpose |
+|---|---|
+| `git-clone` | Lands on the default branch — a manually started build has no tag to check out. |
+| Script — **fetch AAB + mapping** | Reads the build over the Bitrise API (`$BITRISE_API_TOKEN`), refuses it unless `status_text` is `success`, downloads the archived `*.aab` and `mapping.txt` into `promote-artifacts/`, checks out the tag that build was made from, and publishes `PROMOTE_AAB_PATH` / `PROMOTE_MAPPING_PATH` via `envman`. |
+| `google-play-deploy` | Uploads that exact AAB to `production` at 10%. |
+
+Two guards worth knowing. The **success check** exists because a failed run can still have archived
+artifacts, and those are exactly the ones that never passed internal QA. The **tag checkout** exists
+because `whatsnews_dir` is read from the working copy: without it, Play would get whatever
+`whatsnew/` says on the default branch today rather than the notes that shipped with this binary.
+
+The dead-simple alternative is still the Play Console **"Promote release"** button, which does the
+same thing without a token.
 
 ---
 
@@ -157,6 +171,9 @@ it's independent of the `local.properties`-vs-env signing branch. Bitrise sets t
 | `$BITRISEIO_ANDROID_KEYSTORE_URL` | Keystore download | Published by Bitrise **Code Signing** tab |
 | `$BITRISEIO_SERVICE_ACCOUNT_JSON_KEY_URL` | Play upload auth | Published by a Bitrise **Generic File Storage** secret |
 | `VERSION_NAME`, `VERSION_CODE` | Gradle version | Computed in the `release-android` derive-version step |
+| `BITRISE_API_TOKEN` | `promote-production` — reads the promoted build and its artifacts over the Bitrise API | Bitrise **Secrets** (personal access token, Bitrise → Profile → Security → API tokens) |
+| `PROMOTE_BUILD_SLUG` | `promote-production` — which `release-android` build to promote | Set per-run when starting the workflow |
+| `PROMOTE_AAB_PATH`, `PROMOTE_MAPPING_PATH` | `google-play-deploy` in `promote-production` | Published by that workflow's fetch step |
 
 Locally, the same `RELEASE_*` / `IGDB_*` / `ITAD_*` values, plus `sentryDsn`, come from `local.properties`
 (gitignored), and the keystore from `upload_keystore.jks` at the repo root (gitignored). Nothing sensitive
@@ -171,7 +188,8 @@ generate the mapping and skip the upload.
 - **Code Signing** tab: upload `upload_keystore.jks` → publishes `$BITRISEIO_ANDROID_KEYSTORE_URL`.
 - **Secrets**: the `RELEASE_*`, `IGDB_*`, `ITAD_*`, and `SENTRY_*` values from the table above. The
   `SENTRY_AUTH_TOKEN` needs `project:releases` (org/project-write) scope; create it at Sentry → Settings
-  → Auth Tokens.
+  → Auth Tokens. Add `BITRISE_API_TOKEN` too (Bitrise → Profile → Security → API tokens) — only
+  `promote-production` reads it, so it can wait until the first production promotion.
 - **Generic File Storage**: the Play service-account JSON → `$BITRISEIO_SERVICE_ACCOUNT_JSON_KEY_URL`.
 - **Stack**: Linux + Android (no macOS lane while iOS is deferred → lower cost).
 - Connect the GitHub repo. Add the `activate-ssh-key` step's `SSH_RSA_PRIVATE_KEY` only if private.
@@ -201,8 +219,8 @@ generate the mapping and skip the upload.
 5. QA from internal (install; sanity-check signing + that IGDB/ITAD keys work at runtime).
 6. Promote to production, either:
    - Play Console → release → **Promote release** (Internal → Production), set rollout %; or
-   - Bitrise `promote-production` (manual) with `PROMOTE_AAB_PATH` / `PROMOTE_MAPPING_PATH` set to the
-     archived artifacts — ships at 10% staged.
+   - Bitrise `promote-production` (manual) with `PROMOTE_BUILD_SLUG` set to the `release-android`
+     build being promoted — ships at 10% staged.
 7. Bump the rollout to 100% in Play Console after monitoring vitals.
 
 ---
