@@ -113,12 +113,69 @@ workflows:
       that was vetted on internal — never a rebuild, because a rebuilt AAB is a different binary and
       Play rejects a duplicate versionCode.
 
-      Simplest path is the Play Console "Promote release" button (Internal -> Production) with the
-      staged-rollout %. This workflow is the CLI equivalent: download the AAB/mapping archived by the
-      matching `release-android` run (Bitrise build > Apps & Artifacts) and set $PROMOTE_AAB_PATH /
-      $PROMOTE_MAPPING_PATH to their local paths before running.
+      Set $PROMOTE_BUILD_SLUG to the `release-android` build being promoted (the last path segment of
+      its Bitrise build URL). The fetch step pulls that build's archived AAB + mapping over the
+      Bitrise API and checks out the tag it was built from, so the Play release notes match the
+      binary. Requires a Bitrise personal access token in Secrets as $BITRISE_API_TOKEN.
+
+      Simplest path remains the Play Console "Promote release" button (Internal -> Production) with
+      the staged-rollout %; this workflow is the CLI equivalent.
     steps:
     - git-clone@8: {}
+    - script@1:
+        title: Fetch the promoted build's AAB + mapping
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -euo pipefail
+
+            : "${PROMOTE_BUILD_SLUG:?set PROMOTE_BUILD_SLUG to the release-android build being promoted (last path segment of its build URL)}"
+            : "${BITRISE_API_TOKEN:?add a Bitrise personal access token to Secrets as BITRISE_API_TOKEN}"
+
+            api="https://api.bitrise.io/v0.1/apps/$BITRISE_APP_SLUG"
+            auth=(-H "Authorization: $BITRISE_API_TOKEN")
+
+            # Refuse anything but a green build: a failed run can still have archived artifacts, and
+            # those are precisely the ones that never passed internal QA.
+            build=$(curl -fsSL "${auth[@]}" "$api/builds/$PROMOTE_BUILD_SLUG")
+            status=$(printf '%s' "$build" | jq -r '.data.status_text')
+            tag=$(printf '%s' "$build" | jq -r '.data.tag // empty')
+            if [[ "$status" != "success" ]]; then
+              echo "ERROR: build $PROMOTE_BUILD_SLUG is '$status', not 'success' — refusing to promote." >&2
+              exit 1
+            fi
+            echo "Promoting build $PROMOTE_BUILD_SLUG (tag: ${tag:-none})"
+
+            artifacts=$(curl -fsSL "${auth[@]}" "$api/builds/$PROMOTE_BUILD_SLUG/artifacts")
+            dest="$BITRISE_SOURCE_DIR/promote-artifacts"
+            mkdir -p "$dest"
+
+            # $1 = regex matching the artifact title, $2 = local filename to save it as.
+            fetch() {
+              local slug url
+              slug=$(printf '%s' "$artifacts" | jq -r --arg p "$1" 'first(.data[] | select(.title | test($p)) | .slug) // empty')
+              if [[ -z "$slug" ]]; then
+                echo "ERROR: build $PROMOTE_BUILD_SLUG has no artifact matching /$1/." >&2
+                exit 1
+              fi
+              url=$(curl -fsSL "${auth[@]}" "$api/builds/$PROMOTE_BUILD_SLUG/artifacts/$slug" | jq -r '.data.expiring_download_url')
+              curl -fsSL "$url" -o "$dest/$2"
+              [[ -s "$dest/$2" ]] || { echo "ERROR: downloaded $2 is empty." >&2; exit 1; }
+            }
+
+            fetch '\.aab$' app-release.aab
+            fetch 'mapping\.txt$' mapping.txt
+
+            # git-clone has no tag to check out on a manually started build, so it lands on the
+            # default branch. Move to the promoted tag or Play gets whatever whatsnew/ says today
+            # rather than the notes that shipped with this binary.
+            if [[ -n "$tag" ]]; then
+              git -C "$BITRISE_SOURCE_DIR" fetch --depth 1 origin "refs/tags/$tag:refs/tags/$tag"
+              git -C "$BITRISE_SOURCE_DIR" checkout -q "refs/tags/$tag"
+            fi
+
+            envman add --key PROMOTE_AAB_PATH --value "$dest/app-release.aab"
+            envman add --key PROMOTE_MAPPING_PATH --value "$dest/mapping.txt"
     - google-play-deploy@3:
         title: Deploy to Play Store (production, 10% staged)
         inputs:
