@@ -8,12 +8,16 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.TextContent
 import io.ktor.http.headersOf
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import pm.bam.gamedeals.domain.models.Country
@@ -678,15 +682,32 @@ class ItadSourceImplTest {
 
     @Test
     fun itadHttpClient_caps_simultaneous_in_flight_requests() = runTest {
+        // MockEngine runs the handler on the engine's own (multi-threaded) dispatcher, not runTest's
+        // scheduler, so these counters are touched from several threads at once — guard every
+        // read-modify-write. Unsynchronized `inFlight++` lets two threads both read 0 and write 1,
+        // which silently caps maxInFlight at 1 and fails the assertion on a busy CI machine.
+        val counters = Mutex()
         var inFlight = 0
         var maxInFlight = 0
         var handled = 0
+        // Completed once two requests sit inside the handler together. Holding the first request
+        // until a second joins reaches the overlap by rendezvous rather than by out-waiting a fixed
+        // delay, which is what made this timing-dependent across machines.
+        val bothInFlight = CompletableDeferred<Unit>()
         val engine = MockEngine { _ ->
-            inFlight++
-            maxInFlight = maxOf(maxInFlight, inFlight)
-            delay(100) // hold the "connection" open so overlap is observable
-            inFlight--
-            handled++
+            counters.withLock {
+                inFlight++
+                maxInFlight = maxOf(maxInFlight, inFlight)
+                if (inFlight == 2) bothInFlight.complete(Unit)
+            }
+            // Bounded wait: if the limiter wrongly serialized the calls nobody ever joins, and the
+            // timeout lets the test fail on maxInFlight below instead of hanging until runTest dies.
+            // Kept short — every one of the five requests pays it in that failure case.
+            withTimeoutOrNull(2.seconds) { bothInFlight.await() }
+            counters.withLock {
+                inFlight--
+                handled++
+            }
             respond(
                 content = SHOPS_BODY,
                 status = HttpStatusCode.OK,
