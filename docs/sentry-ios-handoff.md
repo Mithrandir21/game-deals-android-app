@@ -6,8 +6,8 @@
 > the same reason). See [What's verified](#whats-verified) and [Remaining (secret-gated)](#remaining-secret-gated).
 
 ## TL;DR of what was wired
-1. **sentry-cocoa linked via SPM**, pinned to **8.58.2** (the exact cocoa version the KMP SDK 0.26.0 was compiled
-   against). Product: **`Sentry-Dynamic`** (auto-embedded by SPM). `iosApp/iosApp.xcodeproj`.
+1. **sentry-cocoa linked via SPM**, pinned to **8.58.2** (the exact cocoa version the KMP SDK is compiled
+   against — 0.26.0 and 0.27.0 alike; the project is now on 0.27.0). Product: **`Sentry-Dynamic`** (auto-embedded by SPM). `iosApp/iosApp.xcodeproj`.
 2. **DSN plumbing**: `SENTRY_DSN` in `Secrets.xcconfig` (+ `.template`) → `SentryDsn` in `Info.plist` → read at
    runtime via the existing `infoPlistString(...)`.
 3. **`startSentry()`** in `MainViewController.kt` (iosMain) calls the shared `configureSentryOptions(...)`; it is
@@ -16,10 +16,11 @@
 4. **dSYM upload** Run Script build phase (env- + sentry-cli-guarded; uploads only in CI where the secrets exist).
 
 ## Key decisions (deviations from the original plan, with rationale)
-- **No `sentry-kmp` version bump.** The original note suggested `0.26.0 → 0.27.0`. Verified against the SDK's
-  `buildSrc/Config.kt`: **both 0.26.0 and 0.27.0 pin sentry-cocoa `8.58.2`** — the only difference is the
-  Android-side sentry-java version. Bumping would needlessly re-touch the already-verified Android path, so we
-  kept **0.26.0** and pinned SPM to the matching **8.58.2**. The lockstep is documented in `gradle/libs.versions.toml`.
+- **The `sentry-kmp` version is decoupled from the SPM pin.** Verified against the SDK's `buildSrc/Config.kt`:
+  **both 0.26.0 and 0.27.0 pin sentry-cocoa `8.58.2`** — the only difference is the Android-side sentry-java
+  version. This doc was originally written at 0.26.0; the SDK-37 dependency sweep moved it to **0.27.0**, which
+  required no SPM change because the cocoa pin is identical. The lockstep is documented in
+  `gradle/libs.versions.toml` — re-check `Config.kt` before any future `sentry-kmp` bump.
 - **`Sentry-Dynamic`, not `Sentry`.** The `Sentry` SPM product is a *static* xcframework; `Sentry-Dynamic` is the
   *dynamic* one. Our `ComposeApp` framework is static (`isStatic = true`). The dynamic Sentry product is what the
   official KMP SPM sample uses, is auto-embedded by SPM, and avoids the `-ObjC`/static-category linker pitfalls —
@@ -79,7 +80,7 @@ line was added to the committed `Secrets.xcconfig.template`.
 ## Reference — files in play
 | File | Role |
 |---|---|
-| `gradle/libs.versions.toml` | `sentry-kmp = 0.26.0`; lockstep note (↔ sentry-cocoa 8.58.2) |
+| `gradle/libs.versions.toml` | `sentry-kmp = 0.27.0`; lockstep note (↔ sentry-cocoa 8.58.2) |
 | `logging/build.gradle.kts` | Sentry KMP dep in commonMain |
 | `logging/src/commonMain/.../SentryConfig.kt` | shared `configureSentryOptions()` — called from both platforms |
 | `logging/src/iosMain/.../di/LoggingIosModule.kt` | registers the `SentryLoggingListener` bridge for iOS |

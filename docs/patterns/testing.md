@@ -52,14 +52,14 @@ class MyViewModelTest : MainDispatcherTest() {
 
 **Related lessons.** L-2026-05-01-07, L-2026-05-02-05
 
-### Mokkery 3.3.0 in commonTest
+### Mokkery 3.4.2 in commonTest
 
 **Status:** established
 **First documented:** 2026-05-18   **Last verified:** 2026-05-18 @ 34b01013
 **Coverage:** all commonTest mocks; androidHostTest where Native portability isn't required
 
 **The pattern.**
-Tests in `commonTest` (and androidHostTest) use Mokkery 3.3.0 for mocking. DSL: `mock<MyInterface>(MockMode.autoUnit) { … }` for construction, `every { … } returns …` for sync stubs, `everySuspend { … } returns …` for suspend stubs, `verify { … }` / `verifySuspend { … }` for verification. The KSP processor generates platform mocks for both JVM and Native targets. Mokkery 3.x uses spread-vararg matching (`*anyVararg()`) instead of the older `anyVarargs()` shape.
+Tests in `commonTest` (and androidHostTest) use Mokkery 3.4.2 for mocking. DSL: `mock<MyInterface>(MockMode.autoUnit) { … }` for construction, `every { … } returns …` for sync stubs, `everySuspend { … } returns …` for suspend stubs, `verify { … }` / `verifySuspend { … }` for verification. The KSP processor generates platform mocks for both JVM and Native targets. Mokkery 3.4+ matches varargs with a spread `any()` (`fn(*any())`); `anyVarargs()` is `@Deprecated(level = ERROR)` and its body is literally `= any()`, so the two are exactly equivalent.
 
 **Why this works for us.**
 Works in commonTest across JVM + Kotlin/Native — MockK is JVM-only, so a shared mocking library is the price of admission for KMP unit tests. Type-safe across the platform boundary. The DSL is close enough to MockK that the muscle-memory carries over.

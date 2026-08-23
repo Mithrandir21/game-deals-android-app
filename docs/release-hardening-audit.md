@@ -28,7 +28,7 @@ Decisions already taken by the maintainer are marked **[decided]**.
 ## Tier 0 — Release blockers
 
 ### 0.1 `targetSdk` is below Google Play's minimum
-- **What:** `app/build.gradle.kts:89` — `targetSdk = 34`. (`compileSdk = 36`, `minSdk = 26`.)
+- **What:** `app/build.gradle.kts:89` — `targetSdk = 34`. (`compileSdk = 36`, `minSdk = 26`.) — **[resolved]** `targetSdk` and `compileSdk` are both 37 as of the SDK-37 bump; the figures in this item are the historical snapshot taken at audit time.
 - **Why now:** Google Play requires **new app submissions and updates to target API 35** (enforced since 2025-08-31; the requirement tracks "within one year of the latest major Android release"). A `targetSdk = 34` upload is rejected at submission.
 - **Recommend:** bump `targetSdk` to **35** (or 36, matching `compileSdk`). Then re-test what API 35 hardens: forced edge-to-edge layout, `POST_NOTIFICATIONS` behavior, foreground-service type enforcement, and any non-SDK interface use.
 - **Risk:** edge-to-edge insets and notification permission are the most likely visual/behavioral regressions; verify the notification opt-in and OAuth flows after the bump.

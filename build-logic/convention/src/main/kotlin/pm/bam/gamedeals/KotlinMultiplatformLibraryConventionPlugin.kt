@@ -20,7 +20,7 @@ abstract class IosSimulatorTestSerializer : BuildService<BuildServiceParameters.
  * Convention plugin for KMP library modules with an Android target.
  *
  * Applies `kotlin.multiplatform` + `com.android.kotlin.multiplatform.library` (AGP 9's KMP library plugin), registers `iosArm64` + `iosSimulatorArm64`, sets
- * `jvmToolchain(21)`, `compileSdk=36`, `minSdk=26`, and derives the Android namespace from `project.path`. Does NOT apply Compose or KSP — modules opt into
+ * `jvmToolchain(21)`, `compileSdk=37`, `minSdk=26`, and derives the Android namespace from `project.path`. Does NOT apply Compose or KSP — modules opt into
  * those by also applying `pm.bam.gamedeals.kmp.library.compose` and/or `pm.bam.gamedeals.kmp.ksp`.
  *
  * Test source-set names under the new plugin: `androidUnitTest` -> `androidHostTest`, `androidInstrumentedTest` -> `androidDeviceTest`.
@@ -47,7 +47,7 @@ class KotlinMultiplatformLibraryConventionPlugin : Plugin<Project> {
 
             targets.withType(KotlinMultiplatformAndroidLibraryTarget::class.java).configureEach {
                 namespace = "pm.bam.gamedeals" + project.path.replace(":", ".")
-                compileSdk = 36
+                compileSdk = 37
                 minSdk = 26
 
                 // Enable the Android resources pipeline (off by default in AGP 9's KMP-library plugin). Compose Multiplatform resources need it; without
