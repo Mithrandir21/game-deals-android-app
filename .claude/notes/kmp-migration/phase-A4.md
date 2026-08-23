@@ -52,7 +52,7 @@ Mechanical conversions (apply to all subsequent A4b tests too):
 | `coEvery { … } just runs` | drop entirely; autoUnit handles Unit returns |
 | `coVerify(exactly = N) { … }` | `verifySuspend(exactly(N)) { … }` |
 | `verify(exactly = N) { … }` | `verify(exactly(N)) { … }` |
-| `coVerify(exactly = 0) { fn(*anyVararg()) }` | `verifySuspend(exactly(0)) { fn(*anyVararg<T>()) }` |
+| `coVerify(exactly = 0) { fn(*anyVararg()) }` | `verifySuspend(exactly(0)) { fn(*any()) }` |
 
 Imports the test ends up needing:
 ```kotlin
@@ -60,7 +60,7 @@ import dev.mokkery.MockMode
 import dev.mokkery.answering.returns
 import dev.mokkery.every
 import dev.mokkery.everySuspend
-import dev.mokkery.matcher.varargs.anyVarargs
+import dev.mokkery.matcher.any
 import dev.mokkery.mock
 import dev.mokkery.verify
 import dev.mokkery.verify.VerifyMode.Companion.exactly
@@ -172,9 +172,10 @@ capture mocks anyway. Leaving on `androidUnitTest` indefinitely.
   Mokkery you'll hit "Cannot infer suspending context" or "Function is
   not suspending" errors. Match the modifier to the function's actual
   shape.
-- **`anyVarargs<T>()` needs spread + explicit type.** Mokkery can't infer
-  `T` from a `vararg T` parameter when used as a matcher. Always write
-  `fn(*anyVarargs<Type>())`, never `fn(anyVarargs())`.
+- **any() with spread (`*any()`)** is the Mokkery 3.x way to match varargs.
+  The older `anyVarargs()` matcher is deprecated. Mokkery 3.x treats the
+  vararg as a single array argument that can be matched with standard
+  matchers like `any()` or `matches { ... }`.
 - **Mock-each-property on data classes is a code smell that Mokkery
   forces you to fix.** The original `mockk<Giveaway> { every { type }
   returns ...; every { platforms } returns ... }` blocks become

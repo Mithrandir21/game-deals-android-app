@@ -108,9 +108,9 @@ android {
 
     defaultConfig {
         applicationId = "pm.bam.gamedeals"
-        // API 35 is Google Play's current minimum target; matches compileSdk (36) to avoid a near-term re-bump.
+        // Matches compileSdk (37), comfortably above Google Play's current minimum target, to avoid a near-term re-bump.
         // NOTE: targeting 35+ forces edge-to-edge — see enableEdgeToEdge() in MainActivity and per-screen insets.
-        targetSdk = 36
+        targetSdk = 37
         // versionCode/versionName default to the last manually-set values for local/dev builds.
         // Release CI (Bitrise) overrides them via env: VERSION_NAME from the git tag (v1.0.7 -> 1.0.7)
         // and VERSION_CODE derived deterministically from the tag (major*10000 + minor*100 + patch ->

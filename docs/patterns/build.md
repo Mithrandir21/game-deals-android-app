@@ -16,7 +16,7 @@ A multi-module KMP-first app with a rewritten Gradle convention-plugin family. T
 **Coverage:** every KMP library module
 
 **The pattern.**
-The convention applies `org.jetbrains.kotlin.multiplatform` plus `com.android.kotlin.multiplatform.library` (the AGP 9 KMP-library plugin), then registers `iosArm64()` and `iosSimulatorArm64()` targets. It sets `compileSdk = 36`, `minSdk = 26`, and the JDK 21 toolchain. The Android namespace is derived from `project.path` (`:feature:home` → `pm.bam.gamedeals.feature.home`). Android resources are enabled unconditionally because the KMP-library plugin disables them by default and the Compose Multiplatform resource pipeline needs them on. `withDeviceTestBuilder { }` is opted into only when `src/androidDeviceTest/` exists. The `IosSimulatorTestSerializer` BuildService is wired to every `KotlinNativeTest`. Mockk's JDK-21 agent flag and the Mokkery 3.x license excludes are applied here.
+The convention applies `org.jetbrains.kotlin.multiplatform` plus `com.android.kotlin.multiplatform.library` (the AGP 9 KMP-library plugin), then registers `iosArm64()` and `iosSimulatorArm64()` targets. It sets `compileSdk = 37`, `minSdk = 26`, and the JDK 21 toolchain. The Android namespace is derived from `project.path` (`:feature:home` → `pm.bam.gamedeals.feature.home`). Android resources are enabled unconditionally because the KMP-library plugin disables them by default and the Compose Multiplatform resource pipeline needs them on. `withDeviceTestBuilder { }` is opted into only when `src/androidDeviceTest/` exists. The `IosSimulatorTestSerializer` BuildService is wired to every `KotlinNativeTest`. Mockk's JDK-21 agent flag and the Mokkery 3.x license excludes are applied here.
 
 **Why this works for us.**
 One plugin to apply across every library module; all AGP 9 + Kotlin 2.3 quirks (KMP-library plugin, Android-resources default-off, conditional device-test, native-test serializer) are encoded in one file rather than scattered across modules.
@@ -35,7 +35,7 @@ class KotlinMultiplatformLibraryConventionPlugin : Plugin<Project> {
       iosArm64(); iosSimulatorArm64()
       targets.withType(KotlinMultiplatformAndroidLibraryTarget::class.java) {
         namespace = "pm.bam.gamedeals" + project.path.replace(":", ".")
-        compileSdk = 36; minSdk = 26
+        compileSdk = 37; minSdk = 26
         if (file("src/androidDeviceTest").exists()) withDeviceTestBuilder { }
       }
     }
@@ -185,7 +185,7 @@ targets.withType(KotlinMultiplatformAndroidLibraryTarget::class.java) {
 **Coverage:** all modules
 
 **The pattern.**
-`AndroidCommon.kt` defines `configureAndroidCommon()`, called by both the library and application conventions. It sets `compileSdk = 36`, `minSdk = 26`, JDK 21 source/target plus `jvmToolchain(21)`, and OSGi-safe packaging excludes (`META-INF/{AL2.0,LGPL2.1}`, `META-INF/versions/9/OSGI-INF/MANIFEST.MF` for jspecify + okhttp-logging, and the Mokkery 3.x license-conflict excludes). MockK's inline mock-maker on JDK 21+ requires `-XX:+EnableDynamicAgentLoading`, baked into all `Test` task JVM args.
+`AndroidCommon.kt` defines `configureAndroidCommon()`, called by both the library and application conventions. It sets `compileSdk = 37`, `minSdk = 26`, JDK 21 source/target plus `jvmToolchain(21)`, and OSGi-safe packaging excludes (`META-INF/{AL2.0,LGPL2.1}`, `META-INF/versions/9/OSGI-INF/MANIFEST.MF` for jspecify + okhttp-logging, and the Mokkery 3.x license-conflict excludes). MockK's inline mock-maker on JDK 21+ requires `-XX:+EnableDynamicAgentLoading`, baked into all `Test` task JVM args.
 
 **Why this works for us.**
 Policy enforced in one place — no scattered `compileSdk` or `minSdk`. OSGi and Mokkery packaging conflicts are pre-solved. JVM toolchain (21) aligns with source/target and the Kotlin `jvmToolchain()` call.
@@ -196,7 +196,7 @@ SDK bumps are a single deliberate edit. A future module needing a different `min
 **How to apply it.**
 ```kotlin
 internal fun Project.configureAndroidCommon(extension: CommonExtension<*, *, *, *, *, *>) {
-  extension.compileSdk = 36
+  extension.compileSdk = 37
   extension.defaultConfig.minSdk = 26
   extension.packaging.resources.excludes += setOf(
     "META-INF/AL2.0", "META-INF/LGPL2.1",

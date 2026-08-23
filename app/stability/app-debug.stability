@@ -22,7 +22,7 @@ internal fun pm.bam.gamedeals.navigation.NavGraph(modifier: androidx.compose.ui.
   restartable: true
   params:
     - modifier: STABLE (marked @Stable or @Immutable)
-    - navController: UNSTABLE (has mutable properties or unstable members)
-    - startDestination: UNSTABLE (has mutable properties or unstable members)
-    - navActions: UNSTABLE (has mutable properties or unstable members)
+    - navController: UNKNOWN (interface or non-final class; concrete implementation unknown)
+    - startDestination: UNKNOWN (interface or non-final class; concrete implementation unknown)
+    - navActions: RUNTIME (requires runtime check)
 

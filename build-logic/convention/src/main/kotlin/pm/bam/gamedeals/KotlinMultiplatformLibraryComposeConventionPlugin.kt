@@ -20,6 +20,7 @@ class KotlinMultiplatformLibraryComposeConventionPlugin : Plugin<Project> {
         pluginManager.apply("org.jetbrains.kotlin.plugin.compose")
         pluginManager.apply("org.jetbrains.compose")
         pluginManager.apply("com.github.skydoves.compose.stability.analyzer")
+        orderStabilityTasksAfterKotlinCompilation()
 
         extensions.configure<KotlinMultiplatformExtension> {
             val compose = ComposePlugin.Dependencies(target)
