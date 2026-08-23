@@ -23,10 +23,11 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
         pluginManager.apply("com.android.application")
         pluginManager.apply("org.jetbrains.kotlin.plugin.compose")
         pluginManager.apply("com.github.skydoves.compose.stability.analyzer")
+        orderStabilityTasksAfterKotlinCompilation()
         pluginManager.apply("com.google.devtools.ksp")
 
         extensions.configure<ApplicationExtension> {
-            compileSdk = 36
+            compileSdk = 37
             defaultConfig.minSdk = 26
             compileOptions.sourceCompatibility = JavaVersion.VERSION_21
             compileOptions.targetCompatibility = JavaVersion.VERSION_21
