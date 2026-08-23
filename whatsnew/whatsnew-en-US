@@ -1,8 +1,5 @@
-A big update, bundling everything added since launch.
+A maintenance release — no new features this time.
 
-• Tablet & large-screen layouts: wide Home feed, list-detail Deals, multi-column Giveaways
-• Saved searches, a recently-viewed carousel and a "most anticipated" strip
-• Value per hour: what a deal costs per hour of play
-• Complete price history on every chart, plus ESRB/PEGI age ratings
-• Many more ITAD regions, grouped by continent
-• Quick-peek giveaways, better TalkBack support and crash fixes
+• Updated to support the latest Android version
+• Refreshed the app's underlying libraries
+• Performance and stability improvements under the hood
