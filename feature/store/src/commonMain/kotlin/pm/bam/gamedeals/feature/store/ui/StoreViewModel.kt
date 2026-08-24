@@ -99,8 +99,10 @@ internal class StoreViewModel(
             when (id) {
                 null -> flowOf<StoreScreenData>(StoreScreenData.Error)
                 else -> flowOf(id)
+                    // Unlike the deal-mapping call sites, an unresolvable store *is* this screen's
+                    // subject — there's nothing to degrade to, so a miss stays an error.
                     .map { storesRepository.getStore(id) }
-                    .map<Store, StoreScreenData> { StoreScreenData.Data(it) }
+                    .map<Store?, StoreScreenData> { store -> store?.let { StoreScreenData.Data(it) } ?: StoreScreenData.Error }
                     .logFlow(logger)
                     .catch { emit(StoreScreenData.Error) }
                     .onStart { emit(StoreScreenData.Loading) }

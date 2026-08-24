@@ -216,10 +216,18 @@ internal class GamePageViewModel(
         )
     }.catch { emit(GamePageData.Error) }
 
-    /** Maps a game's deals onto their stores for the Prices tab (no-op when there's no deal side). */
+    /**
+     * Maps a game's deals onto their stores for the Prices tab (no-op when there's no deal side).
+     *
+     * Deals whose shop can't be resolved are dropped rather than thrown on — this runs inside the
+     * page flow's `catch`, so a single unknown shop used to collapse the *whole* game page (title,
+     * artwork, IGDB metadata, price history and all) into an error state (Sentry KOTLIN-E).
+     */
     private suspend fun mapDealDetails(gameDetails: GameDetails?): ImmutableList<StoreDealPair> =
         gameDetails?.deals
-            ?.map { deal -> StoreDealPair(store = storesRepository.getStore(deal.storeID), deal = deal) }
+            ?.mapNotNull { deal ->
+                storesRepository.getStore(deal.storeID)?.let { StoreDealPair(store = it, deal = deal) }
+            }
             ?.toImmutableList()
             ?: persistentListOf()
 

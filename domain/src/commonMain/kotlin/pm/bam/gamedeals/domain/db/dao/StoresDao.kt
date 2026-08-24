@@ -18,9 +18,14 @@ internal interface StoresDao {
     @Query("SELECT * FROM Store")
     suspend fun getAllStores(): List<Store>
 
-    /** Returns the [Store] in the database where the [Store.storeID] is [storeId]. */
+    /**
+     * Returns the [Store] in the database where the [Store.storeID] is [storeId], or `null` when the
+     * shop isn't cached. Nullable deliberately: deals can reference a shop the cached store list
+     * doesn't cover yet (a shop ITAD added since the last refresh), and Room throws on a non-null
+     * return type when the query comes back empty.
+     */
     @Query("SELECT * FROM Store WHERE storeID = :storeId")
-    suspend fun getStore(storeId: Int): Store
+    suspend fun getStore(storeId: Int): Store?
 
     /** Adds the [Store] to the database. */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
