@@ -1,7 +1,13 @@
 package pm.bam.gamedeals.remote.itad.models
 
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.json.JsonDecoder
+import kotlinx.serialization.json.JsonObject
 import pm.bam.gamedeals.domain.models.GameArtwork
 
 /**
@@ -43,6 +49,34 @@ data class RemoteItadGameAssets(
 )
 
 /**
+ * Tolerates ITAD sending `"assets": []` for a game that has no artwork.
+ *
+ * ITAD's backend serializes an empty associative array as a JSON *array* rather than an object, so the
+ * asset block arrives in three shapes, not two: an object, absent entirely, or `[]`. The third one used
+ * to fail the whole enclosing parse — and because `assets` sits on the top-level `/games/info/v2`
+ * object, one artwork-less game took its title, deals, reviews and prices down with it, not just its
+ * image (Sentry KOTLIN-Q).
+ *
+ * Anything that isn't a JSON object decodes to an all-null [RemoteItadGameAssets], which
+ * [toGameArtwork] already renders as empty artwork — the same outcome as an omitted block.
+ */
+internal object LenientGameAssetsSerializer : KSerializer<RemoteItadGameAssets> {
+
+    private val delegate = RemoteItadGameAssets.serializer()
+
+    override val descriptor: SerialDescriptor = delegate.descriptor
+
+    override fun serialize(encoder: Encoder, value: RemoteItadGameAssets) = delegate.serialize(encoder, value)
+
+    override fun deserialize(decoder: Decoder): RemoteItadGameAssets {
+        // Non-JSON formats have no such quirk; fall through to the generated serializer untouched.
+        val input = decoder as? JsonDecoder ?: return delegate.deserialize(decoder)
+        val element = input.decodeJsonElement()
+        return if (element is JsonObject) input.json.decodeFromJsonElement(delegate, element) else RemoteItadGameAssets()
+    }
+}
+
+/**
  * Transport assets → the domain [GameArtwork] carried whole through the app (replaced the old
  * `bestArt()` single-URL selector). A null asset block (ITAD omitted `assets`) maps to an empty
  * [GameArtwork] so consumers always get a non-null holder and select via its accessors.
@@ -63,7 +97,7 @@ data class RemoteItadSearchGame(
     @SerialName("title") val title: String = "",
     @SerialName("type") val type: String? = null,
     @SerialName("mature") val mature: Boolean? = null,
-    @SerialName("assets") val assets: RemoteItadGameAssets? = null,
+    @SerialName("assets") @Serializable(with = LenientGameAssetsSerializer::class) val assets: RemoteItadGameAssets? = null,
     // Waitlist/collection rows carry an ISO-8601 "added" timestamp (nullable per the ITAD spec); other
     // reuses of this DTO (search/lookup/bundle tiers) simply omit it. `group` is collection-only.
     @SerialName("added") val added: String? = null,
@@ -119,7 +153,7 @@ data class RemoteItadGameInfo(
     @SerialName("title") val title: String,
     @SerialName("type") val type: String? = null,
     @SerialName("mature") val mature: Boolean? = null,
-    @SerialName("assets") val assets: RemoteItadGameAssets? = null,
+    @SerialName("assets") @Serializable(with = LenientGameAssetsSerializer::class) val assets: RemoteItadGameAssets? = null,
     @SerialName("appid") val appid: Int? = null,
     @SerialName("earlyAccess") val earlyAccess: Boolean = false,
     @SerialName("achievements") val achievements: Boolean = false,
@@ -161,7 +195,7 @@ data class RemoteItadDealsGame(
     @SerialName("id") val id: String,
     @SerialName("slug") val slug: String? = null,
     @SerialName("title") val title: String,
-    @SerialName("assets") val assets: RemoteItadGameAssets? = null,
+    @SerialName("assets") @Serializable(with = LenientGameAssetsSerializer::class) val assets: RemoteItadGameAssets? = null,
     @SerialName("deal") val deal: RemoteItadDealEntry,
 )
 
