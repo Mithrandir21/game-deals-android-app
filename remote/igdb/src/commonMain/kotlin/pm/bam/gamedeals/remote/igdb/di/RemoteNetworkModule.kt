@@ -2,8 +2,11 @@ package pm.bam.gamedeals.remote.igdb.di
 
 import io.ktor.client.HttpClient
 import org.koin.dsl.module
+import pm.bam.gamedeals.common.di.SECURE_QUALIFIER
 import pm.bam.gamedeals.remote.igdb.api.IgdbGamesApi
 import pm.bam.gamedeals.remote.igdb.auth.IgdbTokenProvider
+import pm.bam.gamedeals.remote.igdb.auth.IgdbTokenStore
+import pm.bam.gamedeals.remote.igdb.auth.StorageIgdbTokenStore
 import pm.bam.gamedeals.remote.igdb.logic.TWITCH_TOKEN_BASE_URL
 import pm.bam.gamedeals.remote.igdb.logic.igdbHttpClient
 import pm.bam.gamedeals.remote.logic.gameDealsHttpClient
@@ -20,7 +23,18 @@ val igdbNetworkModule = module {
         )
     }
 
-    single { IgdbTokenProvider(tokenClient = get(IGDB_TOKEN_QUALIFIER), credentials = get()) }
+    // Twitch tokens live ~60 days, so persisting one turns the grant into a rare event rather than a
+    // per-launch dependency — and lets a cold start with no connectivity still authorise IGDB.
+    single<IgdbTokenStore> { StorageIgdbTokenStore(get(SECURE_QUALIFIER)) }
+
+    single {
+        IgdbTokenProvider(
+            tokenClient = get(IGDB_TOKEN_QUALIFIER),
+            credentials = get(),
+            store = get(),
+            clock = get(),
+        )
+    }
 
     single<HttpClient>(IGDB_QUALIFIER) {
         igdbHttpClient(

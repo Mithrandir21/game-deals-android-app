@@ -20,12 +20,14 @@ import pm.bam.gamedeals.remote.igdb.api.IgdbGamesApi
 import pm.bam.gamedeals.remote.igdb.api.IgdbGamesApi.Companion.buildSteamLookupQuery
 import pm.bam.gamedeals.remote.igdb.auth.IgdbCredentials
 import pm.bam.gamedeals.remote.igdb.auth.IgdbTokenProvider
+import pm.bam.gamedeals.remote.igdb.auth.InMemoryIgdbTokenStore
 import pm.bam.gamedeals.remote.igdb.logic.IGDB_HOST
 import pm.bam.gamedeals.remote.igdb.logic.igdbHttpClient
 import pm.bam.gamedeals.remote.igdb.models.RemoteExternalGameLookup
 import pm.bam.gamedeals.remote.igdb.models.RemoteIgdbGame
 import pm.bam.gamedeals.remote.logic.RemoteBuildType
 import pm.bam.gamedeals.remote.logic.RemoteBuildUtil
+import pm.bam.gamedeals.common.time.Clock
 import pm.bam.gamedeals.remote.logic.gameDealsHttpClient
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -153,7 +155,12 @@ class IgdbAuthChainTest {
             baseUrl = "https://id.twitch.tv",
             engine = engine,
         )
-        val tokenProvider = IgdbTokenProvider(tokenClient = tokenClient, credentials = credentials)
+        val tokenProvider = IgdbTokenProvider(
+            tokenClient = tokenClient,
+            credentials = credentials,
+            store = InMemoryIgdbTokenStore(),
+            clock = Clock { NOW },
+        )
         val igdbClient: HttpClient = igdbHttpClient(
             json = json,
             buildUtil = buildUtil,
@@ -173,6 +180,7 @@ class IgdbAuthChainTest {
         const val CLIENT_ID_HEADER = "Client-ID"
         const val STEAM_ID = 1240440
         const val IGDB_LOOKUP_PATH = "/v4/external_games"
+        const val NOW = 1_700_000_000_000L
         val EXPECTED_QUERY: String = buildSteamLookupQuery(STEAM_ID)
     }
 }
