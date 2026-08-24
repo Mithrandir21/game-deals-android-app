@@ -50,7 +50,7 @@
 
     <!-- 7. Analytics consent (interactive) — off by default (GDPR opt-out). -->
     <string name="onboarding_analytics_title">Help improve the app</string>
-    <string name="onboarding_analytics_body">Share usage data — which games, deals and searches you interact with — so we can see what to improve. It\'s linked to a random anonymous id, EU-hosted, and off unless you turn it on. You can change this any time in Account.</string>
+    <string name="onboarding_analytics_body">Share usage data — which games, deals and searches you interact with — so we can see what to improve. It's linked to a random anonymous id, EU-hosted, and off unless you turn it on. You can change this any time in Account.</string>
     <string name="onboarding_analytics_enable">Turn on analytics</string>
     <string name="onboarding_analytics_decline">Not now</string>
     <string name="onboarding_analytics_enabled">Analytics on</string>

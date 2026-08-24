@@ -118,7 +118,7 @@
     <!-- Library list enrichment: waitlist buy-dashboard + collection metadata (#274 follow-up) -->
     <string name="account_game_image">Cover art for %1$s</string>
     <string name="account_list_sort">Sort</string>
-    <string name="account_list_refresh_failed">Couldn\'t refresh — showing saved data</string>
+    <string name="account_list_refresh_failed">Couldn't refresh — showing saved data</string>
     <string name="account_waitlist_no_deal">No current deal</string>
     <string name="account_waitlist_lowest_ever">Lowest ever</string>
 
