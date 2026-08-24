@@ -21,7 +21,7 @@ import pm.bam.gamedeals.remote.itad.models.RemoteItadSearchGame
 import pm.bam.gamedeals.remote.itad.models.RemoteItadUser
 import pm.bam.gamedeals.remote.itad.models.toGameArtwork
 
-internal fun RemoteItadUser.toItadUser(): ItadUser = ItadUser(username = username)
+internal fun RemoteItadUser.toItadUser(): ItadUser = ItadUser(username = username.orEmpty())
 
 internal fun RemoteItadNotification.toItadNotification(): ItadNotification =
     ItadNotification(id = id, type = type, title = title, timestamp = timestamp, read = read != null)

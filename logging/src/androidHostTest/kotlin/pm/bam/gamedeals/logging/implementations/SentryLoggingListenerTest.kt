@@ -16,6 +16,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import pm.bam.gamedeals.logging.LogLevel
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
 
 /**
  * JVM-host coverage for how log levels map onto Sentry: low levels become breadcrumbs, ERROR/FATAL become
@@ -86,6 +88,55 @@ class SentryLoggingListenerTest {
         val scope = mockk<Scope>(relaxed = true)
         scopeBlock.captured(scope)
         verify { scope.level = SentryLevel.ERROR }
+    }
+
+    @Test
+    fun error_from_a_connectivity_failure_becomes_a_breadcrumb_not_an_issue() {
+        // Offline users shouldn't manufacture Sentry issues: the app degraded exactly as designed, it just
+        // had no network (Sentry KOTLIN-M/K/P/G/H were all `handled`).
+        val crumb = slot<Breadcrumb>()
+
+        listener.onLog(LogLevel.ERROR, "deals fetch failed", tag = "DealsRepo", throwable = UnknownHostException("api.isthereanydeal.com"))
+
+        verify(exactly = 1) { Sentry.addBreadcrumb(capture(crumb)) }
+        assertEquals(SentryLevel.WARNING, crumb.captured.level)
+        assertEquals("deals fetch failed", crumb.captured.message)
+        assertEquals("DealsRepo", crumb.captured.category)
+        verify(exactly = 0) { Sentry.captureException(any(), any()) }
+        verify(exactly = 0) { Sentry.captureMessage(any(), any()) }
+    }
+
+    @Test
+    fun a_connectivity_failure_wrapped_in_an_app_exception_is_still_recognised() {
+        listener.onLog(
+            LogLevel.ERROR,
+            "wrapped",
+            tag = null,
+            throwable = IllegalStateException("load failed", SocketTimeoutException("read timed out")),
+        )
+
+        verify(exactly = 1) { Sentry.addBreadcrumb(any()) }
+        verify(exactly = 0) { Sentry.captureException(any(), any()) }
+    }
+
+    @Test
+    fun a_genuine_defect_still_captures_even_alongside_the_network_downgrade() {
+        val boom = IllegalStateException("query returned no rows")
+
+        listener.onLog(LogLevel.ERROR, "store lookup", tag = null, throwable = boom)
+
+        verify(exactly = 1) { Sentry.captureException(boom, any()) }
+        verify(exactly = 0) { Sentry.addBreadcrumb(any()) }
+    }
+
+    @Test
+    fun fatal_is_never_downgraded_even_for_a_connectivity_failure() {
+        val offline = UnknownHostException("api.isthereanydeal.com")
+
+        listener.onLog(LogLevel.FATAL, "fatal", tag = null, throwable = offline)
+
+        verify(exactly = 1) { Sentry.captureException(offline, any()) }
+        verify(exactly = 0) { Sentry.addBreadcrumb(any()) }
     }
 
     @Test

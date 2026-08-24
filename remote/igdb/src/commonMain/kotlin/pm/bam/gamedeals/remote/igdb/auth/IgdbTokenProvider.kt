@@ -7,23 +7,36 @@ import io.ktor.client.request.forms.submitForm
 import io.ktor.http.parameters
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import pm.bam.gamedeals.common.time.Clock
 
 /**
  * Fetches and caches the Twitch `client_credentials` bearer token used to authorise IGDB calls.
  *
- * Phase 1 keeps the token in-memory only; Twitch issues ~60-day tokens so a single fetch per
- * process is the common case. The Auth plugin invokes [cachedTokens] for `loadTokens` and
- * [fetchToken] for `refreshTokens` — concurrent refresh requests are serialised by the plugin,
- * but the [mutex] guards reads/writes of [cached] against the (rare) cross-pipeline race.
+ * The token is held in-memory *and* persisted through [store], so a cold start with a token still in
+ * date skips the grant entirely — the first IGDB request of the session already carries a bearer,
+ * rather than spending a 401 round-trip plus a Twitch call to discover what we knew last launch. That
+ * also means a launch with no connectivity can still serve IGDB from a previously-issued token
+ * instead of blanking the whole surface (Sentry KOTLIN-7).
+ *
+ * The Auth plugin invokes [cachedTokens] for `loadTokens` and [fetchToken] for `refreshTokens`.
+ * Because the plugin caches `loadTokens` itself, [cachedTokens] is effectively a once-per-client
+ * cold-start read; a token that lapses mid-session is caught by the 401 → [fetchToken] path instead.
+ * Concurrent refreshes are serialised by the plugin, but [mutex] guards [cached] against the (rare)
+ * cross-pipeline race.
  */
-class IgdbTokenProvider(
+internal class IgdbTokenProvider(
     private val tokenClient: HttpClient,
     private val credentials: IgdbCredentials,
+    private val store: IgdbTokenStore,
+    private val clock: Clock,
 ) {
     private val mutex = Mutex()
-    private var cached: BearerTokens? = null
+    private var cached: StoredIgdbToken? = null
 
-    suspend fun cachedTokens(): BearerTokens? = mutex.withLock { cached }
+    suspend fun cachedTokens(): BearerTokens? = mutex.withLock {
+        val token = cached ?: store.load()?.also { cached = it }
+        token?.takeIf { clock.nowMillis() < it.expiresAtEpochMs }?.toBearerTokens()
+    }
 
     suspend fun fetchToken(): BearerTokens {
         val response: RemoteTwitchTokenResponse = tokenClient.submitForm(
@@ -34,8 +47,28 @@ class IgdbTokenProvider(
                 append("grant_type", "client_credentials")
             },
         ).body()
-        val tokens = BearerTokens(accessToken = response.accessToken, refreshToken = response.accessToken)
-        mutex.withLock { cached = tokens }
-        return tokens
+
+        val token = StoredIgdbToken(
+            accessToken = response.accessToken,
+            expiresAtEpochMs = clock.nowMillis() + (response.expiresIn * MILLIS_PER_SECOND) - EXPIRY_SKEW_MILLIS,
+        )
+        mutex.withLock { cached = token }
+        store.save(token)
+        return token.toBearerTokens()
+    }
+
+    // `client_credentials` issues no refresh token — the only way to renew is to run the grant again,
+    // which is exactly what the Auth plugin calls `refreshTokens` (→ [fetchToken]) to do.
+    private fun StoredIgdbToken.toBearerTokens() = BearerTokens(accessToken = accessToken, refreshToken = null)
+
+    internal companion object {
+
+        /**
+         * Retire a token slightly early so an IGDB call can't be sent with a bearer that lapses in
+         * flight. Purely an optimisation — an expired token still self-heals via 401 → [fetchToken].
+         */
+        const val EXPIRY_SKEW_MILLIS: Long = 5L * 60L * 1000L
+
+        private const val MILLIS_PER_SECOND: Long = 1000L
     }
 }

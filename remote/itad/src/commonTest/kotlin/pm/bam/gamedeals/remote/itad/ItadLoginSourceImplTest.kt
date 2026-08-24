@@ -25,6 +25,7 @@ import pm.bam.gamedeals.remote.itad.auth.ItadCredentials
 import pm.bam.gamedeals.remote.itad.auth.oauth.AuthBrowserLauncher
 import pm.bam.gamedeals.remote.itad.auth.oauth.AuthRedirectResult
 import pm.bam.gamedeals.remote.itad.auth.oauth.ItadOAuthClient
+import pm.bam.gamedeals.testing.TestingLoggingListener
 import pm.bam.gamedeals.testing.mockHttpClient
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -43,8 +44,14 @@ class ItadLoginSourceImplTest {
         credentials,
     )
 
-    private fun source(launcher: AuthBrowserLauncher, store: AuthTokenStore, user: ItadUser = ItadUser("alice")) =
-        ItadLoginSourceImpl(oauthClient(), launcher, FakeAccountSource(user), store, credentials, clock)
+    private fun source(
+        launcher: AuthBrowserLauncher,
+        store: AuthTokenStore,
+        user: ItadUser = ItadUser("alice"),
+        userInfoFailure: Throwable? = null,
+    ) = ItadLoginSourceImpl(
+        oauthClient(), launcher, FakeAccountSource(user, userInfoFailure), store, credentials, clock, TestingLoggingListener(),
+    )
 
     @Test
     fun login_success_exchanges_code_and_persists_username() = runTest {
@@ -58,6 +65,21 @@ class ItadLoginSourceImplTest {
         assertEquals(1_000_000L + 3600 * 1000L, store.lastExpiresAt)
         assertEquals(CURRENT_SCOPE_VERSION, store.lastScopeVersion) // fresh login stamps the current scope set
         assertEquals(2, store.saveCount) // provisional (blank username) + final
+    }
+
+    @Test
+    fun login_survives_a_failing_user_info_and_keeps_the_session() = runTest {
+        // The token exchange already succeeded, so the user IS signed in. Letting /user/info throw here
+        // reported a failed login while the tokens stayed persisted — signed in, blank username, and no
+        // feedback either way (Sentry KOTLIN-J).
+        val store = RecordingAuthTokenStore()
+        val user = source(EchoStateLauncher(code = "the-code"), store, userInfoFailure = IllegalStateException("boom")).login()
+
+        assertEquals("", user?.username)
+        assertEquals("AT", store.lastAccessToken)
+        assertEquals("RT", store.lastRefreshToken)
+        assertEquals(CURRENT_SCOPE_VERSION, store.lastScopeVersion)
+        assertEquals(2, store.saveCount) // still re-saved, settling on the blank username
     }
 
     @Test
@@ -89,8 +111,11 @@ class ItadLoginSourceImplTest {
             AuthRedirectResult.Success(code, "not-the-real-state")
     }
 
-    private class FakeAccountSource(private val user: ItadUser) : ItadAccountSource {
-        override suspend fun getUserInfo(): ItadUser = user
+    private class FakeAccountSource(
+        private val user: ItadUser,
+        private val userInfoFailure: Throwable? = null,
+    ) : ItadAccountSource {
+        override suspend fun getUserInfo(): ItadUser = userInfoFailure?.let { throw it } ?: user
         override suspend fun getWaitlist(): List<WaitlistEntry> = emptyList()
         override suspend fun addToWaitlist(gameId: String) = Unit
         override suspend fun removeFromWaitlist(gameId: String) = Unit
@@ -132,6 +157,7 @@ class ItadLoginSourceImplTest {
             lastUsername = username
             lastScopeVersion = scopeVersion
         }
+        override suspend fun updateUsername(username: String) { lastUsername = username }
         override suspend fun clear() = Unit
     }
 }

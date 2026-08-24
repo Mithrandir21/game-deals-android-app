@@ -356,7 +356,7 @@ private fun startLibraryLifecycle() {
             .distinctUntilChangedBy { it is AuthState.LoggedIn }
             .collect { state ->
                 try {
-                    applyLibraryLifecycle(state, koin.get(), koin.get(), koin.get(), koin.get())
+                    applyLibraryLifecycle(state, koin.get(), koin.get(), koin.get(), koin.get(), koin.get())
                 } catch (ce: CancellationException) {
                     throw ce
                 } catch (t: Throwable) {

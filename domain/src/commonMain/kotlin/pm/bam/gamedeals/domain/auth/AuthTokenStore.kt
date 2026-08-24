@@ -44,6 +44,17 @@ interface AuthTokenStore {
         scopeVersion: Int,
     )
 
+    /**
+     * Fills in the username on the already-stored token, leaving the token material untouched.
+     *
+     * Exists for the case where login succeeded but the `/user/info` fetch that follows it did not, which
+     * persists a blank username the user is otherwise stuck with until they sign out and back in. Scoped
+     * to just this field rather than going through [saveTokens] so a concurrent token refresh can't be
+     * clobbered by a stale access token read moments earlier. No-op when logged out or when [username]
+     * is blank.
+     */
+    suspend fun updateUsername(username: String)
+
     suspend fun clear()
 }
 
@@ -102,6 +113,14 @@ internal class AuthTokenStoreImpl(
         val token = StoredAuthToken(accessToken, refreshToken, expiresAtEpochMs, username, scopeVersion)
         storage.save(AUTH_TOKEN_KEY, token)
         authState.value = token.toAuthState()
+    }
+
+    override suspend fun updateUsername(username: String) {
+        if (username.isBlank()) return
+        val current = loadFromStorage() ?: return
+        val updated = current.copy(username = username)
+        storage.save(AUTH_TOKEN_KEY, updated)
+        authState.value = updated.toAuthState()
     }
 
     override suspend fun clear() {

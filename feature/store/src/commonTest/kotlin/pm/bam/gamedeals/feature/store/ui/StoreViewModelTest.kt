@@ -99,6 +99,19 @@ class StoreViewModelTest : MainDispatcherTest() {
     }
 
     @Test
+    fun an_unresolvable_store_surfaces_as_error() = runTest {
+        // Unlike the deal-mapping call sites, the store *is* this screen's subject — a miss has nothing
+        // to degrade to, so it stays an error rather than rendering an empty shell.
+        val storeId = 1
+        everySuspend { storesRepository.getStore(storeId) } returns null
+
+        val viewModel = createViewModel(storeId)
+        val emissions = viewModel.uiState.observeEmissions(this.backgroundScope, testDispatcher)
+
+        assertEquals(StoreViewModel.StoreScreenData.Error, emissions.last())
+    }
+
+    @Test
     fun seeded_storeId_loads_StoreDetails_Data_state() = runTest {
         val storeId = 1
         val store = store(storeID = storeId)

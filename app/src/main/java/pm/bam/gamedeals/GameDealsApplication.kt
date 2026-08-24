@@ -242,7 +242,7 @@ class GameDealsApplication : Application(), SingletonImageLoader.Factory {
                 .distinctUntilChangedBy { it is AuthState.LoggedIn }
                 .collect { state ->
                     try {
-                        applyLibraryLifecycle(state, get(), get(), get(), get())
+                        applyLibraryLifecycle(state, get(), get(), get(), get(), get())
                     } catch (ce: CancellationException) {
                         throw ce
                     } catch (t: Throwable) {

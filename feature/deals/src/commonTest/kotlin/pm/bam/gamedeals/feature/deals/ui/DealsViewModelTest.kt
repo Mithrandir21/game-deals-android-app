@@ -162,6 +162,57 @@ class DealsViewModelTest : MainDispatcherTest() {
     }
 
     @Test
+    fun load_next_page_drops_rows_the_feed_re_serves() = runTest {
+        // ITAD reorders its deal feed as prices move, so an offset-paged fetch can hand back a row the
+        // previous page already contained. `dealID` is the LazyColumn key and a repeated key crashes
+        // Compose during measure (Sentry KOTLIN-N/F/D), so the append must dedupe.
+        val fullPage = List(DealsQuery.DEALS_PAGE_SIZE) { deal("a$it", gameID = "a$it") }
+        val overlapping = listOf(deal("a0", gameID = "a0"), deal("b1", gameID = "b1"))
+        everySuspend { dealsRepository.getDeals(DealsQuery(offset = 0)) } returns fullPage
+        everySuspend { dealsRepository.getDeals(DealsQuery(offset = DealsQuery.DEALS_PAGE_SIZE)) } returns overlapping
+
+        val vm = createViewModel()
+        advanceUntilIdle()
+        vm.loadNextPage()
+        advanceUntilIdle()
+
+        val deals = vm.uiState.value.deals
+        assertEquals(DealsQuery.DEALS_PAGE_SIZE + 1, deals.size) // the repeat of "a0" was dropped
+        assertEquals(deals.map { it.dealID }.distinct().size, deals.size)
+    }
+
+    @Test
+    fun load_next_page_offsets_by_rows_served_not_rows_kept() = runTest {
+        // After a dedupe the list is shorter than what the server has handed out; offsetting by
+        // `deals.size` would re-request the overlap forever and stall paging on the same rows.
+        val fullPage = List(DealsQuery.DEALS_PAGE_SIZE) { deal("a$it", gameID = "a$it") }
+        val overlapping = List(DealsQuery.DEALS_PAGE_SIZE) { deal(if (it == 0) "a0" else "b$it", gameID = "b$it") }
+        everySuspend { dealsRepository.getDeals(DealsQuery(offset = 0)) } returns fullPage
+        everySuspend { dealsRepository.getDeals(DealsQuery(offset = DealsQuery.DEALS_PAGE_SIZE)) } returns overlapping
+        everySuspend { dealsRepository.getDeals(DealsQuery(offset = DealsQuery.DEALS_PAGE_SIZE * 2)) } returns emptyList()
+
+        val vm = createViewModel()
+        advanceUntilIdle()
+        vm.loadNextPage()
+        advanceUntilIdle()
+        vm.loadNextPage()
+        advanceUntilIdle()
+
+        verifySuspend(exactly(1)) { dealsRepository.getDeals(DealsQuery(offset = DealsQuery.DEALS_PAGE_SIZE * 2)) }
+    }
+
+    @Test
+    fun first_page_dedupes_a_feed_that_repeats_a_row_within_one_page() = runTest {
+        everySuspend { dealsRepository.getDeals(DealsQuery(offset = 0)) } returns
+            listOf(deal("d1", gameID = "g1"), deal("d1", gameID = "g1"), deal("d2", gameID = "g2"))
+
+        val vm = createViewModel()
+        advanceUntilIdle()
+
+        assertEquals(listOf("d1", "d2"), vm.uiState.value.deals.map { it.dealID })
+    }
+
+    @Test
     fun setSortField_reloads_from_offset_zero_and_resets_direction_to_field_default() = runTest {
         everySuspend { dealsRepository.getDeals(any()) } returns listOf(deal("d1"))
 

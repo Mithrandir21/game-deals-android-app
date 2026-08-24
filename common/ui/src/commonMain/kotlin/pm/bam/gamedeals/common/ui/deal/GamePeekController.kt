@@ -71,9 +71,14 @@ class GamePeekController(
         try {
             val result = withMinimumDuration(MIN_LOADING_MILLIS) {
                 val details = gamesRepository.getGameDetails(gameId)
+                // A deal whose shop isn't in the store cache is dropped, not fatal: the rest of the
+                // sheet is perfectly good data and erroring the lot over one unknown shop is worse
+                // than showing one fewer store (Sentry KOTLIN-E).
                 val pairs = details.deals
                     .sortedBy { it.priceValue }
-                    .map { StoreDealPair(store = storesRepository.getStore(it.storeID), deal = it) }
+                    .mapNotNull { deal ->
+                        storesRepository.getStore(deal.storeID)?.let { StoreDealPair(store = it, deal = deal) }
+                    }
                 val best = pairs.firstOrNull()
                 GamePeekSheetData.Data(
                     gameId = gameId,

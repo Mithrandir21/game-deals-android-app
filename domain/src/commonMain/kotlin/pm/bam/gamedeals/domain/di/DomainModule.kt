@@ -130,7 +130,7 @@ val domainModule = module {
     // backed by the live ITAD account source, Stats by the live ITAD stats source.
     // Auth token is encrypted at rest — use the SECURE_QUALIFIER store (#239), not the settings store.
     single<AuthTokenStore> { AuthTokenStoreImpl(get(SECURE_QUALIFIER)) }
-    single<AccountRepository> { AccountRepositoryImpl(get(), get(), get()) }
+    single<AccountRepository> { AccountRepositoryImpl(get(), get(), get(), get()) }
     // Waitlist/Collection display caches (JSON blobs in the settings store, like FranchiseSaleSnapshotStore)
     // back the enriched dashboard rows for instant/offline render. Waitlist also merges a batched price
     // lookup (dealsSource) keyed to the user's region; collection is price-less.

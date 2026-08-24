@@ -4,6 +4,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
 import io.ktor.client.engine.HttpClientEngine
 import io.ktor.client.plugins.HttpRequestRetry
+import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.api.Send
 import io.ktor.client.plugins.api.createClientPlugin
@@ -16,6 +17,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
+import kotlinx.io.IOException
 import kotlinx.serialization.json.Json
 
 /**
@@ -23,10 +25,11 @@ import kotlinx.serialization.json.Json
  * Wires JSON content negotiation, request/connect timeouts, debug-only Ktor
  * logging, and the per-source base URL.
  *
- * [maxConcurrency] (when non-null) installs a [Semaphore]-backed concurrency cap, and
- * [retryOnTooManyRequests] installs a 429-only exponential-backoff retry — both opt-in so the bare
- * factory (e.g. the IGDB token client) is unaffected, while community feeds like GamerPower can match
- * the resilience the ITAD/IGDB clients configure inline.
+ * [maxConcurrency] (when non-null) installs a [Semaphore]-backed concurrency cap;
+ * [retryOnTooManyRequests] installs a 429 exponential-backoff retry, and [retryOnTransientFailures]
+ * widens that retry to timeouts, connection drops and 5xx. All opt-in so the bare factory is
+ * unaffected, while community feeds like GamerPower can match the resilience the ITAD/IGDB clients
+ * configure inline.
  *
  * If [engine] is null, the platform-default engine ([httpClient]) is used.
  * Tests can pass a `MockEngine` to drive the same client config against
@@ -39,6 +42,7 @@ fun gameDealsHttpClient(
     engine: HttpClientEngine? = null,
     maxConcurrency: Int? = null,
     retryOnTooManyRequests: Boolean = false,
+    retryOnTransientFailures: Boolean = false,
     maxRetries: Int = DEFAULT_MAX_RETRIES,
 ): HttpClient {
     val config: HttpClientConfig<*>.() -> Unit = {
@@ -61,10 +65,19 @@ fun gameDealsHttpClient(
 
         // Opt-in 429 retry: a throttled request was not processed, so retrying any method is safe.
         // Honors the server's Retry-After header, otherwise backs off exponentially.
-        if (retryOnTooManyRequests) {
+        //
+        // [retryOnTransientFailures] additionally weathers timeouts, dropped connections and 5xx. Only
+        // enable it for idempotent endpoints — a token grant, not a mutation. Without it a single flaky
+        // round-trip takes down everything downstream of that call (Sentry KOTLIN-7: one timed-out
+        // Twitch token fetch failed every IGDB-backed section for the rest of the session).
+        if (retryOnTooManyRequests || retryOnTransientFailures) {
             install(HttpRequestRetry) {
                 this.maxRetries = maxRetries
-                retryIf { _, response -> response.status == HttpStatusCode.TooManyRequests }
+                retryIf { _, response ->
+                    response.status == HttpStatusCode.TooManyRequests ||
+                        (retryOnTransientFailures && response.status.value >= 500)
+                }
+                if (retryOnTransientFailures) retryOnExceptionIf { _, cause -> cause is IOException || cause is HttpRequestTimeoutException }
                 exponentialDelay(respectRetryAfterHeader = true)
             }
         }

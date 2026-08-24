@@ -167,6 +167,42 @@ class GamePageViewModelTest : MainDispatcherTest() {
     }
 
     @Test
+    fun a_deal_from_an_unresolvable_shop_is_dropped_not_fatal_to_the_page() = runTest {
+        // The store cache can lag the deal feed. Throwing here used to escape to the page flow's `catch`
+        // and collapse the *whole* game page — title, artwork, IGDB, price history and all — into an
+        // error state over one unknown shop (Sentry KOTLIN-E).
+        val details = gameDetails(
+            info = GameDetails.GameInfo(title = "Halo Infinite", artwork = GameArtwork(banner300 = "t")),
+            deals = persistentListOf(gameDeal(storeID = 61), gameDeal(storeID = 999)),
+        )
+        everySuspend { gamesRepository.getGameDetails("g1") } returns details
+        everySuspend { storesRepository.getStore(61) } returns store(storeID = 61)
+        everySuspend { storesRepository.getStore(999) } returns null // shop the cache doesn't know
+
+        val state = loadState(mapOf("gameId" to "g1"))
+
+        assertTrue(state is GamePageViewModel.GamePageData.Data, "one unknown shop must not error the page")
+        assertEquals("Halo Infinite", state.title)
+        assertEquals(1, state.dealDetails.size, "only the resolvable deal survives")
+        assertEquals(61, state.dealDetails.single().store.storeID)
+    }
+
+    @Test
+    fun a_page_whose_shops_are_all_unresolvable_still_renders_without_deals() = runTest {
+        val details = gameDetails(
+            info = GameDetails.GameInfo(title = "Halo Infinite", artwork = GameArtwork(banner300 = "t")),
+            deals = persistentListOf(gameDeal(storeID = 999)),
+        )
+        everySuspend { gamesRepository.getGameDetails("g1") } returns details
+        everySuspend { storesRepository.getStore(any()) } returns null
+
+        val state = loadState(mapOf("gameId" to "g1"))
+
+        assertTrue(state is GamePageViewModel.GamePageData.Data)
+        assertTrue(state.dealDetails.isEmpty())
+    }
+
+    @Test
     fun igdb_entry_resolves_itad_id_and_loads_deals() = runTest {
         everySuspend { igdbRepository.fetchGameDetailsByIgdbId(100L) } returns igdb(id = 100L, steamAppId = 1240440)
         everySuspend { gamesRepository.findGameIdBySteamAppId(1240440, "Halo Infinite") } returns "g1"
