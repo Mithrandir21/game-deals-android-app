@@ -157,6 +157,7 @@ class ItadLoginSourceImplTest {
             lastUsername = username
             lastScopeVersion = scopeVersion
         }
+        override suspend fun updateUsername(username: String) { lastUsername = username }
         override suspend fun clear() = Unit
     }
 }

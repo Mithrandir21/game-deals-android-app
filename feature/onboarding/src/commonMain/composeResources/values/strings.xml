@@ -66,6 +66,8 @@
     <string name="onboarding_signin_done_title">You're all set</string>
     <string name="onboarding_signin_done_body">Your waitlist, collection and notes are syncing with IsThereAnyDeal.</string>
     <string name="onboarding_signin_signed_in_as">Signed in as %1$s</string>
+    <!-- Fallback when login succeeded but the profile fetch didn't, so no username was stored. -->
+    <string name="onboarding_signin_signed_in">Signed in</string>
     <string name="onboarding_done">Done</string>
 
 </resources>
