@@ -13,9 +13,10 @@ package pm.bam.gamedeals.logging
  * This deliberately does **not** suppress the log — only its Sentry severity. Logcat/console output is
  * unchanged, and a connectivity failure still appears as a breadcrumb on any issue that follows it.
  *
- * Ktor's timeout types are matched by simple name so `:logging` needn't depend on Ktor (it sits *below*
- * `:remote` in the module graph); platform IO hierarchies are matched properly via
- * [isPlatformNetworkFailure].
+ * Platform IO hierarchies are matched by type via [isPlatformNetworkFailure]. Ktor's timeout types are
+ * matched by simple *name* so `:logging` needn't depend on Ktor (it sits *below* `:remote` in the module
+ * graph) — but see [KTOR_NETWORK_FAILURE_NAMES] for why that arm carries less weight than it looks like
+ * it does on Android.
  */
 fun isExpectedNetworkFailure(throwable: Throwable?): Boolean {
     var cause = throwable
@@ -37,8 +38,19 @@ fun isExpectedNetworkFailure(throwable: Throwable?): Boolean {
 internal expect fun Throwable.isPlatformNetworkFailure(): Boolean
 
 /**
- * Ktor's transport timeouts, matched by simple name. Ktor throws the same class names on every engine,
- * and this avoids a `:remote`-ward dependency from the logging layer.
+ * Ktor's transport timeouts, matched by simple name to avoid a `:remote`-ward dependency from the
+ * logging layer.
+ *
+ * IMPORTANT — this arm only actually fires on iOS. R8 renames these classes in an Android release build,
+ * so `simpleName` never matches there. It doesn't matter today because every name listed here extends
+ * `java.io.IOException` (`HttpRequestTimeoutException` and `ConnectTimeoutException` directly,
+ * `SocketTimeoutException` via `InterruptedIOException`), so [isPlatformNetworkFailure] already catches
+ * all three by type on Android and this set is redundant there. Kotlin/Native does no such renaming,
+ * which is what makes the set load-bearing on iOS.
+ *
+ * The trap: adding a Ktor type that is *not* an `IOException` would silently do nothing in an Android
+ * release build while appearing to work in debug and in unit tests. Anything added here must either
+ * extend `IOException` or be handled explicitly in the platform actuals.
  */
 private val KTOR_NETWORK_FAILURE_NAMES = setOf(
     "HttpRequestTimeoutException",
