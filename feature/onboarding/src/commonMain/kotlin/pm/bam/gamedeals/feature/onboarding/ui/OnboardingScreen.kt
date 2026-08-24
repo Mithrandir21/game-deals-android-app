@@ -114,6 +114,7 @@ import pm.bam.gamedeals.feature.onboarding.generated.resources.onboarding_signin
 import pm.bam.gamedeals.feature.onboarding.generated.resources.onboarding_signin_done_body
 import pm.bam.gamedeals.feature.onboarding.generated.resources.onboarding_signin_done_title
 import pm.bam.gamedeals.feature.onboarding.generated.resources.onboarding_signin_later
+import pm.bam.gamedeals.feature.onboarding.generated.resources.onboarding_signin_signed_in
 import pm.bam.gamedeals.feature.onboarding.generated.resources.onboarding_signin_signed_in_as
 import pm.bam.gamedeals.feature.onboarding.generated.resources.onboarding_signin_title
 import pm.bam.gamedeals.feature.onboarding.generated.resources.onboarding_signing_in
@@ -673,7 +674,10 @@ internal fun SignInSlide(
                     tint = MaterialTheme.colorScheme.primary,
                 )
                 Text(
-                    text = stringResource(Res.string.onboarding_signin_signed_in_as, username),
+                    // Same blank-name fallback as the Account hub: a login can outlive a failed
+                    // profile fetch, and "Signed in as " with nothing after it reads as a bug.
+                    text = if (username.isBlank()) stringResource(Res.string.onboarding_signin_signed_in)
+                    else stringResource(Res.string.onboarding_signin_signed_in_as, username),
                     style = MaterialTheme.typography.titleMedium,
                 )
             }

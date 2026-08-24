@@ -49,6 +49,38 @@ class AuthTokenStoreImplTest {
     }
 
     @Test
+    fun updateUsername_fills_in_a_blank_name_without_disturbing_the_token() = runTest {
+        // The shape a login that outlived a failed /user/info leaves behind.
+        store.saveTokens("AT", "RT", expiresAtEpochMs = 99L, username = "", scopeVersion = CURRENT_SCOPE_VERSION)
+
+        store.updateUsername("bob")
+
+        val state = store.observeAuthState().first()
+        assertIs<AuthState.LoggedIn>(state)
+        assertEquals("bob", state.username)
+        assertEquals("AT", store.getAccessToken())
+        assertEquals("RT", store.getRefreshToken())
+        assertEquals(99L, store.getExpiresAtEpochMs())
+        assertEquals(CURRENT_SCOPE_VERSION, store.getScopeVersion())
+    }
+
+    @Test
+    fun updateUsername_ignores_a_blank_name() = runTest {
+        store.saveTokens("AT", "RT", expiresAtEpochMs = 0L, username = "bob", scopeVersion = CURRENT_SCOPE_VERSION)
+
+        store.updateUsername("")
+
+        assertEquals("bob", store.getUsername())
+    }
+
+    @Test
+    fun updateUsername_on_a_logged_out_store_does_not_create_a_session() = runTest {
+        store.updateUsername("bob")
+
+        assertIs<AuthState.LoggedOut>(store.observeAuthState().first())
+    }
+
+    @Test
     fun token_from_an_older_scope_version_needs_reconnect() = runTest {
         store.saveTokens("AT", "RT", expiresAtEpochMs = 0L, username = "bob", scopeVersion = CURRENT_SCOPE_VERSION - 1)
 

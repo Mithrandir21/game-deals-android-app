@@ -105,6 +105,8 @@ class ItadTokenProviderTest {
             this.scopeVersion = scopeVersion
         }
 
+        override suspend fun updateUsername(username: String) { this.username = username }
+
         override suspend fun clear() {
             access = null
             refresh = null

@@ -100,6 +100,7 @@ import pm.bam.gamedeals.feature.account.generated.resources.account_sign_in
 import pm.bam.gamedeals.feature.account.generated.resources.account_sign_in_error
 import pm.bam.gamedeals.feature.account.generated.resources.account_sign_in_error_retry
 import pm.bam.gamedeals.feature.account.generated.resources.account_sign_out
+import pm.bam.gamedeals.feature.account.generated.resources.account_signed_in
 import pm.bam.gamedeals.feature.account.generated.resources.account_signed_in_as
 import pm.bam.gamedeals.feature.account.generated.resources.account_signed_out_body
 import pm.bam.gamedeals.feature.account.generated.resources.account_signed_out_title
@@ -437,7 +438,10 @@ private fun ProfileHeader(username: String, onLogout: () -> Unit) {
             modifier = Modifier.size(48.dp),
         )
         Text(
-            text = stringResource(Res.string.account_signed_in_as, username),
+            // A login that outlived a failed profile fetch has no name to show — "Signed in as " with a
+            // blank tail reads as a bug. AccountRepository.refreshUsernameIfMissing backfills it later.
+            text = if (username.isBlank()) stringResource(Res.string.account_signed_in)
+            else stringResource(Res.string.account_signed_in_as, username),
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier
                 .weight(1f)
