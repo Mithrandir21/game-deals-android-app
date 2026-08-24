@@ -346,8 +346,9 @@ internal class DealsViewModel(
                     shopIds = params.shopIds.toImmutableSet(),
                     mature = params.mature,
                     filter = params.filter,
-                    deals = page.toImmutableList(),
+                    deals = page.distinctBy { it.dealID }.toImmutableList(),
                     endReached = page.size < DealsQuery.DEALS_PAGE_SIZE,
+                    loadedCount = page.size,
                 )
             }
         } catch (c: CancellationException) {
@@ -367,12 +368,16 @@ internal class DealsViewModel(
         appendJob = viewModelScope.launch {
             uiState.update { it.copy(appending = true) }
             try {
-                val page = dealsRepository.getDeals(DealsQuery(sortField = current.sortField, sortDirection = current.sortDirection, shopIds = current.shopIds.toList(), mature = current.mature, filter = current.filter, offset = current.deals.size))
+                val page = dealsRepository.getDeals(DealsQuery(sortField = current.sortField, sortDirection = current.sortDirection, shopIds = current.shopIds.toList(), mature = current.mature, filter = current.filter, offset = current.loadedCount))
                 uiState.update { state ->
                     state.copy(
-                        deals = (state.deals + page).toImmutableList(),
+                        // ITAD's deal feed reorders as prices move, so an offset-paged fetch can re-serve a
+                        // row we already hold. `Deal.dealID` is the LazyColumn key, and a repeated key crashes
+                        // Compose during measure — dedupe on append rather than trusting the feed.
+                        deals = (state.deals + page).distinctBy { it.dealID }.toImmutableList(),
                         appending = false,
                         endReached = page.size < DealsQuery.DEALS_PAGE_SIZE,
+                        loadedCount = state.loadedCount + page.size,
                     )
                 }
             } catch (c: CancellationException) {
@@ -465,6 +470,12 @@ internal class DealsViewModel(
         val deals: ImmutableList<Deal> = persistentListOf(),
         val appending: Boolean = false,
         val endReached: Boolean = false,
+        /**
+         * Rows the server has handed us so far — the offset for the next page request. Tracked
+         * separately from `deals.size` because appends drop duplicates (see [DealsViewModel.loadNextPage]),
+         * so the two diverge as soon as the feed re-serves a row we already hold.
+         */
+        val loadedCount: Int = 0,
     ) {
         enum class Status { LOADING, ERROR, DATA }
     }
