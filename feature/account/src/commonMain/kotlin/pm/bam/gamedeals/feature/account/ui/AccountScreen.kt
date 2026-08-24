@@ -2,6 +2,7 @@ package pm.bam.gamedeals.feature.account.ui
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -24,6 +25,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -32,8 +37,10 @@ import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.LibraryAddCheck
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -90,6 +97,8 @@ import pm.bam.gamedeals.feature.account.generated.resources.account_section_disc
 import pm.bam.gamedeals.feature.account.generated.resources.account_section_library
 import pm.bam.gamedeals.feature.account.generated.resources.account_section_website
 import pm.bam.gamedeals.feature.account.generated.resources.account_sign_in
+import pm.bam.gamedeals.feature.account.generated.resources.account_sign_in_error
+import pm.bam.gamedeals.feature.account.generated.resources.account_sign_in_error_retry
 import pm.bam.gamedeals.feature.account.generated.resources.account_sign_out
 import pm.bam.gamedeals.feature.account.generated.resources.account_signed_in_as
 import pm.bam.gamedeals.feature.account.generated.resources.account_signed_out_body
@@ -116,9 +125,25 @@ internal fun AccountScreen(
     viewModel: AccountViewModel = koinViewModel(),
 ) {
     val data by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val loginError = stringResource(Res.string.account_sign_in_error)
+    val loginRetry = stringResource(Res.string.account_sign_in_error_retry)
+
+    LaunchedEffect(viewModel) {
+        viewModel.events.collect { event ->
+            when (event) {
+                AccountViewModel.AccountUiEvent.LoginError -> {
+                    val result = snackbarHostState.showSnackbar(message = loginError, actionLabel = loginRetry)
+                    if (result == SnackbarResult.ActionPerformed) viewModel.onLogin()
+                }
+            }
+        }
+    }
+
     AccountScreenContent(
         data = data,
         countries = viewModel.countries,
+        snackbarHostState = snackbarHostState,
         onLogin = viewModel::onLogin,
         onLogout = viewModel::onLogout,
         onCountrySelected = viewModel::onCountrySelected,
@@ -141,6 +166,7 @@ internal fun AccountScreen(
 private fun AccountScreenContent(
     data: AccountScreenData,
     countries: ImmutableList<Country>,
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
     onLogin: () -> Unit,
     onLogout: () -> Unit,
     onCountrySelected: (Country) -> Unit,
@@ -165,65 +191,75 @@ private fun AccountScreenContent(
     val regionName = data.selectedCountry?.name
     val themeName = themeModeLabel(data.themeMode)
 
-    if (!data.loggedIn) {
-        LoggedOutContent(
-            loggingIn = data.loggingIn,
-            onLogin = onLogin,
-            onOpenFollowedSeries = onOpenFollowedSeries,
-            regionName = regionName,
-            onOpenRegion = onOpenRegion,
-            themeName = themeName,
-            onOpenTheme = onOpenTheme,
-            matureOptIn = data.matureOptIn,
-            onSetMature = onSetMature,
-            analyticsConsent = data.analyticsConsent,
-            onSetAnalytics = onSetAnalytics,
-            onOpenPrivacyPolicy = onOpenPrivacyPolicy,
-            onReplayOnboarding = onReplayOnboarding,
-        )
-    } else {
-        LoggedInContent(
-            data = data,
-            onLogout = onLogout,
-            // Reconnect re-runs the same OAuth flow as a fresh sign-in; on success the token is
-            // re-stamped with the current scope version and the banner disappears.
-            onReconnect = onLogin,
-            onOpenWaitlist = onOpenWaitlist,
-            onOpenCollection = onOpenCollection,
-            onOpenNotifications = onOpenNotifications,
-            onOpenIgnored = onOpenIgnored,
-            onOpenMyNotes = onOpenMyNotes,
-            onOpenFollowedSeries = onOpenFollowedSeries,
-            onOpenLinkedAccounts = onOpenLinkedAccounts,
-            onOpenRegion = onOpenRegion,
-            regionName = regionName,
-            themeName = themeName,
-            onOpenTheme = onOpenTheme,
-            matureOptIn = data.matureOptIn,
-            onSetMature = onSetMature,
-            analyticsConsent = data.analyticsConsent,
-            onSetAnalytics = onSetAnalytics,
-            onOpenPrivacyPolicy = onOpenPrivacyPolicy,
-            onOpenWebsite = { onOpenWebsite(ITAD_SETTINGS_URL) },
-            onReplayOnboarding = onReplayOnboarding,
-        )
-    }
+    // The app shell owns the top bar + bottom nav and provides outer padding; zero this Scaffold's
+    // insets so its content isn't double-inset under the shell (mirrors HomeScreenContent). It exists
+    // purely to host the snackbar — the hub keeps managing its own nav-bar inset via accountListPadding.
+    Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+    ) { innerPadding: PaddingValues ->
+    Box(modifier = Modifier.padding(innerPadding)) {
+        if (!data.loggedIn) {
+            LoggedOutContent(
+                loggingIn = data.loggingIn,
+                onLogin = onLogin,
+                onOpenFollowedSeries = onOpenFollowedSeries,
+                regionName = regionName,
+                onOpenRegion = onOpenRegion,
+                themeName = themeName,
+                onOpenTheme = onOpenTheme,
+                matureOptIn = data.matureOptIn,
+                onSetMature = onSetMature,
+                analyticsConsent = data.analyticsConsent,
+                onSetAnalytics = onSetAnalytics,
+                onOpenPrivacyPolicy = onOpenPrivacyPolicy,
+                onReplayOnboarding = onReplayOnboarding,
+            )
+        } else {
+            LoggedInContent(
+                data = data,
+                onLogout = onLogout,
+                // Reconnect re-runs the same OAuth flow as a fresh sign-in; on success the token is
+                // re-stamped with the current scope version and the banner disappears.
+                onReconnect = onLogin,
+                onOpenWaitlist = onOpenWaitlist,
+                onOpenCollection = onOpenCollection,
+                onOpenNotifications = onOpenNotifications,
+                onOpenIgnored = onOpenIgnored,
+                onOpenMyNotes = onOpenMyNotes,
+                onOpenFollowedSeries = onOpenFollowedSeries,
+                onOpenLinkedAccounts = onOpenLinkedAccounts,
+                onOpenRegion = onOpenRegion,
+                regionName = regionName,
+                themeName = themeName,
+                onOpenTheme = onOpenTheme,
+                matureOptIn = data.matureOptIn,
+                onSetMature = onSetMature,
+                analyticsConsent = data.analyticsConsent,
+                onSetAnalytics = onSetAnalytics,
+                onOpenPrivacyPolicy = onOpenPrivacyPolicy,
+                onOpenWebsite = { onOpenWebsite(ITAD_SETTINGS_URL) },
+                onReplayOnboarding = onReplayOnboarding,
+            )
+        }
 
-    if (showRegionPicker) {
-        RegionPickerSheet(
-            countries = countries,
-            selectedCode = data.selectedCountry?.code,
-            onSelect = { onCountrySelected(it); showRegionPicker = false },
-            onDismiss = { showRegionPicker = false },
-        )
-    }
+        if (showRegionPicker) {
+            RegionPickerSheet(
+                countries = countries,
+                selectedCode = data.selectedCountry?.code,
+                onSelect = { onCountrySelected(it); showRegionPicker = false },
+                onDismiss = { showRegionPicker = false },
+            )
+        }
 
-    if (showThemePicker) {
-        ThemePickerSheet(
-            selected = data.themeMode,
-            onSelect = { onSetTheme(it); showThemePicker = false },
-            onDismiss = { showThemePicker = false },
-        )
+        if (showThemePicker) {
+            ThemePickerSheet(
+                selected = data.themeMode,
+                onSelect = { onSetTheme(it); showThemePicker = false },
+                onDismiss = { showThemePicker = false },
+            )
+        }
+    }
     }
 }
 

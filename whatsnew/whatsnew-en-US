@@ -1,5 +1,6 @@
-A maintenance release — no new features this time.
+A bug-fix release, clearing out the top crash and error reports.
 
-• Updated to support the latest Android version
-• Refreshed the app's underlying libraries
-• Performance and stability improvements under the hood
+• Fixed a crash when scrolling a long list of deals
+• Game pages no longer fail when one of their stores can't be loaded
+• Sign-in is more reliable, and tells you when something goes wrong
+• Game info holds up better on a patchy connection

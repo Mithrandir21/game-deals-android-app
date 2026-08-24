@@ -14,6 +14,9 @@ val igdbNetworkModule = module {
             json = get(),
             buildUtil = get(),
             baseUrl = TWITCH_TOKEN_BASE_URL,
+            // The client-credentials grant is idempotent, and every IGDB call is gated behind it — a
+            // single timeout here blanks the IGDB surface for the whole session (Sentry KOTLIN-7).
+            retryOnTransientFailures = true,
         )
     }
 

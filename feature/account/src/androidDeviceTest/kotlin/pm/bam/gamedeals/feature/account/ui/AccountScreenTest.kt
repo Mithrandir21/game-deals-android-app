@@ -15,6 +15,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.collections.immutable.persistentListOf
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.jetbrains.compose.resources.stringResource
 import org.junit.Rule
@@ -55,6 +56,10 @@ class AccountScreenTest {
             AccountScreenData(loggedIn = false, selectedCountry = Country("US", "United States", Region.AMERICAS)),
         )
         every { viewModel.countries } returns persistentListOf(US, UK)
+        // The hub collects `events` for the login-failure snackbar. A relaxed mock can't stand in here:
+        // `SharedFlow.collect` is declared to return `Nothing`, which mockk cannot fabricate — it throws
+        // KotlinNothingValueException. Hand it a real, never-emitting flow instead.
+        every { viewModel.events } returns MutableSharedFlow()
         composeTestRule.setContent {
             labels = Labels.load()
             GameDealsTheme {

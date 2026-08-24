@@ -36,12 +36,12 @@ class ItadAccountSourceImplTest {
     private val json = Json { ignoreUnknownKeys = true }
     private val recorded = mutableListOf<HttpRequestData>()
 
-    private fun source(): ItadAccountSourceImpl {
+    private fun source(userInfoBody: String = """{"username":"alice"}"""): ItadAccountSourceImpl {
         val jsonHeaders = headersOf(HttpHeaders.ContentType, "application/json")
         val client = mockHttpClient(json) { request ->
             recorded += request
             when {
-                request.url.encodedPath == "/user/info/v2" -> respond("""{"username":"alice"}""", HttpStatusCode.OK, jsonHeaders)
+                request.url.encodedPath == "/user/info/v2" -> respond(userInfoBody, HttpStatusCode.OK, jsonHeaders)
                 request.url.encodedPath == "/waitlist/games/v1" && request.method == HttpMethod.Get ->
                     respond("""[{"id":"uuid-1","title":"Hades","type":"game","added":"2023-02-01T21:04:21+01:00","assets":{"boxart":"box.jpg","banner300":"banner300.jpg"}}]""", HttpStatusCode.OK, jsonHeaders)
                 request.url.encodedPath == "/collection/games/v1" && request.method == HttpMethod.Get ->
@@ -80,6 +80,20 @@ class ItadAccountSourceImplTest {
         val user = source().getUserInfo()
         assertEquals("alice", user.username)
         assertEquals("/user/info/v2", recorded.single().url.encodedPath)
+    }
+
+    @Test
+    fun getUserInfo_tolerates_a_null_username() = runTest {
+        // ITAD returns `"username": null` for some accounts; decoding it as non-null threw mid-login and
+        // left the session half-established (Sentry KOTLIN-J).
+        val user = source(userInfoBody = """{"username":null}""").getUserInfo()
+        assertEquals("", user.username)
+    }
+
+    @Test
+    fun getUserInfo_tolerates_an_absent_username() = runTest {
+        val user = source(userInfoBody = "{}").getUserInfo()
+        assertEquals("", user.username)
     }
 
     @Test

@@ -36,6 +36,6 @@ val itadRemoteModule = module {
     single<StatsSource> { ItadStatsSourceImpl(get(), get(), get(), get(), get()) }
 
     // Login orchestration: OAuth client + browser launcher (platform-bound) +
-    // account source + token store + credentials + clock.
-    single<ItadLoginSource> { ItadLoginSourceImpl(get(), get(), get(), get(), get(), get()) }
+    // account source + token store + credentials + clock + logger.
+    single<ItadLoginSource> { ItadLoginSourceImpl(get(), get(), get(), get(), get(), get(), get()) }
 }

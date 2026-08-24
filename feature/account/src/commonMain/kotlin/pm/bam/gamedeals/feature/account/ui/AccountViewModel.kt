@@ -6,7 +6,10 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
@@ -43,6 +46,14 @@ internal class AccountViewModel(
 
     val uiState: StateFlow<AccountScreenData>
         field = MutableStateFlow(AccountScreenData())
+
+    /** One-shot hub events (snackbars). Mirrors the Deals/Store event idiom. */
+    val events: SharedFlow<AccountUiEvent>
+        field = MutableSharedFlow<AccountUiEvent>(
+            replay = 0,
+            extraBufferCapacity = 1,
+            onBufferOverflow = BufferOverflow.DROP_OLDEST,
+        )
 
     /** The full region list for the picker — static reference data, not part of the reactive state. */
     val countries: ImmutableList<Country> = regionRepository.supportedCountries.toImmutableList()
@@ -120,7 +131,10 @@ internal class AccountViewModel(
             } catch (e: CancellationException) {
                 throw e
             } catch (t: Throwable) {
+                // A silent log here left the user staring at an unchanged signed-out hub with no idea
+                // the attempt had failed (Sentry KOTLIN-J) — tell them, and offer the retry.
                 error(logger, t)
+                events.tryEmit(AccountUiEvent.LoginError)
             } finally {
                 uiState.update { it.copy(loggingIn = false) }
             }
@@ -148,6 +162,12 @@ internal class AccountViewModel(
     /** Set the app theme preference (persisted; the app root re-themes live). */
     fun onSetThemeMode(mode: ThemeMode) {
         viewModelScope.launch { settingsRepository.setThemeMode(mode) }
+    }
+
+    /** One-shot events the hub surfaces as a snackbar. */
+    internal sealed interface AccountUiEvent {
+        /** The OAuth round-trip failed outright (not a user cancel — that resolves to a no-op). */
+        data object LoginError : AccountUiEvent
     }
 
     @Immutable
