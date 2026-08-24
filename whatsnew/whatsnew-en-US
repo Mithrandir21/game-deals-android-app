@@ -4,3 +4,4 @@ A bug-fix release, clearing out the top crash and error reports.
 • Game pages no longer fail when one of their stores can't be loaded
 • Sign-in is more reliable, and tells you when something goes wrong
 • Game info holds up better on a patchy connection
+• Fixed some game pages failing to open at all
