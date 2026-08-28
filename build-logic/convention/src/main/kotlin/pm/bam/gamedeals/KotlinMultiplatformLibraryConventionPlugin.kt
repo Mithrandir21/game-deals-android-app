@@ -96,5 +96,6 @@ class KotlinMultiplatformLibraryConventionPlugin : Plugin<Project> {
         }
 
         configureKover()
+        configureIosSimulatorTestLinking()
     }
 }

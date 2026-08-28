@@ -1,5 +1,6 @@
 import org.gradle.testing.jacoco.tasks.JacocoReport
 import pm.bam.gamedeals.CoverageFilters
+import pm.bam.gamedeals.IosSpm
 
 // `apply false` entries establish each plugin's version on the build classpath without applying them at root — module and convention scripts then apply by
 // id without repeating the version. Don't add `org.jetbrains.kotlin.android` back; AGP 9's built-in Kotlin support replaces it (applying both would clash).
@@ -49,6 +50,26 @@ val jacocoCoveredModulePaths = listOf(
     ":feature:giveaways",
     ":feature:webview",
 )
+
+// Kotlin/Native test executables have to resolve `-framework Sentry` themselves (see `configureIosSimulatorTestLinking`). Resolving the iOS app's SPM pins
+// into build/spm hands them a Sentry.xcframework at exactly the sentry-cocoa version `Package.resolved` already ships. Skipped off macOS, where the
+// simulator test binaries cannot be built anyway.
+tasks.register<Exec>("resolveIosSpmArtifacts") {
+    group = "build setup"
+    description = "Resolves iosApp's Swift Package Manager pins into build/spm so Kotlin/Native iOS test binaries can link against Sentry."
+
+    val clonedPackages = IosSpm.clonedPackagesDir(rootDir)
+
+    onlyIf { IosSpm.isMacOs }
+    inputs.file(layout.projectDirectory.file("iosApp/iosApp.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved"))
+    outputs.dir(clonedPackages)
+
+    commandLine(
+        "xcodebuild", "-resolvePackageDependencies",
+        "-project", layout.projectDirectory.dir("iosApp/iosApp.xcodeproj").asFile.absolutePath,
+        "-clonedSourcePackagesDirPath", clonedPackages.absolutePath,
+    )
+}
 
 tasks.register<JacocoReport>("jacocoAndroidTestReport") {
     group = "verification"
