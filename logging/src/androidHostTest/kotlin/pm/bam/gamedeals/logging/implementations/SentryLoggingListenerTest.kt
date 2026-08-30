@@ -102,6 +102,10 @@ class SentryLoggingListenerTest {
         assertEquals(SentryLevel.WARNING, crumb.captured.level)
         assertEquals("deals fetch failed", crumb.captured.message)
         assertEquals("DealsRepo", crumb.captured.category)
+        // The breadcrumb is the only record a downgraded failure leaves, so it has to say which failure
+        // it was — "deals fetch failed" alone can't distinguish offline from a stalled socket.
+        assertEquals("UnknownHostException", crumb.captured.getData()?.get("exception"))
+        assertEquals("api.isthereanydeal.com", crumb.captured.getData()?.get("reason"))
         verify(exactly = 0) { Sentry.captureException(any(), any()) }
         verify(exactly = 0) { Sentry.captureMessage(any(), any()) }
     }
