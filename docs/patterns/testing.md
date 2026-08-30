@@ -326,6 +326,30 @@ fun `load store deals from source failure`() = runTest { … }
 
 **Seen in.** all test files
 
+### Test failures must be re-raised by the convention plugin
+
+`KotlinMultiplatformLibraryConventionPlugin` sets `ignoreFailures = false` in a `doFirst` on every
+`AbstractTestTask`. It looks redundant — that is already the Gradle default — and it is not.
+
+KGP delegates failure reporting for KMP modules to the `allTests` aggregate: whenever `allTests` is in the task
+graph, KGP flips `ignoreFailures = true` on each child test task at graph-ready (so every target runs and the
+aggregate report can cover all of them), then re-raises the failure from the report task itself. The same
+convention plugin disables `TestReport` tasks (`enabled = false`) to work around a Gradle 9 report-generator
+bug — which keeps the half that suppresses failures and removes the half that re-raises them.
+
+The result, before the guard was added: a failing `commonTest` / `androidHostTest` test in any KMP module still
+printed `FAILED` and `N tests completed, 1 failed`, but `check`, `build` and `allTests` all exited **0**.
+CI runs `./gradlew build test`, so a red test could merge green. Running the test task *directly*
+(`./gradlew :feature:appupdate:testAndroidHostTest`) exited 1 as expected, which is what made it easy to miss.
+
+`:app` was never affected — it is a plain AGP module with a `test` task and no `allTests` aggregate — but
+nearly every test in the repo lives in a KMP module, so in practice almost the whole suite was advisory.
+
+**If you touch either the `TestReport` disable or the `doFirst` guard, re-verify with a canary:** add a test
+that asserts `assertEquals(1, 2)`, run `./gradlew :common:check`, and confirm it exits 1.
+
+**Seen in.** `build-logic/convention/src/main/kotlin/pm/bam/gamedeals/KotlinMultiplatformLibraryConventionPlugin.kt`
+
 ## What we don't do
 
 - **No Turbine or `Flow.test()` helpers.** The custom `observeEmissions()` covers the codebase's needs without an extra testing dependency. **Why we avoid it:** the existing pattern is sufficient for current ViewModel + repository surface; adding Turbine would duplicate functionality.

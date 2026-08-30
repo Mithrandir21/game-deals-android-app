@@ -5,6 +5,7 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.services.BuildService
 import org.gradle.api.services.BuildServiceParameters
+import org.gradle.api.tasks.testing.AbstractTestTask
 import org.gradle.api.tasks.testing.Test
 import org.gradle.api.tasks.testing.TestReport
 import org.gradle.kotlin.dsl.configure
@@ -93,6 +94,15 @@ class KotlinMultiplatformLibraryConventionPlugin : Plugin<Project> {
         // `allTests` reuses Gradle 9's generic report generator, which mis-deserializes KGP's output-events.bin — same bug as KotlinNativeTest.reports above.
         tasks.withType(TestReport::class.java).configureEach {
             enabled = false
+        }
+
+        // KGP delegates failure *reporting* to that same `allTests` aggregate: whenever it is in the task graph, KGP flips `ignoreFailures = true` on every
+        // child test task at graph-ready so the run completes and the report can cover all targets, then re-raises the failure from the report task itself.
+        // Disabling `allTests` above keeps the half that suppresses and removes the half that re-raises — so a failing test exits 0 through `check` / `build`
+        // (and therefore through CI's `./gradlew build test`), while still printing "FAILED". Running the test task directly is unaffected, which is what
+        // makes it easy to miss. Pin the flag back in `doFirst`, which executes after graph-ready and so lands after KGP's flip.
+        tasks.withType(AbstractTestTask::class.java).configureEach {
+            doFirst { (this as AbstractTestTask).ignoreFailures = false }
         }
 
         configureKover()
