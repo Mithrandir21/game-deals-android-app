@@ -18,6 +18,7 @@ import pm.bam.gamedeals.common.ui.platform.rememberPlatformActions
 import pm.bam.gamedeals.common.ui.theme.GameDealsTheme
 import pm.bam.gamedeals.domain.models.ThemeMode
 import pm.bam.gamedeals.domain.repositories.settings.SettingsRepository
+import pm.bam.gamedeals.feature.appupdate.ui.AppUpdateHost
 import pm.bam.gamedeals.navigation.NavGraph
 import pm.bam.gamedeals.notifications.toNotificationRoute
 
@@ -49,6 +50,10 @@ class MainActivity : ComponentActivity() {
                         value = if (settingsRepository.getOnboardingCompleted()) Destination.Home else Destination.Onboarding
                     }
                     startDestination?.let { NavGraph(startDestination = it) }
+
+                    // Minimum-version gate. A sibling of the nav host rather than a child, so it covers every
+                    // route — onboarding included — and shows even while startDestination is still resolving.
+                    AppUpdateHost()
                 }
             }
         }

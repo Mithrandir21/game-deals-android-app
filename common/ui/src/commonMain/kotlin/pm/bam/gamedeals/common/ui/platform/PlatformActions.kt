@@ -27,6 +27,19 @@ interface PlatformActions {
      * screen on Android if the notification screen isn't resolvable; no-ops if nothing can handle it.
      */
     fun openAppNotificationSettings()
+
+    /**
+     * Opens this app's own listing in the platform store — Google Play on Android, the App Store on iOS — so
+     * a user told they are below the minimum supported version can actually update.
+     *
+     * Deliberately *not* routed through [openInApp]: a store listing has to leave the app and reach the native
+     * store client, which a Custom Tab / `SFSafariViewController` would not do.
+     *
+     * @param storeId the Android package name, or the numeric App Store id on iOS. Implementations no-op on an
+     *   empty id rather than opening something wrong — the iOS id is not known until the app is registered
+     *   with App Store Connect.
+     */
+    fun openStoreListing(storeId: String)
 }
 
 /**
@@ -37,6 +50,7 @@ object NoOpPlatformActions : PlatformActions {
     override fun share(text: String) = Unit
     override fun openInApp(url: String) = Unit
     override fun openAppNotificationSettings() = Unit
+    override fun openStoreListing(storeId: String) = Unit
 }
 
 val LocalPlatformActions = staticCompositionLocalOf<PlatformActions> { NoOpPlatformActions }

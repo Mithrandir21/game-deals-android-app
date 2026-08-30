@@ -51,6 +51,7 @@ import pm.bam.gamedeals.common.navigation.NotificationRouteBus
 import pm.bam.gamedeals.common.navigation.SearchController
 import pm.bam.gamedeals.common.ui.di.commonUiModule
 import pm.bam.gamedeals.common.time.Clock
+import pm.bam.gamedeals.common.version.AppInfo
 import pm.bam.gamedeals.common.ui.platform.LocalPlatformActions
 import pm.bam.gamedeals.common.ui.platform.rememberPlatformActions
 import pm.bam.gamedeals.common.ui.shell.GameDealsAppShell
@@ -67,6 +68,8 @@ import pm.bam.gamedeals.domain.scheduling.applyNotificationLifecycle
 import pm.bam.gamedeals.feature.account.di.accountModule
 import pm.bam.gamedeals.feature.account.navigation.accountScreen
 import pm.bam.gamedeals.feature.account.ui.SignInPromptHost
+import pm.bam.gamedeals.feature.appupdate.di.appUpdateModule
+import pm.bam.gamedeals.feature.appupdate.ui.AppUpdateHost
 import pm.bam.gamedeals.feature.account.ui.rememberAccountTabUnreadCount
 import pm.bam.gamedeals.feature.bundles.di.bundlesModule
 import pm.bam.gamedeals.feature.bundles.navigation.bundleDetailScreen
@@ -207,6 +210,21 @@ private fun bootstrapKoin() {
                 appVersion = NSBundle.mainBundle.objectForInfoDictionaryKey("CFBundleShortVersionString") as? String ?: "0",
             )
         }
+        // Build identity for the minimum-version gate. Mirrors the Android registration in
+        // GameDealsApplication; deliberately separate from AnalyticsConfig so a gating decision never reads
+        // out of the analytics namespace.
+        //
+        // AppStoreId is the app's numeric App Store id, used to open the store listing. It is absent until the
+        // app is registered with App Store Connect, and an empty value makes openStoreListing a no-op — the
+        // prompt still shows, the Update button just does nothing. Fill the Info.plist key in when known.
+        single {
+            AppInfo(
+                versionName = infoPlistString("CFBundleShortVersionString").ifEmpty { "0" },
+                versionCode = infoPlistString("CFBundleVersion").toLongOrNull() ?: 0L,
+                storeId = infoPlistString("AppStoreId"),
+                isDebug = Platform.isDebugBinary,
+            )
+        }
     }
 
     startKoin {
@@ -235,6 +253,7 @@ private fun bootstrapKoin() {
             dealsModule,
             discoverModule,
             onboardingModule,
+            appUpdateModule,
             iosAppModule,
         )
     }
@@ -384,6 +403,10 @@ private fun App() {
                 value = if (settings.getOnboardingCompleted()) Destination.Home else Destination.Onboarding
             }
             startDestination?.let { AppNavHost(startDestination = it) }
+
+            // Minimum-version gate. A sibling of the nav host rather than a child, so it covers every route —
+            // onboarding included — and shows even while startDestination is still resolving. Mirrors MainActivity.
+            AppUpdateHost()
         }
     }
 }

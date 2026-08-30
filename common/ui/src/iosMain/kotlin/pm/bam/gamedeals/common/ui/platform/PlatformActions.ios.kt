@@ -53,6 +53,14 @@ class IosPlatformActions : PlatformActions {
         rootViewController.presentViewController(safari, animated = true, completion = null)
     }
 
+    override fun openStoreListing(storeId: String) {
+        // itms-apps:// opens the App Store app directly, skipping a Safari bounce. Empty id means the app
+        // has no App Store listing yet (see AppInfo.storeId) — no-op rather than open a broken URL.
+        if (storeId.isEmpty()) return
+        val nsUrl = NSURL.URLWithString("itms-apps://itunes.apple.com/app/id$storeId") ?: return
+        UIApplication.sharedApplication.openURL(nsUrl, options = emptyMap<Any?, Any>(), completionHandler = null)
+    }
+
     override fun openAppNotificationSettings() {
         // iOS exposes only the app's Settings root (no direct notifications subpage pre-iOS 16); the
         // Notifications section is one tap in. The string constant is non-null at runtime.

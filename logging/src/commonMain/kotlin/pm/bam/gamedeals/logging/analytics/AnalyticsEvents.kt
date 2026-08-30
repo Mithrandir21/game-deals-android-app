@@ -68,4 +68,12 @@ object AnalyticsEvents {
     /** In-app ITAD notifications marked read. */
     const val NOTIFICATION_MARKED_READ = "notification_marked_read"
     const val NOTIFICATIONS_MARKED_ALL_READ = "notifications_marked_all_read"
+
+    // --- Minimum-version gate. All three carry `minimum_version` + `blocking`. ---
+    /** The update prompt was rendered (this build is below the remotely published floor). */
+    const val APP_UPDATE_PROMPT_SHOWN = "app_update_prompt_shown"
+    /** User tapped "Update" and was sent to the store listing. */
+    const val APP_UPDATE_PROMPT_UPDATE_TAPPED = "app_update_prompt_update_tapped"
+    /** User dismissed the nudge variant with "Later"; unreachable from the blocking variant. */
+    const val APP_UPDATE_PROMPT_DISMISSED = "app_update_prompt_dismissed"
 }

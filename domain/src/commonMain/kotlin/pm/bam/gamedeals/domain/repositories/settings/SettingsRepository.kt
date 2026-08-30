@@ -3,6 +3,7 @@ package pm.bam.gamedeals.domain.repositories.settings
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -66,6 +67,18 @@ interface SettingsRepository {
     fun observeThemeMode(): Flow<ThemeMode>
     suspend fun getThemeMode(): ThemeMode
     suspend fun setThemeMode(mode: ThemeMode)
+
+    /**
+     * When the user last dismissed the "a newer version is available" prompt, as epoch millis, or `null` if
+     * they never have. Only consulted for the *dismissible* variant of that prompt: a blocking minimum-version
+     * gate ignores this entirely, since it is not dismissible in the first place.
+     *
+     * Stored as millis rather than an `Instant` so it pairs with [pm.bam.gamedeals.common.time.Clock], the
+     * project's injectable time source — which is what makes the "has it been 24h?" decision testable without
+     * touching the wall clock.
+     */
+    fun observeUpdatePromptDismissedAt(): Flow<Long?>
+    suspend fun setUpdatePromptDismissedAt(epochMillis: Long)
 }
 
 internal const val MATURE_OPT_IN_KEY = "mature_opt_in"
@@ -74,6 +87,7 @@ internal const val ONBOARDING_COMPLETED_KEY = "onboarding_completed"
 internal const val INSTALL_ID_KEY = "install_id"
 internal const val ANALYTICS_CONSENT_KEY = "analytics_consent"
 internal const val THEME_MODE_KEY = "theme_mode"
+internal const val UPDATE_PROMPT_DISMISSED_AT_KEY = "update_prompt_dismissed_at"
 
 internal class SettingsRepositoryImpl(
     private val storage: Storage,
@@ -91,6 +105,11 @@ internal class SettingsRepositoryImpl(
 
     // Theme-mode source of truth, lazily seeded from [storage] (null = not yet loaded; default SYSTEM).
     private val themeMode = MutableStateFlow<ThemeMode?>(null)
+
+    // Update-prompt dismissal, lazily seeded from [storage]. Needs a wrapper rather than the plain nullable
+    // used above, because here "never dismissed" is itself a null and would be indistinguishable from
+    // "not yet read from storage" — which would re-read on every collection.
+    private val updatePromptDismissal = MutableStateFlow<DismissalSnapshot?>(null)
 
     override fun observeMatureOptIn(): Flow<Boolean> =
         matureOptIn
@@ -196,4 +215,25 @@ internal class SettingsRepositoryImpl(
 
     private suspend fun loadDealsFilterFromStorage(): DealsFilter =
         runCatching { storage.getNullable<DealsFilter>(DEALS_FILTER_KEY) }.getOrNull() ?: DealsFilter()
+
+    override fun observeUpdatePromptDismissedAt(): Flow<Long?> =
+        updatePromptDismissal
+            .onStart { if (updatePromptDismissal.value == null) updatePromptDismissal.value = loadUpdatePromptDismissalFromStorage() }
+            .filterNotNull()
+            .map { it.atEpochMillis }
+
+    override suspend fun setUpdatePromptDismissedAt(epochMillis: Long) {
+        storage.save(UPDATE_PROMPT_DISMISSED_AT_KEY, epochMillis)
+        updatePromptDismissal.value = DismissalSnapshot(epochMillis)
+    }
+
+    private suspend fun loadUpdatePromptDismissalFromStorage(): DismissalSnapshot =
+        DismissalSnapshot(runCatching { storage.getNullable<Long>(UPDATE_PROMPT_DISMISSED_AT_KEY) }.getOrNull())
 }
+
+/**
+ * Distinguishes "not yet read from storage" (a null [SettingsRepositoryImpl.updatePromptDismissal]) from
+ * "read, and the user has never dismissed the prompt" (a present snapshot whose [atEpochMillis] is null).
+ * Without it the two collapse into the same null and storage would be re-read on every collection.
+ */
+private class DismissalSnapshot(val atEpochMillis: Long?)

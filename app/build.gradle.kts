@@ -203,6 +203,7 @@ dependencies {
     implementation(project(":feature:deals"))
     implementation(project(":feature:discover"))
     implementation(project(":feature:onboarding"))
+    implementation(project(":feature:appupdate"))
 
     val composeBom = platform(libs.androidx.compose.bom)
 

@@ -34,6 +34,23 @@ class AndroidPlatformActions(private val context: Context) : PlatformActions {
         }
     }
 
+    override fun openStoreListing(storeId: String) {
+        if (storeId.isEmpty()) return
+        // market:// hands straight to the Play client. It is absent on devices without Play services (and on
+        // most emulators), so fall back to the web listing, which any browser can take.
+        try {
+            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$storeId")))
+        } catch (_: ActivityNotFoundException) {
+            try {
+                context.startActivity(
+                    Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=$storeId"))
+                )
+            } catch (_: ActivityNotFoundException) {
+                // No Play client and no browser — give up silently rather than crash.
+            }
+        }
+    }
+
     override fun openAppNotificationSettings() {
         // The per-app notification settings screen (API 26+, which is our minSdk).
         val notificationSettings = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)

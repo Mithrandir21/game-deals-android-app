@@ -33,5 +33,23 @@ interface FeatureFlags {
      * a no-op for providers without remote config ([NoOpFeatureFlags]). Call once after the provider is set up,
      * and again whenever the targeting identity changes (e.g. after `identify`).
      */
+    /**
+     * Synchronous snapshot of [flag]'s **JSON payload**, or `null` when the flag carries none, nothing has
+     * loaded yet, or the provider has no remote config. Callers parse it themselves (kotlinx-serialization),
+     * so a flag can carry structured configuration and not just an on/off bit.
+     *
+     * Payloads cross this seam as JSON *text* on purpose. Providers hand back loosely-typed objects whose
+     * concrete shape differs per platform — a Kotlin `Map` on Android, a bridged `NSDictionary` on iOS — so
+     * each provider normalises to one well-defined representation rather than pushing that difference onto
+     * every caller. See `toJsonStringOrNull`.
+     */
+    fun payload(flag: FeatureFlag): String?
+
+    /**
+     * Reactive view of [flag]'s JSON payload: emits `null` immediately, then re-emits whenever a [refresh]
+     * delivers a new value. Distinct-until-changed. The payload counterpart of [observe].
+     */
+    fun observePayload(flag: FeatureFlag): Flow<String?>
+
     fun refresh()
 }

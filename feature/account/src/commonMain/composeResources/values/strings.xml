@@ -150,4 +150,12 @@
     <string name="account_waitlisted_ago">Waitlisted %1$s</string>
     <string name="account_added_ago">Added %1$s</string>
 
+    <!-- Debug-only: minimum-version gate override. Never shown in a release build (AppInfo.isDebug). -->
+    <string name="account_debug_update_row">Force update override</string>
+    <string name="account_debug_update_row_desc">Debug only — simulate a minimum supported version</string>
+    <string name="account_debug_update_title">Force update override</string>
+    <string name="account_debug_update_min_version">Minimum version</string>
+    <string name="account_debug_update_blocking">Blocking (cannot dismiss)</string>
+    <string name="account_debug_update_apply">Apply</string>
+    <string name="account_debug_update_clear">Clear</string>
 </resources>

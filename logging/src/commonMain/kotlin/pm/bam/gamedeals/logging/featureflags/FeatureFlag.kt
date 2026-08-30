@@ -17,5 +17,15 @@ enum class FeatureFlag(val key: String, val default: Boolean) {
 
     /** Gates the "Discover by Tag" entry point on the Deals screen. Staged rollout: hidden until enabled remotely. */
     DiscoverByTag(key = "discover_by_tag", default = false),
-    
+
+    /**
+     * Gates the minimum-supported-version prompt. Unlike every other flag here this one is *not* self-contained:
+     * turning it on only arms the check, and the actual floor comes from the flag's JSON payload —
+     * `{"minimum_version": "1.2.0", "blocking": true}` — read via [FeatureFlags.payload].
+     *
+     * Defaults to `false` so the prompt can never appear without a deliberate remote decision, and every
+     * downstream failure (no payload, malformed payload, unparseable version) also resolves to "don't prompt".
+     */
+    ForceUpdate(key = "force_update", default = false),
+
 }

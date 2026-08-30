@@ -58,6 +58,7 @@ kotlin {
             implementation(project(":feature:deals"))
             implementation(project(":feature:discover"))
             implementation(project(":feature:onboarding"))
+            implementation(project(":feature:appupdate"))
         }
     }
 }

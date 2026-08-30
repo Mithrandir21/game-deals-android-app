@@ -308,6 +308,8 @@ private fun LoggedOutContent(
         item { MatureContentRow(checked = matureOptIn, onCheckedChange = onSetMature) }
         item { AnalyticsConsentRow(checked = analyticsConsent, onCheckedChange = onSetAnalytics, onOpenPrivacyPolicy = onOpenPrivacyPolicy) }
         item { HubRow(label = stringResource(Res.string.account_row_how_it_works), onClick = onReplayOnboarding) }
+        // Debug builds only; renders nothing in release (see AppUpdateDebugRow).
+        item { AppUpdateDebugRow() }
     }
 }
 
@@ -413,6 +415,8 @@ private fun LoggedInContent(
         item { MatureContentRow(checked = matureOptIn, onCheckedChange = onSetMature) }
         item { AnalyticsConsentRow(checked = analyticsConsent, onCheckedChange = onSetAnalytics, onOpenPrivacyPolicy = onOpenPrivacyPolicy) }
         item { HubRow(label = stringResource(Res.string.account_row_how_it_works), onClick = onReplayOnboarding) }
+        // Debug builds only; renders nothing in release (see AppUpdateDebugRow).
+        item { AppUpdateDebugRow() }
 
         item { SectionHeader(stringResource(Res.string.account_section_website)) }
         item {

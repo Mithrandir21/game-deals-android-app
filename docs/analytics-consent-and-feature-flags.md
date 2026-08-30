@@ -1,6 +1,6 @@
 # Analytics consent ↔ Feature flags
 
-**Last reviewed:** 2026-06-26
+**Last reviewed:** 2026-08-30
 **Scope:** `logging/**` (analytics + featureflags seams), `app/**` (PostHog bootstrap), onboarding/account consent UI
 **Why this doc exists:** PostHog backs **both** product-analytics events and feature flags. Consent gates one but not the other, on purpose. This records how that decoupling works, what it does and doesn't protect, and the residual privacy gap to keep in mind when changing either path.
 
@@ -75,19 +75,63 @@ Net: declining analytics does **not** break feature flags, and **no analytics ev
 3. **If you must go strict,** gate `startFeatureFlags()` / `refresh()` behind `getAnalyticsConsent()` and accept that non-consenters only ever see flag defaults. Consider bundling sensible defaults so the app still behaves well offline-of-consent.
 4. **Optional hardening:** if the `samuolis/posthog-kmp` wrapper exposes it, set PostHog `personProfiles = "identified_only"` so anonymous pre-consent flag calls never create a person profile — only `identify()` (consent-only) does. As of this writing the wrapper's `PostHogConfig` does not appear to expose it; verify before relying on it.
 
-## Verify behaviour (smoke test — both directions)
+## Flag payloads
 
-A live PostHog smoke test is still outstanding. Confirm both failure modes, because the decoupling can break either way:
+A flag can carry a JSON payload as well as an on/off bit, read through `FeatureFlags.payload(flag)` /
+`observePayload(flag)`. Payloads cross the seam as **JSON text**, not `Any?`, because
+`PostHog.getFeatureFlagPayload` returns a loosely-typed object whose concrete shape differs per platform — a
+Kotlin `Map` on Android, a bridged `NSDictionary`/`NSNumber` on iOS, where numeric bridging is not something
+common code can pattern-match reliably. Each provider normalises to one representation via the
+`toJsonStringOrNull()` expect/actual (`org.json` on Android, `NSJSONSerialization` on iOS), so `commonMain`
+parses exactly one well-defined thing with kotlinx-serialization.
 
-- **Flags load while opted-out.** With analytics denied, a flag flipped server-side (e.g. `discover_by_tag`) must still reach the device. If the SDK version gates flag reloads on `optOut`, non-consenters would silently get only defaults — the opposite of the intent.
+### The `force_update` contract
+
+The minimum-version gate is the first payload consumer. Flag key `force_update`, payload:
+
+```json
+{ "minimum_version": "1.2.0", "blocking": true }
+```
+
+`blocking` chooses a hard gate (non-dismissible) over a nudge, and defaults to `false` when absent. The gate
+**fails open** at every step — flag off, payload absent, payload malformed, `minimum_version` unparseable, or
+the running `versionName` unparseable all mean "no prompt". This is deliberate and load-bearing: a typo in the
+remote config must never be able to lock users out of the app, since the only recovery would be shipping a new
+release. `feature/appupdate`'s `AppUpdateViewModelTest` asserts each of those paths explicitly.
+
+Note this flag is a case where the consent decoupling really matters. Analytics consent is off by default, so
+if flag loading were consent-gated the gate would never fire for most of the install base.
+
+## Verify behaviour (smoke test)
+
+**Flags load while opted-out — resolved 2026-08-30 by source inspection, not yet by a live run.** In the
+PostHog core SDK (`com.posthog:posthog` 6.3.1, which `posthog-android` 3.30.0 pulls in under
+`posthog-kmp` 0.1.4):
+
+- `reloadFeatureFlags` guards only on `isEnabled()`, and `isEnabled()` returns `enabled` — i.e. *"was `setup()`
+  called"*. It has nothing to do with consent.
+- `loadFeatureFlagsRequest` contains no opt-out check at all.
+- `getFeatureFlagPayload` likewise guards only on `isEnabled()`.
+- `capture()` is the one that bails: `if (config?.optOut == true) { … return }`.
+
+So opt-out suppresses **event capture only**; flag fetching and flag/payload reads work normally while opted
+out, which is exactly the intended asymmetry. Two caveats: this was read from the Android/JVM core, and **iOS
+goes through posthog-ios (Swift, via SPM) — a separate codebase, still unverified**. And a live run would still
+be worth doing before relying on it for a blocking gate.
+
+Still outstanding:
+
 - **No events leak pre-consent.** With analytics denied, navigating the app (including screens behind a flag) must produce **no** events in the PostHog project — no `$feature_flag_called`, no captures.
+- **iOS flag loading while opted out**, per the caveat above.
 
 ## Key files
 
 - `logging/src/commonMain/kotlin/pm/bam/gamedeals/logging/analytics/PostHogConfigFactory.kt` — the shared config + the two consent pins.
 - `logging/src/commonMain/kotlin/pm/bam/gamedeals/logging/analytics/PostHogAnalytics.kt` — `setConsent()` → `optIn()/optOut()`.
-- `logging/src/commonMain/kotlin/pm/bam/gamedeals/logging/featureflags/PostHogFeatureFlags.kt` — `isEnabled()` / `observe()` / `refresh()`.
+- `logging/src/commonMain/kotlin/pm/bam/gamedeals/logging/featureflags/PostHogFeatureFlags.kt` — `isEnabled()` / `observe()` / `payload()` / `observePayload()` / `refresh()`.
 - `logging/src/commonMain/kotlin/pm/bam/gamedeals/logging/featureflags/FeatureFlag.kt` — the flag catalogue (key + default).
+- `logging/src/commonMain/kotlin/pm/bam/gamedeals/logging/featureflags/FeatureFlagPayload.kt` (+ `.android.kt` / `.ios.kt`) — payload → JSON-string normalisation.
+- `feature/appupdate/` — the minimum-version gate: `ForceUpdateConfig` (payload model), `AppUpdateViewModel` (the fail-open decision), `AppUpdateHost` (the dialog), `AppUpdateDebugOverride` (local stand-in for the payload in debug builds).
 - `app/src/main/java/pm/bam/gamedeals/GameDealsApplication.kt` — `initPostHog()`, `startAnalytics()` (consent-gated), `startFeatureFlags()` (not gated).
 - `domain/src/commonMain/kotlin/pm/bam/gamedeals/domain/repositories/settings/SettingsRepository.kt` — persists consent; single point that flips PostHog.
 - `feature/onboarding/src/commonMain/kotlin/pm/bam/gamedeals/feature/onboarding/ui/OnboardingScreen.kt` — the forced analytics consent step.

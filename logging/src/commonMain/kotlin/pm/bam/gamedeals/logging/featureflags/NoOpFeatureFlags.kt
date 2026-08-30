@@ -11,5 +11,9 @@ import kotlinx.coroutines.flow.flowOf
 object NoOpFeatureFlags : FeatureFlags {
     override fun isEnabled(flag: FeatureFlag): Boolean = flag.default
     override fun observe(flag: FeatureFlag): Flow<Boolean> = flowOf(flag.default)
+    // No provider means no remote payload. Callers must already treat a null payload as "no configuration",
+    // so there is nothing sensible to substitute here.
+    override fun payload(flag: FeatureFlag): String? = null
+    override fun observePayload(flag: FeatureFlag): Flow<String?> = flowOf(null)
     override fun refresh() = Unit
 }

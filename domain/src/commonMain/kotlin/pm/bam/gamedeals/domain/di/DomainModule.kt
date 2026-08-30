@@ -66,6 +66,8 @@ import pm.bam.gamedeals.domain.repositories.region.RegionRepositoryImpl
 import pm.bam.gamedeals.domain.repositories.releases.ReleasesRepository
 import pm.bam.gamedeals.domain.repositories.releases.ReleasesRepositoryImpl
 import pm.bam.gamedeals.domain.repositories.settings.SettingsRepository
+import pm.bam.gamedeals.domain.repositories.appupdate.AppUpdateDebugOverride
+import pm.bam.gamedeals.domain.repositories.appupdate.AppUpdateDebugOverrideImpl
 import pm.bam.gamedeals.domain.repositories.settings.SettingsRepositoryImpl
 import pm.bam.gamedeals.domain.repositories.stores.StoresRepository
 import pm.bam.gamedeals.domain.repositories.stores.StoresRepositoryImpl
@@ -122,6 +124,9 @@ val domainModule = module {
     single<TagDiscoveryRepository> { TagDiscoveryRepositoryImpl(get(), get(), get(), get(), get()) }
     single<RegionRepository> { RegionRepositoryImpl(get(SETTINGS_QUALIFIER), get()) }
     single<SettingsRepository> { SettingsRepositoryImpl(get(SETTINGS_QUALIFIER), get()) }
+    // Debug-only stand-in for the `force_update` flag payload, so the minimum-version gate can be
+    // exercised without a PostHog key. Written by the Account hub, read by :feature:appupdate.
+    single<AppUpdateDebugOverride> { AppUpdateDebugOverrideImpl(get(SETTINGS_QUALIFIER)) }
     // Recently-viewed games (#211): device-local Room history (dao, clock, analytics), not auth-gated.
     single<RecentlyViewedRepository> { RecentlyViewedRepositoryImpl(get(), get(), get()) }
     single<BundlesRepository> { BundlesRepositoryImpl(get(), get(), get(), get(), get()) }

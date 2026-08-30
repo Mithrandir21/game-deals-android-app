@@ -15,6 +15,12 @@ import kotlinx.coroutines.flow.map
  * each [refresh]. There is no native observer, so [observe] is driven off [snapshots]: a small in-memory map that
  * starts at the catalogue defaults and is replaced wholesale when a [refresh] callback fires. [isEnabled] instead
  * reads the SDK's live cache directly, so it reflects a preload that happened before any [refresh] of ours ran.
+ *
+ * Flag reads are **not** gated on analytics consent, and that is verified rather than assumed: in the PostHog
+ * core SDK, `reloadFeatureFlags` and `getFeatureFlagPayload` guard only on `isEnabled()` (i.e. "was `setup()`
+ * called"), while `capture()` is the method that bails on `optOut`. Opting out of analytics therefore suppresses
+ * events but leaves flags and payloads working — which is what lets the minimum-version gate reach users who
+ * declined analytics. See docs/analytics-consent-and-feature-flags.md.
  */
 internal class PostHogFeatureFlags : FeatureFlags {
 
@@ -22,13 +28,22 @@ internal class PostHogFeatureFlags : FeatureFlags {
     // wholesale on each refresh() completion (re-reading every known flag from the SDK's freshly-updated cache).
     private val snapshots = MutableStateFlow(FeatureFlag.entries.associateWith { it.default })
 
+    // Payload counterpart of [snapshots]. Absent-or-not-yet-loaded is `null` rather than a default, since a
+    // payload has no sensible in-code fallback — a caller that can't parse one must fail open on its own terms.
+    private val payloads = MutableStateFlow<Map<FeatureFlag, String?>>(emptyMap())
+
     override fun isEnabled(flag: FeatureFlag): Boolean = PostHog.isFeatureEnabled(flag.key, flag.default)
 
     override fun observe(flag: FeatureFlag): Flow<Boolean> = snapshots.map { it[flag] ?: flag.default }.distinctUntilChanged()
 
+    override fun payload(flag: FeatureFlag): String? = PostHog.getFeatureFlagPayload(flag.key).toJsonStringOrNull()
+
+    override fun observePayload(flag: FeatureFlag): Flow<String?> = payloads.map { it[flag] }.distinctUntilChanged()
+
     override fun refresh() {
         PostHog.reloadFeatureFlags {
             snapshots.value = FeatureFlag.entries.associateWith { PostHog.isFeatureEnabled(it.key, it.default) }
+            payloads.value = FeatureFlag.entries.associateWith { PostHog.getFeatureFlagPayload(it.key).toJsonStringOrNull() }
         }
     }
 }

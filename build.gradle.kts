@@ -37,6 +37,7 @@ dependencies {
     kover(project(":feature:deals"))
     kover(project(":feature:discover"))
     kover(project(":feature:onboarding"))
+    kover(project(":feature:appupdate"))
 }
 
 // Modules whose connectedAndroidDeviceTest / connectedDebugAndroidTest outputs feed the parallel JaCoCo report. Add a module here when it gains an

@@ -23,6 +23,7 @@ import org.koin.core.context.startKoin
 import org.koin.dsl.module
 import pm.bam.gamedeals.common.di.commonAndroidModule
 import pm.bam.gamedeals.common.di.commonModule
+import pm.bam.gamedeals.common.version.AppInfo
 import pm.bam.gamedeals.common.ui.di.commonUiModule
 import pm.bam.gamedeals.di.appModule
 import pm.bam.gamedeals.domain.auth.AuthTokenStore
@@ -35,6 +36,7 @@ import pm.bam.gamedeals.domain.repositories.settings.SettingsRepository
 import pm.bam.gamedeals.domain.scheduling.applyLibraryLifecycle
 import pm.bam.gamedeals.domain.scheduling.applyNotificationLifecycle
 import pm.bam.gamedeals.feature.account.di.accountModule
+import pm.bam.gamedeals.feature.appupdate.di.appUpdateModule
 import pm.bam.gamedeals.feature.bundles.di.bundlesModule
 import pm.bam.gamedeals.feature.deals.di.dealsModule
 import pm.bam.gamedeals.feature.discover.di.discoverModule
@@ -114,6 +116,17 @@ class GameDealsApplication : Application(), SingletonImageLoader.Factory {
                             appVersion = BuildConfig.VERSION_NAME,
                         )
                     }
+                    // Build identity for the minimum-version gate. Kept separate from AnalyticsConfig above
+                    // (which carries the same version string) so a gating decision never reads out of the
+                    // analytics namespace. storeId is the Play package name.
+                    single {
+                        AppInfo(
+                            versionName = BuildConfig.VERSION_NAME,
+                            versionCode = BuildConfig.VERSION_CODE.toLong(),
+                            storeId = packageName,
+                            isDebug = isDebuggable(),
+                        )
+                    }
                 },
                 appModule,
                 homeModule,
@@ -125,6 +138,7 @@ class GameDealsApplication : Application(), SingletonImageLoader.Factory {
                 dealsModule,
                 discoverModule,
                 onboardingModule,
+                appUpdateModule,
             )
         }
         attachSentryUser()
