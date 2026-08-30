@@ -1,6 +1,9 @@
 package pm.bam.gamedeals.domain.auth
 
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.SerializationStrategy
@@ -11,6 +14,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class AuthTokenStoreImplTest {
@@ -19,12 +23,19 @@ class AuthTokenStoreImplTest {
     // round-trip — including the scopeVersion default for legacy blobs — is exercised faithfully.
     private val backing = mutableMapOf<String, String>()
     private val json = Json { ignoreUnknownKeys = true }
+
+    /** Lets a test park a reader *after* it has taken its snapshot, to interleave a competing writer. */
+    private var afterRead: (suspend () -> Unit)? = null
+
     private val storage = object : Storage {
         override suspend fun <T : Any> get(storageKey: String, deserializationStrategy: DeserializationStrategy<T>, defaultValue: T?): T =
             getNullable(storageKey, deserializationStrategy, defaultValue) ?: error("no value for $storageKey")
 
-        override suspend fun <T : Any> getNullable(storageKey: String, deserializationStrategy: DeserializationStrategy<T>, defaultValue: T?): T? =
-            backing[storageKey]?.let { json.decodeFromString(deserializationStrategy, it) } ?: defaultValue
+        override suspend fun <T : Any> getNullable(storageKey: String, deserializationStrategy: DeserializationStrategy<T>, defaultValue: T?): T? {
+            val value = backing[storageKey]?.let { json.decodeFromString(deserializationStrategy, it) } ?: defaultValue
+            afterRead?.invoke()
+            return value
+        }
 
         override suspend fun <T : Any> save(storageKey: String, data: T, serializationStrategy: SerializationStrategy<T>, overwrite: Boolean): Boolean {
             backing[storageKey] = json.encodeToString(serializationStrategy, data)
@@ -109,4 +120,32 @@ class AuthTokenStoreImplTest {
         assertEquals(AuthState.LoggedOut, store.observeAuthState().first())
         assertFalse(backing.containsKey(AUTH_TOKEN_KEY))
     }
+    @Test
+    fun a_logout_during_a_username_backfill_is_not_undone_by_it() = runTest {
+        // The backfill is fired at app scope on login while the user can still hit "sign out", so its
+        // read-modify-write genuinely races a clear(). Unsynchronised, the stale snapshot gets written
+        // back after the wipe and the user is silently signed in again on a token that's already gone.
+        store.saveTokens("AT", "RT", expiresAtEpochMs = 99L, username = "", scopeVersion = CURRENT_SCOPE_VERSION)
+
+        val readGate = CompletableDeferred<Unit>()
+        afterRead = {
+            afterRead = null // one-shot: only the backfill's own read parks
+            readGate.await()
+        }
+
+        val backfill = launch { store.updateUsername("bob") }
+        runCurrent() // parked holding a pre-logout snapshot
+
+        val logout = launch { store.clear() }
+        runCurrent()
+
+        readGate.complete(Unit)
+        backfill.join()
+        logout.join()
+
+        assertIs<AuthState.LoggedOut>(store.observeAuthState().first())
+        assertNull(store.getAccessToken())
+        assertFalse(backing.containsKey(AUTH_TOKEN_KEY))
+    }
+
 }

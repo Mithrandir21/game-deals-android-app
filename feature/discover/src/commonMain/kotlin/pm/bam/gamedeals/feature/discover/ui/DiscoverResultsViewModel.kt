@@ -119,7 +119,7 @@ internal class DiscoverResultsViewModel(
                 uiState.update {
                     ResultsScreenData(
                         status = if (page.results.isEmpty()) ResultsScreenData.Status.EMPTY else ResultsScreenData.Status.DATA,
-                        results = page.results.toImmutableList(),
+                        results = page.results.distinctBy { it.igdbId }.toImmutableList(),
                         endReached = page.endReached,
                     )
                 }
@@ -143,7 +143,12 @@ internal class DiscoverResultsViewModel(
                 nextOffset = page.nextOffset
                 uiState.update { state ->
                     state.copy(
-                        results = (state.results + page.results).toImmutableList(),
+                        // IGDB's popularity ordering shifts between requests, so an offset-paged fetch
+                        // can re-serve a game we already hold. `igdbId` is the LazyColumn key, and a
+                        // repeated key crashes Compose during measure — the same failure the Deals list
+                        // hit (Sentry KOTLIN-N/F/D). `nextOffset` is IGDB-space and tracked separately,
+                        // so dropping a duplicate here can't skew the cursor.
+                        results = (state.results + page.results).distinctBy { it.igdbId }.toImmutableList(),
                         appending = false,
                         endReached = page.endReached,
                     )

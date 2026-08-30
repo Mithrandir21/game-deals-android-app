@@ -116,6 +116,38 @@ class DiscoverResultsViewModelTest : MainDispatcherTest() {
     }
 
     @Test
+    fun load_more_drops_a_game_the_feed_re_serves_across_pages() = runTest {
+        // IGDB's popularity ordering shifts between requests, so an offset-paged fetch can hand back a
+        // game the previous page already contained. `igdbId` is the LazyColumn key and a repeated key
+        // crashes Compose during measure — the Deals list hit exactly this (Sentry KOTLIN-N/F/D).
+        val full = List(DISCOVERY_PAGE_SIZE) { result(it.toLong()) }
+        everySuspend { tagDiscoveryRepository.discover(any(), any(), any()) } calls { (_: IgdbTagFilter, offset: Int, _: Int) ->
+            if (offset == 0) DiscoveryPage(full, nextOffset = 30, endReached = false)
+            else DiscoveryPage(listOf(result(0L), result(999L)), nextOffset = 32, endReached = true)
+        }
+
+        val vm = createViewModel()
+        advanceUntilIdle()
+        vm.loadNextPage()
+        advanceUntilIdle()
+
+        val results = vm.uiState.value.results
+        assertEquals(DISCOVERY_PAGE_SIZE + 1, results.size)
+        assertEquals(results.size, results.map { it.igdbId }.toSet().size, "Duplicate LazyColumn keys")
+    }
+
+    @Test
+    fun a_first_page_that_repeats_a_game_is_deduped_too() = runTest {
+        everySuspend { tagDiscoveryRepository.discover(any(), any(), any()) } returns
+            DiscoveryPage(results = listOf(result(1L), result(2L), result(1L)), nextOffset = 3, endReached = true)
+
+        val vm = createViewModel()
+        advanceUntilIdle()
+
+        assertEquals(2, vm.uiState.value.results.size)
+    }
+
+    @Test
     fun decodes_filter_from_route_args_and_queries_with_it() = runTest {
         everySuspend { tagDiscoveryRepository.discover(any(), any(), any()) } returns
             DiscoveryPage(results = emptyList(), nextOffset = 0, endReached = true)

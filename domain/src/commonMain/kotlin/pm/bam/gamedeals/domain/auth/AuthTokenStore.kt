@@ -4,6 +4,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.Serializable
 import pm.bam.gamedeals.common.storage.Storage
 import pm.bam.gamedeals.common.storage.getNullable
@@ -52,6 +54,10 @@ interface AuthTokenStore {
      * to just this field rather than going through [saveTokens] so a concurrent token refresh can't be
      * clobbered by a stale access token read moments earlier. No-op when logged out or when [username]
      * is blank.
+     *
+     * The backfill runs at app scope on login, concurrently with the ITAD 401-refresh path and with a
+     * logout the user can trigger at any moment, so implementations must serialise it against the other
+     * mutations rather than relying on the narrow field scope alone.
      */
     suspend fun updateUsername(username: String)
 
@@ -88,6 +94,16 @@ internal class AuthTokenStoreImpl(
     // Reactive source of truth, lazily seeded from [storage] on first access (null = not yet loaded).
     private val authState = MutableStateFlow<AuthState?>(null)
 
+    /**
+     * Serialises every mutation. [updateUsername] is a read-modify-write, and the three writers run
+     * concurrently by design — the username backfill is kicked off at app scope on login, the ITAD
+     * token refresh writes from whichever request hit a 401, and the user can sign out at any point.
+     * Unsynchronised, a backfill that loaded before a logout would re-save the old token afterwards and
+     * silently resurrect a dead session; the same interleaving against a refresh would roll the tokens
+     * back to the pre-refresh pair.
+     */
+    private val mutex = Mutex()
+
     override fun observeAuthState(): Flow<AuthState> =
         authState
             .onStart { if (authState.value == null) authState.value = loadFromStorage().toAuthState() }
@@ -111,21 +127,27 @@ internal class AuthTokenStoreImpl(
         scopeVersion: Int,
     ) {
         val token = StoredAuthToken(accessToken, refreshToken, expiresAtEpochMs, username, scopeVersion)
-        storage.save(AUTH_TOKEN_KEY, token)
-        authState.value = token.toAuthState()
+        mutex.withLock {
+            storage.save(AUTH_TOKEN_KEY, token)
+            authState.value = token.toAuthState()
+        }
     }
 
     override suspend fun updateUsername(username: String) {
         if (username.isBlank()) return
-        val current = loadFromStorage() ?: return
-        val updated = current.copy(username = username)
-        storage.save(AUTH_TOKEN_KEY, updated)
-        authState.value = updated.toAuthState()
+        mutex.withLock {
+            val current = loadFromStorage() ?: return
+            val updated = current.copy(username = username)
+            storage.save(AUTH_TOKEN_KEY, updated)
+            authState.value = updated.toAuthState()
+        }
     }
 
     override suspend fun clear() {
-        storage.remove(AUTH_TOKEN_KEY)
-        authState.value = AuthState.LoggedOut
+        mutex.withLock {
+            storage.remove(AUTH_TOKEN_KEY)
+            authState.value = AuthState.LoggedOut
+        }
     }
 
     private suspend fun loadFromStorage(): StoredAuthToken? =

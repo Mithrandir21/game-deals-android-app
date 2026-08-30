@@ -13,6 +13,7 @@ import pm.bam.gamedeals.domain.utils.millisInHour
 import pm.bam.gamedeals.domain.utils.millisInMinute
 import pm.bam.gamedeals.logging.Logger
 import pm.bam.gamedeals.logging.debug
+import pm.bam.gamedeals.logging.warn
 
 internal const val STORES_TTL_MILLIS = millisInHour * 8
 
@@ -68,8 +69,7 @@ internal class StoresRepositoryImpl(
      *
      * The refresh is rate-limited by [STORE_MISS_REFRESH_COOLDOWN_MILLIS] and serialised by
      * [missRefreshMutex] so mapping a screenful of deals costs at most one fetch. A refresh failure
-     * is swallowed by `CachedResource`'s serve-stale path whenever anything is cached; the caller
-     * gets `null` either way and degrades.
+     * never propagates — the caller gets `null` either way and degrades.
      */
     override suspend fun getStore(storeId: Int): Store? =
         storesDao.getStore(storeId) ?: refreshOnMiss().let { storesDao.getStore(storeId) }
@@ -79,7 +79,12 @@ internal class StoresRepositoryImpl(
         if (now - lastMissRefreshMillis < STORE_MISS_REFRESH_COOLDOWN_MILLIS) return@withLock
         lastMissRefreshMillis = now
         debug(logger) { "Store cache miss — forcing a store refresh" }
-        cache.refreshIfNeeded(force = true)
+        // `CachedResource` serves stale on error only while something is cached — with an empty table
+        // it rethrows, which is exactly the case a miss is most likely to hit (fresh install, cleared
+        // data, a first launch with no signal). Letting that escape would put KOTLIN-E straight back:
+        // the caller asked for one shop, not for the refresh to have succeeded.
+        runCatching { cache.refreshIfNeeded(force = true) }
+            .onFailure { warn(logger, it) { "Forced store refresh after a cache miss failed" } }
     }
 
     override suspend fun refreshStores(force: Boolean) {

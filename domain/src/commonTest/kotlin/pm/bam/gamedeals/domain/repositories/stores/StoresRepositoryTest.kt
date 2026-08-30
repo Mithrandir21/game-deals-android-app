@@ -159,6 +159,18 @@ class StoresRepositoryTest {
     }
 
     @Test
+    fun get_store_miss_survives_a_failing_refresh_on_an_empty_cache() = runTest {
+        everySuspend { storesDao.getStore(7) } returns null
+        // Nothing cached at all — a fresh install, cleared data, or a first launch with no signal.
+        everySuspend { storesDao.getAllStores() } returns emptyList()
+        everySuspend { dealsSource.fetchStores() } throws IllegalStateException("network down")
+
+        // With an empty table CachedResource has no stale rows to serve and rethrows. That must not
+        // reach the caller: propagating it is KOTLIN-E again, just from the refresh instead of the DAO.
+        assertNull(impl.getStore(7))
+    }
+
+    @Test
     fun get_store_miss_survives_a_failing_refresh() = runTest {
         everySuspend { storesDao.getStore(7) } returns null
         everySuspend { storesDao.getAllStores() } returns listOf(store(storeID = 99))
