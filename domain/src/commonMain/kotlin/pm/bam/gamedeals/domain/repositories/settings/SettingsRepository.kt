@@ -79,6 +79,15 @@ interface SettingsRepository {
      */
     fun observeUpdatePromptDismissedAt(): Flow<Long?>
     suspend fun setUpdatePromptDismissedAt(epochMillis: Long)
+
+    /**
+     * Forgets any recorded dismissal, so the nudge is eligible to show again immediately.
+     *
+     * Exists for the debug override in the Account hub: once the prompt has been dismissed it is silent for
+     * 24h, which makes it impossible to look at twice in one sitting while developing against it. There is no
+     * production caller — the 24h window is the intended behaviour for real users.
+     */
+    suspend fun clearUpdatePromptDismissedAt()
 }
 
 internal const val MATURE_OPT_IN_KEY = "mature_opt_in"
@@ -225,6 +234,11 @@ internal class SettingsRepositoryImpl(
     override suspend fun setUpdatePromptDismissedAt(epochMillis: Long) {
         storage.save(UPDATE_PROMPT_DISMISSED_AT_KEY, epochMillis)
         updatePromptDismissal.value = DismissalSnapshot(epochMillis)
+    }
+
+    override suspend fun clearUpdatePromptDismissedAt() {
+        storage.remove(UPDATE_PROMPT_DISMISSED_AT_KEY)
+        updatePromptDismissal.value = DismissalSnapshot(null)
     }
 
     private suspend fun loadUpdatePromptDismissalFromStorage(): DismissalSnapshot =

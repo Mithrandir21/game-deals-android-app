@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="debug_title">Developer tools</string>
+    <string name="debug_navigation_back">Back</string>
+    <string name="debug_intro">Debug builds only. Nothing here is reachable in a release build.</string>
+
+    <string name="debug_section_app_update">App update gate</string>
+    <string name="debug_update_row">Force update override</string>
+    <string name="debug_update_row_desc">Simulate a minimum supported version</string>
+    <string name="debug_update_title">Force update override</string>
+    <string name="debug_update_min_version">Minimum version</string>
+    <string name="debug_update_blocking">Blocking (cannot dismiss)</string>
+    <string name="debug_update_apply">Apply</string>
+    <string name="debug_update_clear">Clear</string>
+    <string name="debug_update_reset_dismissal">Reset "seen today" — show the nudge again</string>
+    <string name="debug_update_reset_dismissal_done">Dismissal cleared ✓</string>
+</resources>

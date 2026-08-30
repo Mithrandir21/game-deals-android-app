@@ -32,6 +32,7 @@ import pm.bam.gamedeals.feature.account.ui.rememberAccountTabUnreadCount
 import pm.bam.gamedeals.feature.bundles.navigation.bundleDetailScreen
 import pm.bam.gamedeals.feature.bundles.navigation.bundlesScreen
 import pm.bam.gamedeals.feature.deals.navigation.dealsScreen
+import pm.bam.gamedeals.feature.debug.navigation.debugScreen
 import pm.bam.gamedeals.feature.discover.navigation.discoverResultsScreen
 import pm.bam.gamedeals.feature.discover.navigation.discoverScreen
 import pm.bam.gamedeals.feature.game.navigation.gamePageScreen
@@ -177,6 +178,8 @@ internal fun NavGraph(
                 goToWeb = { url -> platformActions.openInApp(url) },
                 onReplayOnboarding = { navActions.navigateToOnboarding() },
             )
+            // Developer tools. Registered in every build type; the Account hub's entry point is debug-gated.
+            debugScreen(navController = navController)
 
             storeScreen(
                 navController = navController,

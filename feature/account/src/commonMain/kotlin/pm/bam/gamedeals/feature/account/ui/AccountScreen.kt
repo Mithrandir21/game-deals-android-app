@@ -123,6 +123,7 @@ internal fun AccountScreen(
     onOpenLinkedAccounts: () -> Unit = {},
     onOpenWebsite: (url: String) -> Unit = {},
     onReplayOnboarding: () -> Unit = {},
+    onOpenDebug: () -> Unit = {},
     viewModel: AccountViewModel = koinViewModel(),
 ) {
     val data by viewModel.uiState.collectAsStateWithLifecycle()
@@ -160,6 +161,7 @@ internal fun AccountScreen(
         onOpenLinkedAccounts = onOpenLinkedAccounts,
         onOpenWebsite = onOpenWebsite,
         onReplayOnboarding = onReplayOnboarding,
+        onOpenDebug = onOpenDebug,
     )
 }
 
@@ -183,6 +185,7 @@ private fun AccountScreenContent(
     onOpenLinkedAccounts: () -> Unit,
     onOpenWebsite: (url: String) -> Unit,
     onReplayOnboarding: () -> Unit,
+    onOpenDebug: () -> Unit,
 ) {
     var showRegionPicker by rememberSaveable { mutableStateOf(false) }
     var showThemePicker by rememberSaveable { mutableStateOf(false) }
@@ -215,6 +218,7 @@ private fun AccountScreenContent(
                 onSetAnalytics = onSetAnalytics,
                 onOpenPrivacyPolicy = onOpenPrivacyPolicy,
                 onReplayOnboarding = onReplayOnboarding,
+                onOpenDebug = onOpenDebug,
             )
         } else {
             LoggedInContent(
@@ -241,6 +245,7 @@ private fun AccountScreenContent(
                 onOpenPrivacyPolicy = onOpenPrivacyPolicy,
                 onOpenWebsite = { onOpenWebsite(ITAD_SETTINGS_URL) },
                 onReplayOnboarding = onReplayOnboarding,
+                onOpenDebug = onOpenDebug,
             )
         }
 
@@ -292,6 +297,7 @@ private fun LoggedOutContent(
     onSetAnalytics: (Boolean) -> Unit,
     onOpenPrivacyPolicy: () -> Unit,
     onReplayOnboarding: () -> Unit,
+    onOpenDebug: () -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -308,8 +314,8 @@ private fun LoggedOutContent(
         item { MatureContentRow(checked = matureOptIn, onCheckedChange = onSetMature) }
         item { AnalyticsConsentRow(checked = analyticsConsent, onCheckedChange = onSetAnalytics, onOpenPrivacyPolicy = onOpenPrivacyPolicy) }
         item { HubRow(label = stringResource(Res.string.account_row_how_it_works), onClick = onReplayOnboarding) }
-        // Debug builds only; renders nothing in release (see AppUpdateDebugRow).
-        item { AppUpdateDebugRow() }
+        // Debug builds only; renders nothing in release (see DebugEntryRow).
+        item { DebugEntryRow(onClick = onOpenDebug) }
     }
 }
 
@@ -361,6 +367,7 @@ private fun LoggedInContent(
     onOpenPrivacyPolicy: () -> Unit,
     onOpenWebsite: () -> Unit,
     onReplayOnboarding: () -> Unit,
+    onOpenDebug: () -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -415,8 +422,8 @@ private fun LoggedInContent(
         item { MatureContentRow(checked = matureOptIn, onCheckedChange = onSetMature) }
         item { AnalyticsConsentRow(checked = analyticsConsent, onCheckedChange = onSetAnalytics, onOpenPrivacyPolicy = onOpenPrivacyPolicy) }
         item { HubRow(label = stringResource(Res.string.account_row_how_it_works), onClick = onReplayOnboarding) }
-        // Debug builds only; renders nothing in release (see AppUpdateDebugRow).
-        item { AppUpdateDebugRow() }
+        // Debug builds only; renders nothing in release (see DebugEntryRow).
+        item { DebugEntryRow(onClick = onOpenDebug) }
 
         item { SectionHeader(stringResource(Res.string.account_section_website)) }
         item {
@@ -660,6 +667,7 @@ private fun AccountScreenContentPreview(data: AccountScreenData) {
             onOpenLinkedAccounts = {},
             onOpenWebsite = {},
             onReplayOnboarding = {},
+            onOpenDebug = {},
         )
     }
 }

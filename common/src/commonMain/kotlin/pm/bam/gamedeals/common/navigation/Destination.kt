@@ -61,6 +61,14 @@ sealed interface Destination {
     @Serializable
     data object LinkedAccounts : Destination
 
+    /**
+     * Developer tools, reachable from the Account hub. The entry point renders only in debug builds
+     * (`AppInfo.isDebug`), but the route itself is always registered — a nav graph that changes shape between
+     * build types is a worse trade than a route nothing links to in release.
+     */
+    @Serializable
+    data object Debug : Destination
+
     @Serializable
     data class Store(val storeId: Int) : Destination
 

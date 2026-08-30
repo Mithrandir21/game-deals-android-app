@@ -144,4 +144,29 @@ class SettingsRepositoryImplTest {
 
         assertEquals(ThemeMode.SYSTEM, repository.getThemeMode())
     }
+
+    @Test
+    fun update_prompt_dismissal_is_absent_until_recorded() = runTest {
+        assertNull(repository.observeUpdatePromptDismissedAt().first())
+    }
+
+    @Test
+    fun update_prompt_dismissal_round_trips() = runTest {
+        repository.setUpdatePromptDismissedAt(1_700_000_000_000L)
+        assertEquals(1_700_000_000_000L, repository.observeUpdatePromptDismissedAt().first())
+
+        // Survives a fresh instance, i.e. it actually reached storage rather than only the in-memory flow.
+        assertEquals(1_700_000_000_000L, SettingsRepositoryImpl(storage, analytics).observeUpdatePromptDismissedAt().first())
+    }
+
+    @Test
+    fun clearing_the_dismissal_makes_the_prompt_eligible_again() = runTest {
+        repository.setUpdatePromptDismissedAt(1_700_000_000_000L)
+        repository.clearUpdatePromptDismissedAt()
+
+        assertNull(repository.observeUpdatePromptDismissedAt().first())
+        // And the key is gone from storage, not merely nulled in the flow.
+        assertFalse(storage.containsKey(UPDATE_PROMPT_DISMISSED_AT_KEY))
+        assertNull(SettingsRepositoryImpl(storage, analytics).observeUpdatePromptDismissedAt().first())
+    }
 }

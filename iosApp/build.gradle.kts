@@ -59,6 +59,7 @@ kotlin {
             implementation(project(":feature:discover"))
             implementation(project(":feature:onboarding"))
             implementation(project(":feature:appupdate"))
+            implementation(project(":feature:debug"))
         }
     }
 }

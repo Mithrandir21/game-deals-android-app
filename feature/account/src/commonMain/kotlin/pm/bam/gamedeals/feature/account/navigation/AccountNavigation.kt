@@ -40,6 +40,8 @@ fun NavGraphBuilder.accountScreen(
             onOpenLinkedAccounts = { navController.navigate(Destination.LinkedAccounts) },
             onOpenWebsite = goToWeb,
             onReplayOnboarding = onReplayOnboarding,
+            // The row itself is debug-gated; the route is registered by :feature:debug in every build type.
+            onOpenDebug = { navController.navigate(Destination.Debug) },
         )
     }
 

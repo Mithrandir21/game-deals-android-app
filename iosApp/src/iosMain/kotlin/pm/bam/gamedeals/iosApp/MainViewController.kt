@@ -76,6 +76,7 @@ import pm.bam.gamedeals.feature.bundles.navigation.bundleDetailScreen
 import pm.bam.gamedeals.feature.bundles.navigation.bundlesScreen
 import pm.bam.gamedeals.feature.deals.di.dealsModule
 import pm.bam.gamedeals.feature.deals.navigation.dealsScreen
+import pm.bam.gamedeals.feature.debug.navigation.debugScreen
 import pm.bam.gamedeals.feature.discover.di.discoverModule
 import pm.bam.gamedeals.feature.discover.navigation.discoverResultsScreen
 import pm.bam.gamedeals.feature.discover.navigation.discoverScreen
@@ -505,6 +506,8 @@ private fun AppNavHost(startDestination: Destination) {
             goToWeb = { url -> uriHandler.openUri(url) },
             onReplayOnboarding = { navController.navigate(Destination.Onboarding) },
         )
+        // Developer tools — mirrors the Android NavGraph. Entry point is debug-gated in the Account hub.
+        debugScreen(navController = navController)
         onboardingScreen(
             // Replay pops back to where it was launched from; first run (nothing behind it) opens Home and
             // drops Onboarding so a back press exits the app — mirrors Android's NavigationActions.finishOnboarding.
