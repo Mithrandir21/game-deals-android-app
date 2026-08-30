@@ -68,6 +68,10 @@ tracing = "1.3.0"
 # Test libraries.
 junit = "4.13.2"
 mockk = "1.14.11"
+# Real org.json for host tests. android.jar ships stubbed org.json classes that throw "Stub!", which the
+# payload normaliser catches and turns into null — so without this the Android actual can only ever be
+# asserted to fail. AGP puts the mockable android.jar last on the unit-test classpath, so this wins.
+org-json = "20250517"
 mokkery = "3.4.2"
 coroutines-testing = "1.11.0"
 core-testing = "2.2.0"
@@ -176,6 +180,7 @@ sandwich-ktor = { group = "com.github.skydoves", name = "sandwich-ktor", version
 # Unit-test libraries (JVM host tests).
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
+org-json = { group = "org.json", name = "json", version.ref = "org-json" }
 coroutines-testing = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines-testing" }
 core-testing = { group = "androidx.arch.core", name = "core-testing", version.ref = "core-testing" }
 

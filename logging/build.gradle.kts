@@ -25,6 +25,8 @@ kotlin {
 
         commonTest.dependencies {
             implementation(kotlin("test"))
+            // runTest, for the Flow-returning halves of the FeatureFlags seam.
+            implementation(libs.coroutines.testing)
         }
 
         // JVM-host tests for the LoggingInterface listeners, which delegate to global SDK statics
@@ -34,6 +36,12 @@ kotlin {
             dependencies {
                 implementation(libs.junit)
                 implementation(libs.mockk)
+                // A real org.json, shadowing android.jar's throwing stubs, so FeatureFlagPayload.android.kt's
+                // actual serialisation can be asserted rather than only its null fallback.
+                implementation(libs.org.json)
+                // The payload's real consumer parses with kotlinx-serialization, so the tests assert the
+                // produced text the same way rather than string-matching org.json's unordered output.
+                implementation(libs.kotlinx)
             }
         }
     }
